@@ -20,7 +20,7 @@ const SEGMENTS = [
 ];
 
 const SPIN_COST   = 10;
-const FREE_EVERY  = 6;   // every 6th spin is free
+const FREE_EVERY  = 6;
 
 function weightedRandom(): number {
   let r = Math.random(), cum = 0;
@@ -46,7 +46,6 @@ function drawWheel(canvas: HTMLCanvasElement, angle: number) {
     const start = angle + i * slice;
     const end   = start + slice;
 
-    // Segment fill
     ctx.beginPath();
     ctx.moveTo(cx, cx);
     ctx.arc(cx, cx, r, start, end);
@@ -54,12 +53,10 @@ function drawWheel(canvas: HTMLCanvasElement, angle: number) {
     ctx.fillStyle = seg.color;
     ctx.fill();
 
-    // Segment border
     ctx.strokeStyle = 'rgba(0,0,0,0.25)';
     ctx.lineWidth   = 2;
     ctx.stroke();
 
-    // Label text
     ctx.save();
     ctx.translate(cx, cx);
     ctx.rotate(start + slice / 2);
@@ -72,14 +69,12 @@ function drawWheel(canvas: HTMLCanvasElement, angle: number) {
     ctx.restore();
   });
 
-  // Outer ring
   ctx.beginPath();
   ctx.arc(cx, cx, r, 0, 2 * Math.PI);
   ctx.strokeStyle = 'rgba(245,166,35,0.6)';
   ctx.lineWidth   = 5;
   ctx.stroke();
 
-  // Centre hub
   ctx.beginPath();
   ctx.arc(cx, cx, 30, 0, 2 * Math.PI);
   ctx.fillStyle = '#1a1d27';
@@ -100,7 +95,7 @@ function drawWheel(canvas: HTMLCanvasElement, angle: number) {
 export default function SpinPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef   = useRef<number>();
-  const angleRef  = useRef(0);         // current wheel angle (radians)
+  const angleRef  = useRef(0);
 
   const [spinning,  setSpinning]  = useState(false);
   const [result,    setResult]    = useState<typeof SEGMENTS[0] | null>(null);
@@ -109,7 +104,6 @@ export default function SpinPage() {
   const [spinCount, setSpinCount] = useState(0);
   const [history,   setHistory]   = useState<{ label: string; coins: number; time: string }[]>([]);
 
-  // Draw on mount + whenever angle changes
   const redraw = useCallback((a: number) => {
     if (canvasRef.current) drawWheel(canvasRef.current, a);
   }, []);
@@ -122,17 +116,18 @@ export default function SpinPage() {
     fetchCurrentUser().then(u => {
       if (u) { setBalance(u.balance); setLoggedIn(true); }
     });
-    // Load today's spin count from API
     authFetch('/api/spin/rewards').then(r => r.json()).then(d => {
       if (d.spinCount) setSpinCount(d.spinCount);
-      if (d.history)   setHistory(d.history.map((h: any) => ({ label: h.rewardId, coins: h.coinsWon, time: new Date(h.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) })));
+      if (d.history)   setHistory(d.history.map((h: any) => ({
+        label: h.rewardId,
+        coins: h.coinsWon,
+        time:  new Date(h.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+      })));
     }).catch(() => {});
   }, []);
 
   const spinsUntilFree = FREE_EVERY - (spinCount % FREE_EVERY);
-  const nextIsFree     = spinsUntilFree === FREE_EVERY; // modulo is 0 → next is free
-
-  // ── Spin ──────────────────────────────────────────────────────────────────
+  const nextIsFree     = spinsUntilFree === FREE_EVERY;
 
   const spin = async () => {
     if (spinning) return;
@@ -144,10 +139,8 @@ export default function SpinPage() {
     setSpinning(true);
     setResult(null);
 
-    // Deduct coins optimistically
     if (cost > 0) setBalance(b => b - cost);
 
-    // Determine winner (API or demo)
     let winnerIdx = weightedRandom();
     try {
       const res  = await authFetch('/api/spin/rewards', { method: 'POST', body: JSON.stringify({ useFreeSpins: nextIsFree }) });
@@ -159,9 +152,8 @@ export default function SpinPage() {
       }
     } catch { /* demo */ }
 
-    // Animate spin
     const slice      = (2 * Math.PI) / SEGMENTS.length;
-    const targetAngle = -(winnerIdx * slice + slice / 2); // pointer at top = -90° = -π/2... offset handled below
+    const targetAngle = -(winnerIdx * slice + slice / 2);
     const fullSpins  = Math.PI * 2 * (5 + Math.random() * 3);
     const endAngle   = angleRef.current + fullSpins + (targetAngle - ((angleRef.current + fullSpins) % (2 * Math.PI)));
     const startAngle = angleRef.current;
@@ -169,8 +161,8 @@ export default function SpinPage() {
     const duration   = 4500;
 
     const animate = (now: number) => {
-      const t      = Math.min((now - startTime) / duration, 1);
-      const eased  = 1 - Math.pow(1 - t, 4);   // ease-out quartic
+      const t       = Math.min((now - startTime) / duration, 1);
+      const eased   = 1 - Math.pow(1 - t, 4);
       const current = startAngle + (endAngle - startAngle) * eased;
       angleRef.current = current;
       redraw(current);
@@ -178,7 +170,6 @@ export default function SpinPage() {
       if (t < 1) {
         animRef.current = requestAnimationFrame(animate);
       } else {
-        // Done
         setSpinning(false);
         setSpinCount(c => c + 1);
 
@@ -187,14 +178,20 @@ export default function SpinPage() {
 
         if (winner.coins > 0) {
           setBalance(b => b + winner.coins);
-          setHistory(h => [{ label: winner.label, coins: winner.coins, time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) }, ...h.slice(0, 9)]);
-          toast.success(`🎉 ${winner.label} — ${winner.coins} Coins added!`);
+          setHistory(h => [{
+            label: winner.label, coins: winner.coins,
+            time:  new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+          }, ...h.slice(0, 9)]);
+          toast.success(`${winner.label} — ${winner.coins} Coins added!`);
         } else {
-          setHistory(h => [{ label: 'Try Again', coins: 0, time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) }, ...h.slice(0, 9)]);
-          toast.info('😔 Better luck next time!');
+          setHistory(h => [{
+            label: 'Try Again', coins: 0,
+            time:  new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+          }, ...h.slice(0, 9)]);
+          toast.info('Better luck next time!');
         }
 
-        if (nextIsFree) toast.info('🎁 That was your FREE spin!');
+        if (nextIsFree) toast.info('That was your FREE spin!');
       }
     };
 
@@ -208,17 +205,19 @@ export default function SpinPage() {
       {/* Page Title */}
       <div style={{ background: 'linear-gradient(180deg,#0d0b2a,var(--Bg))', paddingTop: 130, paddingBottom: 40, textAlign: 'center' }}>
         <div className="tf-container">
-          <h1 style={{ fontWeight: 900, fontSize: 44, marginBottom: 8 }}>🌀 Spin Wheel</h1>
+          <h1 style={{ fontWeight: 900, fontSize: 44, marginBottom: 8 }}>Spin Wheel</h1>
           <p style={{ color: 'var(--Secondary)', fontSize: 15 }}>
             Buy {FREE_EVERY - 1} spins, get 1 FREE · Instant coin rewards
           </p>
           {loggedIn && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 16, marginTop: 14,
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 16, marginTop: 14,
               background: 'rgba(255,203,82,0.1)', border: '1px solid rgba(255,203,82,0.3)',
-              borderRadius: 999, padding: '8px 24px' }}>
-              <span style={{ color: '#ffcb52', fontWeight: 700 }}>💰 {balance.toLocaleString()} Coins</span>
+              borderRadius: 999, padding: '8px 24px',
+            }}>
+              <span style={{ color: '#ffcb52', fontWeight: 700 }}>{balance.toLocaleString()} Coins</span>
               <span style={{ color: 'var(--Secondary)', fontSize: 13 }}>
-                {nextIsFree ? '🎁 Next spin is FREE!' : `${spinsUntilFree} spins until free`}
+                {nextIsFree ? 'Next spin is FREE!' : `${spinsUntilFree} spins until free`}
               </span>
             </div>
           )}
@@ -229,12 +228,16 @@ export default function SpinPage() {
         <div className="tf-container">
 
           {/* Promo banner */}
-          <div style={{ background: 'linear-gradient(135deg,#1a0f00,#2a1500)', border: '1px solid rgba(254,140,69,0.35)',
+          <div style={{
+            background: 'linear-gradient(135deg,#1a0f00,#2a1500)',
+            border: '1px solid rgba(254,140,69,0.35)',
             borderRadius: 16, padding: '18px 28px', marginBottom: 32,
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 }}>
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            flexWrap: 'wrap', gap: 14,
+          }}>
             <div>
               <h3 style={{ fontWeight: 900, fontSize: 20, marginBottom: 4 }}>
-                🎁 Buy {FREE_EVERY - 1} Spins — Get 1 <span style={{ color: '#ffcb52' }}>FREE!</span>
+                Buy {FREE_EVERY - 1} Spins — Get 1 <span style={{ color: '#ffcb52' }}>FREE!</span>
               </h3>
               <p style={{ color: 'var(--Secondary)', fontSize: 13 }}>
                 ₹{SPIN_COST}/spin · Coins credited instantly · Top prize: ₹5,000
@@ -259,15 +262,15 @@ export default function SpinPage() {
             {/* ── Wheel ── */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20 }}>
 
-              {/* Pointer */}
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                {/* Triangle pointer at top */}
-                <div style={{ position: 'absolute', top: -14, zIndex: 10,
+                {/* Triangle pointer */}
+                <div style={{
+                  position: 'absolute', top: -14, zIndex: 10,
                   width: 0, height: 0,
                   borderLeft: '12px solid transparent',
                   borderRight: '12px solid transparent',
                   borderTop: '24px solid #f5a623',
-                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
                 }} />
 
                 {/* Glow ring */}
@@ -276,7 +279,7 @@ export default function SpinPage() {
                   boxShadow: spinning
                     ? '0 0 50px rgba(245,166,35,0.8), 0 0 100px rgba(245,166,35,0.4)'
                     : '0 0 24px rgba(245,166,35,0.3)',
-                  transition: 'box-shadow 0.3s'
+                  transition: 'box-shadow 0.3s',
                 }} />
 
                 <canvas
@@ -289,23 +292,25 @@ export default function SpinPage() {
 
               {/* Spin button */}
               <button onClick={spin} disabled={spinning || !loggedIn} style={{
-                minWidth: 220, height: 52, borderRadius: 999, border: 'none', cursor: (spinning || !loggedIn) ? 'not-allowed' : 'pointer',
+                minWidth: 220, height: 52, borderRadius: 999, border: 'none',
+                cursor: (spinning || !loggedIn) ? 'not-allowed' : 'pointer',
                 background: (!loggedIn || spinning) ? 'var(--Bg-3)' : 'linear-gradient(270deg,#fe8c45,#ca2826)',
                 color: '#fff', fontWeight: 900, fontSize: 17, transition: 'all 0.2s',
-                opacity: (spinning || !loggedIn) ? 0.55 : 1
+                opacity: (spinning || !loggedIn) ? 0.55 : 1,
               }}>
-                {!loggedIn   ? '🔒 Login to Spin'
-                  : spinning ? '⏳ Spinning...'
-                  : nextIsFree ? '🎁 FREE Spin!'
-                  : `🌀 Spin — ₹${SPIN_COST}`}
+                {!loggedIn    ? 'Login to Spin'
+                  : spinning  ? 'Spinning...'
+                  : nextIsFree ? 'FREE Spin!'
+                  : `Spin — ₹${SPIN_COST}`}
               </button>
 
               {/* Result card */}
               {result && !spinning && (
                 <div style={{
-                  width: '100%', background: result.coins > 0 ? 'rgba(46,204,113,0.1)' : 'rgba(255,255,255,0.04)',
+                  width: '100%',
+                  background: result.coins > 0 ? 'rgba(46,204,113,0.1)' : 'rgba(255,255,255,0.04)',
                   border: `1px solid ${result.coins > 0 ? 'rgba(46,204,113,0.4)' : 'var(--Border)'}`,
-                  borderRadius: 16, padding: '20px 24px', textAlign: 'center'
+                  borderRadius: 16, padding: '20px 24px', textAlign: 'center',
                 }}>
                   <div style={{ fontSize: 40, marginBottom: 6 }}>{result.coins > 0 ? '🎉' : '😔'}</div>
                   <div style={{ fontWeight: 900, fontSize: 26, marginBottom: 4 }}>{result.label}</div>
@@ -317,7 +322,6 @@ export default function SpinPage() {
                 </div>
               )}
 
-              {/* Add funds link */}
               {!loggedIn && (
                 <p style={{ textAlign: 'center', color: 'var(--Secondary)', fontSize: 13 }}>
                   Please <a href="#" style={{ color: 'var(--Main-color)', fontWeight: 700 }}>login</a> to spin
@@ -325,7 +329,7 @@ export default function SpinPage() {
               )}
               {loggedIn && balance < SPIN_COST && !nextIsFree && (
                 <Link href="/dashboard/wallet" style={{ color: '#fe8c45', fontSize: 13, fontWeight: 600 }}>
-                  💳 Add coins to spin →
+                  Add coins to spin →
                 </Link>
               )}
             </div>
@@ -333,17 +337,21 @@ export default function SpinPage() {
             {/* ── Right panel ── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-              {/* Rewards table */}
+              {/* Rewards table — probability % hidden */}
               <div style={{ background: 'var(--Bg-2)', borderRadius: 16, padding: 20, border: '1px solid var(--Border)' }}>
-                <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 14 }}>🏆 Possible Rewards</h4>
+                <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 14 }}>Possible Rewards</h4>
                 {SEGMENTS.map(s => (
-                  <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 12,
-                    padding: '9px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div key={s.label} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '9px 0', borderBottom: '1px solid rgba(255,255,255,0.04)',
+                  }}>
                     <div style={{ width: 14, height: 14, borderRadius: '50%', background: s.color, flexShrink: 0 }} />
                     <span style={{ fontWeight: 700, fontSize: 15, flex: 1 }}>{s.label}</span>
-                    {s.coins > 0 && <span style={{ fontSize: 12, color: '#2ECC71', fontWeight: 700 }}>+{s.coins.toLocaleString()}</span>}
-                    <span style={{ fontSize: 11, color: 'var(--Secondary)', background: 'var(--Bg-3)',
-                      borderRadius: 999, padding: '2px 9px' }}>{(s.probability * 100).toFixed(0)}%</span>
+                    {s.coins > 0 && (
+                      <span style={{ fontSize: 12, color: '#2ECC71', fontWeight: 700 }}>
+                        +{s.coins.toLocaleString()} Coins
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -351,13 +359,19 @@ export default function SpinPage() {
               {/* Spin history */}
               {history.length > 0 && (
                 <div style={{ background: 'var(--Bg-2)', borderRadius: 16, padding: 20, border: '1px solid var(--Border)' }}>
-                  <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>⏱️ Today's Spins</h4>
+                  <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 12 }}>Today's Spins</h4>
                   {history.map((h, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      padding: '7px 0', borderBottom: i < history.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none', fontSize: 13 }}>
+                    <div key={i} style={{
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      padding: '7px 0',
+                      borderBottom: i < history.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                      fontSize: 13,
+                    }}>
                       <span style={{ fontWeight: 600 }}>{h.label}</span>
                       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                        {h.coins > 0 && <span style={{ color: '#2ECC71', fontWeight: 700 }}>+{h.coins.toLocaleString()}</span>}
+                        {h.coins > 0 && (
+                          <span style={{ color: '#2ECC71', fontWeight: 700 }}>+{h.coins.toLocaleString()}</span>
+                        )}
                         <span style={{ color: 'var(--Secondary)', fontSize: 11 }}>{h.time}</span>
                       </div>
                     </div>
@@ -367,24 +381,26 @@ export default function SpinPage() {
 
               {/* How it works */}
               <div style={{ background: 'var(--Bg-2)', borderRadius: 16, padding: 20, border: '1px solid var(--Border)' }}>
-                <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 14 }}>📖 How It Works</h4>
+                <h4 style={{ fontWeight: 700, fontSize: 16, marginBottom: 14 }}>How It Works</h4>
                 {[
-                  { icon: '💳', title: 'Add Coins', desc: 'Deposit via UPI. 1 INR = 1 Coin.' },
-                  { icon: '🌀', title: 'Spin', desc: `₹${SPIN_COST}/spin. Every ${FREE_EVERY}th spin is FREE!` },
-                  { icon: '🏆', title: 'Win Instantly', desc: 'Coins credited immediately. Withdraw anytime.' },
+                  { title: 'Add Coins',     desc: 'Deposit via UPI. 1 INR = 1 Coin.' },
+                  { title: 'Spin',          desc: `₹${SPIN_COST}/spin. Every ${FREE_EVERY}th spin is FREE!` },
+                  { title: 'Win Instantly', desc: 'Coins credited immediately. Withdraw anytime.' },
                 ].map(item => (
                   <div key={item.title} style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-                    <span style={{ fontSize: 20 }}>{item.icon}</span>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 14 }}>{item.title}</div>
                       <div style={{ color: 'var(--Secondary)', fontSize: 12 }}>{item.desc}</div>
                     </div>
                   </div>
                 ))}
-                <Link href="/dashboard/wallet" className="tf-btn" style={{ width: '100%', justifyContent: 'center', height: 42, fontSize: 13, marginTop: 8 }}>
-                  💳 Add Coins to Wallet
+                <Link href="/dashboard/wallet" className="tf-btn" style={{
+                  width: '100%', justifyContent: 'center', height: 42, fontSize: 13, marginTop: 8,
+                }}>
+                  Add Coins to Wallet
                 </Link>
               </div>
+
             </div>
           </div>
 
