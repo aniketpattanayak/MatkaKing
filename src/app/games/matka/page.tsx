@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+export const dynamic = 'force-dynamic'; // prevents static prerender where market=null
 import Link from 'next/link';
 import { toast } from 'sonner';
 import Header from '@/components/layout/Header';

@@ -10,7 +10,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" type="image/png" href="/images/logo/logo.png" />
         {/* Preconnect to DB + external APIs */}
         <link rel="preconnect" href="https://ep-summer-snow-aqi8pfq8-pooler.c-8.us-east-1.aws.neon.tech" />
         <link rel="dns-prefetch" href="https://api.qrserver.com" />
