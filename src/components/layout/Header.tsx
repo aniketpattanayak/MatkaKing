@@ -110,7 +110,7 @@ export default function Header() {
                     {/* Games dropdown */}
                     <li className={`has-child ${act('/games') ? 'current-menu-item' : ''}`}>
                       <a href="#" style={navLink}>
-                        Games <ChevronDown size={14}/>
+                        Games 
                       </a>
                       <ul className="sub-menu">
                         <li className={act('/games/lottery') ? 'current-item' : ''}>
@@ -136,7 +136,7 @@ export default function Header() {
                     {user && (
                       <li className={`has-child ${act('/dashboard') ? 'current-menu-item' : ''}`}>
                         <a href="#" style={navLink}>
-                          My Account <ChevronDown size={14}/>
+                          My Account 
                         </a>
                         <ul className="sub-menu">
                           <li>
