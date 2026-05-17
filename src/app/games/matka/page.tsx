@@ -16,18 +16,7 @@ const FALLBACK_MARKETS = [
 ];
 
 // maxSelect = max columns user can select at once
-// Use market-specific rates if available
-  const rates = {
-    ANK:         market?.payoutSingle   ?? 90,
-    JODI:        market?.payoutJodi     ?? 900,
-    SP:          market?.payoutSP       ?? 140,
-    DP:          market?.payoutDP       ?? 280,
-    TP:          market?.payoutTP       ?? 450,
-    HALF_SANGAM: market?.payoutHalfSangam ?? 1500,
-    FULL_SANGAM: market?.payoutFullSangam ?? 11000,
-  };
-
-  const GAME_TYPES = [
+const GAME_TYPES = [
   { key: 'ANK',          label: 'Ank',        payout: 90,    maxSelect: 1, desc: 'Pick 1 digit from any 1 column' },
   { key: 'JODI',         label: 'Jodi',        payout: 900,   maxSelect: 2, desc: 'Pick 2 adjacent columns → 2-digit number' },
   { key: 'SINGLE_PATTI', label: 'SP',          payout: 140,   maxSelect: 3, desc: '3 adjacent columns → 3-digit patti' },
@@ -342,6 +331,21 @@ export default function MatkaPage() {
     </>
   );
 
+  // Dynamic game rates — use market-specific values if set by admin
+  const gameRates = {
+    ANK:         market?.payoutSingle    ?? 90,
+    JODI:        market?.payoutJodi      ?? 900,
+    SINGLE_PATTI: market?.payoutSP       ?? 140,
+    DOUBLE_PATTI: market?.payoutDP       ?? 280,
+    TRIPLE_PATTI: market?.payoutTP       ?? 450,
+    HALF_SANGAM:  market?.payoutHalfSangam ?? 1500,
+    FULL_SANGAM:  market?.payoutFullSangam ?? 11000,
+  };
+  const dynamicTypes = GAME_TYPES.map(g => ({
+    ...g,
+    payout: gameRates[g.key as keyof typeof gameRates] ?? g.payout,
+  }));
+
   // Market selection screen - shown before entering the game
   if (!marketSelected) return (
     <>
@@ -469,7 +473,7 @@ export default function MatkaPage() {
           <div style={{ background: 'var(--Bg-2)', borderRadius: 14, padding: '13px 18px', marginBottom: 18, border: '1px solid var(--Border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                {activeGameTypes.map(g => (
+                {dynamicTypes.map(g => (
                   <button key={g.key} onClick={() => setGameType(g)} style={{
                     padding: '7px 13px', borderRadius: 999, border: '1px solid',
                     borderColor: gameType.key === g.key ? '#fe8c45' : 'var(--Border)',
@@ -732,7 +736,7 @@ export default function MatkaPage() {
                   <h4 style={{ fontWeight: 700, fontSize: 13 }}>💰 Game Rates</h4>
                   <span style={{ fontSize: 10, color: 'var(--Secondary)' }}>{market.name}</span>
                 </div>
-                {activeGameTypes.map(g => (
+                {dynamicTypes.map(g => (
                   <div key={g.key} onClick={() => setGameType(g)} style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '6px 9px', borderRadius: 7, marginBottom: 3, cursor: 'pointer',
