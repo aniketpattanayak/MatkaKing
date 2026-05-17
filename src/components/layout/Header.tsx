@@ -18,6 +18,7 @@ export default function Header() {
   const [form,    setForm]    = useState({ name:'', email:'', password:'', confirm:'' });
   const [dropdown,setDropdown]= useState(false);
   const [mobileNav,setMobileNav]=useState(false);
+  const [topBar,setTopBar]=useState(true);
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,22 +72,24 @@ export default function Header() {
   return (
     <>
       {/* Top bar */}
-      <div className="tf-top-bar">
-        <div className="content">
-          <p>Supreme Gaming Engine — Lottery · Matka King · Spin Wheel</p>
-          {user
-            ? <span style={{ color:'#ffcb52', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}>
-                <Coins size={14}/> {user.balance.toLocaleString()} Coins
-              </span>
-            : <a href="#" onClick={e=>{e.preventDefault();setModal('register');}}>
-                Get 50 FREE coins on signup!
-              </a>
-          }
+      {topBar && (
+        <div className="tf-top-bar">
+          <div className="content">
+            <p>Supreme Gaming Engine — Lottery · Matka King · Spin Wheel</p>
+            {user
+              ? <span style={{ color:'#ffcb52', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}>
+                  <Coins size={14}/> {user.balance.toLocaleString()} Coins
+                </span>
+              : <a href="#" onClick={e=>{e.preventDefault();setModal('register');}}>
+                  Get 50 FREE coins on signup!
+                </a>
+            }
+          </div>
+          <div className="button-close" onClick={()=>setTopBar(false)} style={{ cursor:'pointer' }}>
+            <X size={16}/>
+          </div>
         </div>
-        <div className="button-close" onClick={() => {/* close topbar */}}>
-          <X size={16}/>
-        </div>
-      </div>
+      )}
 
       {/* Main header */}
       <header id="header-main" className="header header-home-3 header-fixed style-absolute">
@@ -107,7 +110,7 @@ export default function Header() {
                     {/* Games dropdown */}
                     <li className={`has-child ${act('/games') ? 'current-menu-item' : ''}`}>
                       <a href="#" style={navLink}>
-                        Games 
+                        Games <ChevronDown size={14}/>
                       </a>
                       <ul className="sub-menu">
                         <li className={act('/games/lottery') ? 'current-item' : ''}>
@@ -133,7 +136,7 @@ export default function Header() {
                     {user && (
                       <li className={`has-child ${act('/dashboard') ? 'current-menu-item' : ''}`}>
                         <a href="#" style={navLink}>
-                          My Account
+                          My Account <ChevronDown size={14}/>
                         </a>
                         <ul className="sub-menu">
                           <li>
