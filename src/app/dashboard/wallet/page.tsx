@@ -169,7 +169,7 @@ export default function WalletPage() {
           </div>
 
           {tab==='deposit' && !payment && (
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24 }}>
+            <div className='wallet-layout' style={{ gap:16 }}>
 
               {/* Left - amount picker */}
               <div style={{ background:'var(--Bg-2)', borderRadius:20, padding:28, border:'1px solid var(--Border)' }}>
@@ -180,7 +180,7 @@ export default function WalletPage() {
                   Pay to our UPI — coins credited automatically when detected
                 </p>
 
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:18 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8, marginBottom:14 }}>
                   {QUICK_AMOUNTS.map(a=>(
                     <button key={a} onClick={()=>setAmount(a)} style={{ padding:'13px 0', borderRadius:10, border:'2px solid', borderColor:amount===a?'#fe8c45':'var(--Border)', background:amount===a?'rgba(254,140,69,0.12)':'var(--Bg-3)', color:amount===a?'#fe8c45':'var(--White)', fontWeight:700, fontSize:15, cursor:'pointer' }}>
                       ₹{a.toLocaleString()}
@@ -241,7 +241,7 @@ export default function WalletPage() {
 
           {/* Payment in progress */}
           {tab==='deposit' && payment && !confirmed && (
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:24 }}>
+            <div className='wallet-layout' style={{ gap:16 }}>
 
               {/* Left — QR Code */}
               <div style={{ background:'var(--Bg-2)', borderRadius:20, padding:28, border:'1px solid rgba(254,140,69,0.3)', textAlign:'center' }}>

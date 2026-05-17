@@ -358,7 +358,7 @@ export default function MatkaPage() {
             <p style={{ color:'var(--Secondary)', fontSize:16 }}>Select a market to start playing</p>
           </div>
 
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(300px, 1fr))', gap:24, maxWidth:1000, margin:'0 auto' }}>
+          <div className='market-grid' style={{ maxWidth:1000, margin:'0 auto' }}>
             {allMarkets.map((m:any) => {
               const isOpen = m.status === 'OPEN' || m.isOpen;
               return (

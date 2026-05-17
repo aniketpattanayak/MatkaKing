@@ -516,8 +516,8 @@ export default function AdminPage() {
   return (
     <>
       <Header />
-      <div style={{ paddingTop:100, minHeight:'100vh' }}>
-        <div className="tf-container" style={{ paddingTop:28, paddingBottom:60 }}>
+      <div style={{ paddingTop:80, minHeight:'100vh' }}>
+        <div className="tf-container" style={{ paddingTop:16, paddingBottom:60 }}>
 
           {/* Title */}
           <div style={{ marginBottom:24, display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:12 }}>
@@ -554,7 +554,7 @@ export default function AdminPage() {
           {/* ── OVERVIEW ── */}
           {tab==='overview' && (
             <div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:24 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:12, marginBottom:20 }} className='stat-grid'>
                 {[
                   { label:'Lottery Series', value: data.series.length,                            Icon:Ticket,         color:'#3498DB', sub: data.series.filter((s:any)=>s.status==='OPEN').length+' open' },
                   { label:'Matka Markets',  value: data.markets.length,                           Icon:Dices,          color:'#9B59B6', sub: data.markets.filter((m:any)=>m.isOpen).length+' open' },

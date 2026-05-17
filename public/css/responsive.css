@@ -1,0 +1,187 @@
+/* ============================================================
+   KismatHub — Global Responsive Stylesheet
+   Fixes all layouts for mobile (320px+) and tablet (768px+)
+   ============================================================ */
+
+/* ── Base mobile resets ──────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+img { max-width: 100%; height: auto; }
+
+/* ── Admin panel tabs — scroll horizontally on mobile ─────────────────── */
+.admin-tabs-wrap {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.admin-tabs-wrap::-webkit-scrollbar { display: none; }
+
+/* ── Stat cards — 2 col on mobile, 4 col on desktop ─────────────────────── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (min-width: 768px) {
+  .stat-grid { grid-template-columns: repeat(4, 1fr); gap: 16px; }
+}
+
+/* ── Two-column layouts → single column on mobile ───────────────────────── */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 768px) {
+  .two-col { grid-template-columns: 1fr 1fr; gap: 24px; }
+}
+
+/* ── Three-column layouts ─────────────────────────────────────────────── */
+.three-col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 600px) {
+  .three-col { grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 900px) {
+  .three-col { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ── Tables — horizontal scroll on mobile ───────────────────────────────── */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-wrap table { min-width: 600px; }
+
+/* ── Game amount quick-pick grid ─────────────────────────────────────────── */
+.amount-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+@media (min-width: 480px) {
+  .amount-grid { grid-template-columns: repeat(6, 1fr); }
+}
+
+/* ── Market cards grid ───────────────────────────────────────────────────── */
+.market-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 600px) {
+  .market-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (min-width: 900px) {
+  .market-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ── Spin wheel layout ───────────────────────────────────────────────────── */
+.spin-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 768px) {
+  .spin-layout { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Dashboard tab buttons ───────────────────────────────────────────────── */
+.dash-tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  flex-wrap: nowrap;
+}
+.dash-tabs::-webkit-scrollbar { display: none; }
+.dash-tabs button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── Wallet page layout ──────────────────────────────────────────────────── */
+.wallet-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 768px) {
+  .wallet-layout { grid-template-columns: 1fr 1fr; gap: 24px; }
+}
+
+/* ── Notification festival grid ─────────────────────────────────────────── */
+.festival-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+@media (min-width: 768px) {
+  .festival-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ── Header nav — hide text labels on small screens ─────────────────────── */
+@media (max-width: 480px) {
+  .balance-label { display: none; }
+  .tf-btn span   { display: none; }
+}
+
+/* ── Lottery ticket grid ─────────────────────────────────────────────────── */
+.ticket-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+@media (min-width: 480px)  { .ticket-grid { grid-template-columns: repeat(6, 1fr); } }
+@media (min-width: 768px)  { .ticket-grid { grid-template-columns: repeat(8, 1fr); } }
+@media (min-width: 1024px) { .ticket-grid { grid-template-columns: repeat(12, 1fr); } }
+
+/* ── Admin panel edit forms ──────────────────────────────────────────────── */
+.edit-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+@media (min-width: 600px) {
+  .edit-form-grid { grid-template-columns: 2fr 1fr 1fr 1fr auto; }
+}
+
+/* ── General container padding on mobile ─────────────────────────────────── */
+@media (max-width: 640px) {
+  .tf-container { padding-left: 16px !important; padding-right: 16px !important; }
+
+  /* Reduce font sizes on mobile */
+  h1 { font-size: clamp(24px, 6vw, 44px) !important; }
+  h2 { font-size: clamp(20px, 5vw, 36px) !important; }
+
+  /* Stack header elements */
+  .header-inner-wrap {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Full width buttons on mobile */
+  .tf-btn.full-mobile { width: 100%; justify-content: center; }
+}
+
+/* ── Drum picker — scrollable on mobile ──────────────────────────────────── */
+@media (max-width: 768px) {
+  .drum-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ── Hero slider text ────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .hero-price { font-size: 36px !important; }
+  .hero-title { font-size: 20px !important; }
+}

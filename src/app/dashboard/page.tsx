@@ -86,7 +86,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Stats row */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:24 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:12, marginBottom:20 }}>
             {[
               { label:'Wallet Balance', value:`${(wallet?.balance ?? 0).toLocaleString()} Coins`, Icon:Wallet, color:'#ffcb52' },
               { label:'Active Tickets', value:activeTickets,       Icon:Ticket,    color:'#3498DB' },
@@ -104,7 +104,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Tabs */}
-          <div style={{ display:'flex', gap:4, background:'var(--Bg-2)', borderRadius:14, padding:4, marginBottom:24, border:'1px solid var(--Border)', flexWrap:'wrap' }}>
+          <div className='dash-tabs' style={{ background:'var(--Bg-2)', borderRadius:14, padding:4, marginBottom:20, border:'1px solid var(--Border)' }}>
             {([
               ['overview','Overview',TrendingUp],
               ['tickets','My Lottery Tickets',Ticket],
@@ -125,7 +125,7 @@ export default function DashboardPage() {
 
           {/* ── OVERVIEW ── */}
           {tab==='overview' && (
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
+            <div className='two-col' style={{ gap:16 }}>
 
               {/* Recent transactions */}
               <div style={card}>
@@ -256,7 +256,7 @@ export default function DashboardPage() {
                         </td>
                         <td style={{ padding:'12px 14px', fontWeight:700 }}>₹{b.amount}</td>
                         <td style={{ padding:'12px 14px', fontWeight:700, color:'#2ECC71' }}>
-                          {b.wonAmount > 0 ? `₹${b.wonAmount.toLocaleString()}` : '—'}
+                          {b.winAmount > 0 ? `₹${b.winAmount.toLocaleString()}` : '—'}
                         </td>
                         <td style={{ padding:'12px 14px' }}>
                           <span style={{ padding:'2px 10px', borderRadius:999, fontSize:10, fontWeight:700,
