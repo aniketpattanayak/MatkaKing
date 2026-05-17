@@ -1,0 +1,419 @@
+// Supreme Gaming Engine - Complete Database Schema
+// Run: prisma migrate dev
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// AUTH & USERS
+// ─────────────────────────────────────────────
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  phone         String?   @unique
+  name          String?
+  passwordHash  String
+  role          Role      @default(USER)
+  referralCode  String    @unique @default(cuid())
+  referredBy    String?
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  wallet        Wallet?
+  transactions  Transaction[]
+  lotteryBets   LotteryBet[]
+  matkaBets     MatkaBet[]
+  spinResults   SpinResult[]
+  notificationReads NotificationRead[]
+  sessions      Session[]
+  affiliate     AffiliateLink[]
+
+  @@index([email])
+  @@index([referralCode])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+// ─────────────────────────────────────────────
+// WALLET SYSTEM
+// ─────────────────────────────────────────────
+model Wallet {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  balance      Int      @default(0)   // in Coins (1 INR = 1 Coin)
+  totalWon     Int      @default(0)
+  totalDeposit Int      @default(0)
+  totalWithdraw Int     @default(0)
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// UPI PAYMENT POOL
+// ─────────────────────────────────────────────
+model UpiPool {
+  id               String        @id @default(cuid())
+  upiId            String        @unique
+  label            String                         // "Primary", "Backup 1", etc.
+  transactionLimit Int           @default(50)     // max txns before auto-rotate
+  currentTxnCount  Int           @default(0)
+  isActive         Boolean       @default(true)
+  priority         Int           @default(0)      // lower = higher priority
+  successCount     Int           @default(0)
+  failedCount      Int           @default(0)
+  lastUsedAt       DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  transactions     Transaction[]
+
+  @@index([isActive, priority])
+}
+
+// ─────────────────────────────────────────────
+// TRANSACTIONS
+// ─────────────────────────────────────────────
+model Transaction {
+  id              String            @id @default(cuid())
+  userId          String
+  upiPoolId       String?
+  type            TxnType
+  status          TxnStatus         @default(PENDING)
+  amount          Int               // INR paise (x100) for deposits; Coins for others
+  coins           Int               @default(0)
+  upiRef          String?           // bank UTR / reference number
+  orderId         String            @unique @default(cuid())
+  webhookPayload  Json?
+  failureReason   String?
+  processedAt     DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  user            User              @relation(fields: [userId], references: [id])
+  upiPool         UpiPool?          @relation(fields: [upiPoolId], references: [id])
+
+  @@index([userId, status])
+  @@index([orderId])
+  @@index([upiRef])
+}
+
+enum TxnType {
+  DEPOSIT
+  WITHDRAWAL
+  BET_DEBIT
+  WIN_CREDIT
+  REFUND
+  BONUS
+  SPIN_WIN
+}
+
+enum TxnStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  PROCESSING
+  REVERSED
+}
+
+// ─────────────────────────────────────────────
+// LOTTERY SYSTEM
+// ─────────────────────────────────────────────
+model LotterySeries {
+  id          String        @id @default(cuid())
+  name        String                            // "Dream Car Lottery I"
+  prefix      String                            // "AH" / "LI"
+  startNumber Int                               // 1
+  endNumber   Int                               // 9999
+  ticketPrice Int                               // in Coins
+  drawAt      DateTime
+  prizePool   Int                               // Coins
+  status      LotteryStatus @default(OPEN)
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  tickets     LotteryTicket[]
+  bets        LotteryBet[]
+}
+
+model LotteryTicket {
+  id          String        @id @default(cuid())
+  seriesId    String
+  ticketCode  String        @unique          // "AH0098"
+  isSold      Boolean       @default(false)
+  isWinner    Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+
+  series      LotterySeries @relation(fields: [seriesId], references: [id])
+  bets        LotteryBet[]
+
+  @@index([seriesId, isSold])
+  @@index([ticketCode])                          // full-text prefix scan
+}
+
+model LotteryBet {
+  id          String        @id @default(cuid())
+  userId      String
+  seriesId    String
+  ticketId    String
+  quantity    Int           @default(1)
+  amountPaid  Int                               // Coins
+  status      BetStatus     @default(ACTIVE)
+  wonAmount   Int           @default(0)
+  placedAt    DateTime      @default(now())
+
+  user        User          @relation(fields: [userId], references: [id])
+  series      LotterySeries @relation(fields: [seriesId], references: [id])
+  ticket      LotteryTicket @relation(fields: [ticketId], references: [id])
+
+  @@index([userId])
+  @@index([seriesId])
+}
+
+enum LotteryStatus {
+  OPEN
+  CLOSED
+  DRAWN
+  CANCELLED
+}
+
+enum BetStatus {
+  ACTIVE
+  WON
+  LOST
+  REFUNDED
+}
+
+// ─────────────────────────────────────────────
+// MATKA KING ENGINE
+// ─────────────────────────────────────────────
+model MatkaMarket {
+  id              String       @id @default(cuid())
+  name            String       @unique             // "Milan Day", "Kalyan"
+  openTime        String                           // "09:30"
+  closeTime       String                           // "11:30"
+  resultTime       String                           // "12:00"
+  isOpen          Boolean      @default(false)
+  isResultDeclared Boolean     @default(false)
+  payoutSingle    Int          @default(90)        // x multiplier
+  payoutJodi      Int          @default(900)
+  payoutSP        Int          @default(140)       // Single Patti
+  payoutDP        Int          @default(280)       // Double Patti
+  payoutTP        Int          @default(450)       // Triple Patti
+  payoutHalfSangam Int        @default(1500)
+  payoutFullSangam Int        @default(11000)
+  isActive        Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  results         MatkaResult[]
+  bets            MatkaBet[]
+}
+
+model MatkaResult {
+  id              String      @id @default(cuid())
+  marketId        String
+  openPatti       String?                          // e.g. "1-2-3"
+  openAnk         Int?                             // e.g. 6
+  closePatti      String?
+  closeAnk        Int?
+  jodi            String?                          // e.g. "67"
+  isDummyResult   Boolean     @default(false)      // God-Mode: house wins
+  houseProfitPct  Float?                           // actual profit %
+  totalBetAmount  Int         @default(0)
+  totalPayout     Int         @default(0)
+  declaredAt      DateTime?
+  createdAt       DateTime    @default(now())
+
+  market          MatkaMarket @relation(fields: [marketId], references: [id])
+  bets            MatkaBet[]
+
+  @@index([marketId])
+}
+
+model MatkaBet {
+  id              String      @id @default(cuid())
+  userId          String
+  marketId        String
+  resultId        String?
+  betType         MatkaBetType
+  betValue        String                           // "6" / "67" / "1-2-3"
+  session         MatkaSession
+  amount          Int                              // Coins
+  potentialWin    Int                              // pre-computed
+  status          BetStatus   @default(ACTIVE)
+  wonAmount       Int         @default(0)
+  placedAt        DateTime    @default(now())
+
+  user            User        @relation(fields: [userId], references: [id])
+  market          MatkaMarket @relation(fields: [marketId], references: [id])
+  result          MatkaResult? @relation(fields: [resultId], references: [id])
+
+  @@index([userId])
+  @@index([marketId, session])
+  @@index([marketId, betValue, betType])          // liability lookup
+}
+
+enum MatkaBetType {
+  SINGLE_ANK
+  JODI
+  SINGLE_PATTI
+  DOUBLE_PATTI
+  TRIPLE_PATTI
+  HALF_SANGAM
+  FULL_SANGAM
+}
+
+enum MatkaSession {
+  OPEN
+  CLOSE
+}
+
+// ─────────────────────────────────────────────
+// SPIN WHEEL / PROMOTIONS
+// ─────────────────────────────────────────────
+model SpinConfig {
+  id              String      @id @default(cuid())
+  name            String
+  pricePerSpin    Int                              // 0 = free
+  buyXGetY_buy    Int?                             // Buy X spins
+  buyXGetY_get    Int?                             // Get Y free
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+
+  rewards         SpinReward[]
+  results         SpinResult[]
+}
+
+model SpinReward {
+  id              String      @id @default(cuid())
+  spinConfigId    String
+  label           String                           // "50 Coins" / "Try Again"
+  coinsReward     Int         @default(0)
+  probability     Float                            // 0.0 to 1.0, must sum to 1
+  color           String      @default("#FFD700")
+  icon            String?
+
+  config          SpinConfig  @relation(fields: [spinConfigId], references: [id])
+}
+
+model SpinResult {
+  id              String      @id @default(cuid())
+  userId          String
+  spinConfigId    String
+  rewardId        String?
+  coinsWon        Int         @default(0)
+  isFreeSpinUsed  Boolean     @default(false)
+  spunAt          DateTime    @default(now())
+
+  user            User        @relation(fields: [userId], references: [id])
+  config          SpinConfig  @relation(fields: [spinConfigId], references: [id])
+}
+
+// ─────────────────────────────────────────────
+// BET LIABILITY (God-Mode Profit Guard)
+// ─────────────────────────────────────────────
+model BetLiability {
+  id              String      @id @default(cuid())
+  marketId        String
+  resultDate      String                           // "YYYY-MM-DD"
+  possibleResult  String                           // e.g. "123-6"
+  totalExposure   Int                              // total payout if this wins
+  betCount        Int         @default(0)
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([marketId, resultDate, possibleResult])
+  @@index([marketId, resultDate])
+}
+
+// ─────────────────────────────────────────────
+// AFFILIATE
+// ─────────────────────────────────────────────
+model AffiliateLink {
+  id              String      @id @default(cuid())
+  userId          String
+  code            String      @unique
+  clicks          Int         @default(0)
+  conversions     Int         @default(0)
+  earningsCoins   Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  user            User        @relation(fields: [userId], references: [id])
+}
+
+
+// ─────────────────────────────────────────────
+// NOTIFICATIONS & FESTIVALS
+// ─────────────────────────────────────────────
+
+enum NotificationType {
+  GENERAL
+  FESTIVAL
+  WINNER
+  PROMO
+  SYSTEM
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  title       String
+  message     String
+  type        NotificationType @default(GENERAL)
+  icon        String?          // emoji or icon name
+  color       String           @default("#fe8c45")
+  isActive    Boolean          @default(true)
+  isPinned    Boolean          @default(false)
+  festivalId  String?
+  createdAt   DateTime         @default(now())
+  expiresAt   DateTime?
+
+  festival    FestivalEvent?   @relation(fields: [festivalId], references: [id])
+  reads       NotificationRead[]
+}
+
+model NotificationRead {
+  id             String       @id @default(cuid())
+  userId         String
+  notificationId String
+  readAt         DateTime     @default(now())
+
+  user           User         @relation(fields: [userId], references: [id])
+  notification   Notification @relation(fields: [notificationId], references: [id])
+
+  @@unique([userId, notificationId])
+}
+
+model FestivalEvent {
+  id          String    @id @default(cuid())
+  name        String                         // "Diwali 2025"
+  emoji       String    @default("🎉")
+  date        DateTime
+  gameType    String                         // "LOTTERY" | "MATKA" | "SPIN" | "ALL"
+  description String?
+  isActive    Boolean   @default(true)
+  bonusMultiplier Float @default(1.0)        // e.g. 2.0 = double winnings
+  createdAt   DateTime  @default(now())
+
+  notifications Notification[]
+}

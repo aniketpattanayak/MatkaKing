@@ -1,0 +1,200 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design Tokens ──────────────────────────────────────────────────────── */
+:root {
+  --color-primary: #f5a623;
+  --color-primary-dark: #c7821a;
+  --color-accent: #ff4f1f;
+  --color-success: #10b981;
+  --color-danger: #ef4444;
+  --color-warn: #f59e0b;
+  --color-surface: #12141a;
+  --color-surface-2: #1a1d27;
+  --color-surface-3: #22263a;
+  --color-border: rgba(255,255,255,0.06);
+  --color-border-active: rgba(245,166,35,0.4);
+  --color-text-muted: #6b7280;
+  --gradient-gold: linear-gradient(135deg, #f5a623 0%, #e8762b 50%, #c7821a 100%);
+  --gradient-dark: linear-gradient(180deg, #1a1d27 0%, #0a0b0f 100%);
+}
+
+/* ─── Base ────────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+body {
+  background: #0a0b0f;
+  background-image:
+    radial-gradient(ellipse at 20% 50%, rgba(245,166,35,0.03) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(255,79,31,0.04) 0%, transparent 50%);
+  min-height: 100vh;
+}
+
+/* ─── Typography ──────────────────────────────────────────────────────────── */
+.text-gold { color: var(--color-primary); }
+.text-clip-gold {
+  background: var(--gradient-gold);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Cards / Panels ──────────────────────────────────────────────────────── */
+.panel {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.panel-highlight {
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border-active);
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(245,166,35,0.08);
+}
+
+/* ─── Buttons ────────────────────────────────────────────────────────────── */
+.btn-primary {
+  @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm
+         text-black transition-all duration-200 hover:scale-[1.02] active:scale-[0.98];
+  background: var(--gradient-gold);
+  box-shadow: 0 4px 14px rgba(245,166,35,0.35);
+}
+.btn-primary:hover { box-shadow: 0 6px 20px rgba(245,166,35,0.45); }
+
+.btn-secondary {
+  @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm
+         border transition-all duration-200 hover:scale-[1.02];
+  border-color: var(--color-border-active);
+  color: var(--color-primary);
+  background: rgba(245,166,35,0.06);
+}
+.btn-secondary:hover { background: rgba(245,166,35,0.12); }
+
+.btn-danger {
+  @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm
+         bg-red-600/10 border border-red-500/30 text-red-400 transition-all duration-200
+         hover:bg-red-600/20;
+}
+
+/* ─── Inputs ─────────────────────────────────────────────────────────────── */
+.input-field {
+  @apply w-full px-4 py-3 rounded-lg text-sm text-gray-100 outline-none transition-all;
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+}
+.input-field:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.12);
+}
+
+/* ─── Tables ────────────────────────────────────────────────────────────── */
+.data-table {
+  @apply w-full text-sm;
+}
+.data-table th {
+  @apply px-4 py-3 text-left font-semibold text-xs uppercase tracking-wider;
+  color: var(--color-text-muted);
+  border-bottom: 1px solid var(--color-border);
+}
+.data-table td {
+  @apply px-4 py-3;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.data-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+/* ─── Badges ─────────────────────────────────────────────────────────────── */
+.badge { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium; }
+.badge-success { @apply badge bg-emerald-500/15 text-emerald-400; }
+.badge-warn    { @apply badge bg-amber-500/15   text-amber-400; }
+.badge-danger  { @apply badge bg-red-500/15     text-red-400; }
+.badge-info    { @apply badge bg-blue-500/15    text-blue-400; }
+.badge-gold    { background: rgba(245,166,35,0.15); color: var(--color-primary); }
+.badge { border-radius: 9999px; padding: 2px 10px; }
+
+/* ─── Stat Cards ──────────────────────────────────────────────────────────── */
+.stat-card {
+  @apply panel p-5 flex flex-col gap-1;
+}
+.stat-value {
+  @apply text-2xl font-bold;
+  color: var(--color-primary);
+}
+.stat-label { @apply text-xs font-medium uppercase tracking-wider text-gray-500; }
+
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+.main-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(10,11,15,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* ─── Lottery Ticket ─────────────────────────────────────────────────────── */
+.ticket-card {
+  @apply relative rounded-lg p-3 text-center font-mono text-sm font-bold cursor-pointer
+         transition-all duration-150 select-none;
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+}
+.ticket-card:hover {
+  border-color: var(--color-primary);
+  background: rgba(245,166,35,0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(245,166,35,0.2);
+}
+.ticket-card.selected {
+  border-color: var(--color-primary);
+  background: rgba(245,166,35,0.15);
+}
+.ticket-card.sold {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ─── Matka Board ────────────────────────────────────────────────────────── */
+.matka-num {
+  @apply w-10 h-10 rounded-lg flex items-center justify-center font-bold text-sm
+         cursor-pointer transition-all duration-100 select-none;
+  background: var(--color-surface-3);
+  border: 1px solid var(--color-border);
+}
+.matka-num:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.matka-num.selected { background: var(--color-primary); color: #000; border-color: var(--color-primary); }
+
+/* ─── Spin Wheel ────────────────────────────────────────────────────────── */
+.spin-wheel-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────────── */
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,166,35,0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(245,166,35,0); }
+}
+.pulse-gold { animation: pulse-gold 2s infinite; }
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.marquee { animation: marquee 20s linear infinite; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up { animation: fadeInUp 0.4s ease forwards; }
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--color-surface); }
+::-webkit-scrollbar-thumb { background: var(--color-surface-3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(245,166,35,0.4); }

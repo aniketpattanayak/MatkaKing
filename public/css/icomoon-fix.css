@@ -1,0 +1,130 @@
+/*
+ * icomoon-fix.css
+ * Replaces broken icomoon □ boxes with Unicode equivalents
+ * since the /media/icomoon.*.ttf font files are missing
+ */
+
+/* Override the broken font-face — use system fonts as fallback */
+@font-face {
+  font-family: icomoon;
+  src: local('Arial');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Hide all icon pseudo-elements by default, then show specific ones */
+[class^="icon-"]::before,
+[class*=" icon-"]::before {
+  font-family: inherit !important;
+  font-size: 0.9em;
+}
+
+/* Navigation dropdown arrow */
+.main-menu .navigation li.has-child > a::after {
+  font-family: inherit !important;
+  content: " ▾" !important;
+  font-size: 12px !important;
+  position: relative !important;
+  right: auto !important;
+}
+
+/* Right arrow icon */
+.icon-right::before,
+.icon-arrow-right::before,
+.icon-arrow-right1::before { content: "→" !important; font-family: inherit !important; }
+
+/* Close icon */
+.icon-close::before { content: "✕" !important; font-family: inherit !important; }
+
+/* Ticket icon */
+.icon-tickets::before { content: "🎟" !important; font-family: inherit !important; font-style: normal !important; }
+
+/* Search icon */
+.icon-search::before { content: "🔍" !important; font-family: inherit !important; }
+
+/* Info icon */
+.icon-infor::before,
+.icon-infor-1::before { content: "ℹ" !important; font-family: inherit !important; }
+
+/* Check icons */
+.icon-check::before,
+.icon-check-1::before { content: "✓" !important; font-family: inherit !important; }
+
+/* Plus / minus */
+.icon-plus::before  { content: "+" !important; font-family: inherit !important; }
+.icon-minus::before { content: "−" !important; font-family: inherit !important; }
+
+/* Arrow icons */
+.icon-arrow-up::before    { content: "↑" !important; font-family: inherit !important; }
+.icon-arrow-down::before  { content: "↓" !important; font-family: inherit !important; }
+.icon-arrow-left::before  { content: "←" !important; font-family: inherit !important; }
+.icon-arrow-bottom::before { content: "↓" !important; font-family: inherit !important; }
+.icon-back::before        { content: "←" !important; font-family: inherit !important; }
+.icon-next::before        { content: "→" !important; font-family: inherit !important; }
+
+/* Wallet / Finance icons */
+.icon-wallet::before      { content: "💳" !important; font-family: inherit !important; }
+.icon-wallets::before     { content: "💰" !important; font-family: inherit !important; }
+.icon-deposit::before     { content: "↓" !important; font-family: inherit !important; }
+.icon-withdrawal::before  { content: "↑" !important; font-family: inherit !important; }
+
+/* Game icons */
+.icon-game::before        { content: "🎮" !important; font-family: inherit !important; }
+.icon-casino::before      { content: "🎰" !important; font-family: inherit !important; }
+.icon-ticket::before      { content: "🎟" !important; font-family: inherit !important; }
+.icon-scratch-offs::before { content: "🎫" !important; font-family: inherit !important; }
+
+/* User / Account icons */
+.icon-log-out::before     { content: "→" !important; font-family: inherit !important; }
+.icon-setting::before     { content: "⚙" !important; font-family: inherit !important; }
+.icon-affiliate::before   { content: "🔗" !important; font-family: inherit !important; }
+.icon-statistics::before  { content: "📊" !important; font-family: inherit !important; }
+.icon-level::before       { content: "⭐" !important; font-family: inherit !important; }
+.icon-star::before        { content: "★" !important; font-family: inherit !important; }
+.icon-my-favorite::before { content: "♥" !important; font-family: inherit !important; }
+
+/* Social icons */
+.icon-facebook::before    { content: "f" !important; font-family: inherit !important; font-weight: 700 !important; }
+.icon-twitter::before,
+.icon-x::before           { content: "𝕏" !important; font-family: inherit !important; }
+.icon-youtube::before     { content: "▶" !important; font-family: inherit !important; }
+.icon-instagram::before   { content: "◉" !important; font-family: inherit !important; }
+.icon-tiktok::before      { content: "♪" !important; font-family: inherit !important; }
+
+/* Misc icons */
+.icon-send::before         { content: "→" !important; font-family: inherit !important; }
+.icon-copy::before,
+.icon-coppy::before        { content: "⧉" !important; font-family: inherit !important; }
+.icon-view::before         { content: "👁" !important; font-family: inherit !important; }
+.icon-hide::before         { content: "⊘" !important; font-family: inherit !important; }
+.icon-play::before         { content: "▶" !important; font-family: inherit !important; }
+.icon-home::before         { content: "⌂" !important; font-family: inherit !important; }
+.icon-file::before         { content: "📄" !important; font-family: inherit !important; }
+.icon-clock::before        { content: "🕐" !important; font-family: inherit !important; }
+.icon-delete::before       { content: "✕" !important; font-family: inherit !important; }
+.icon-menu::before         { content: "☰" !important; font-family: inherit !important; }
+.icon-question::before     { content: "?" !important; font-family: inherit !important; }
+.icon-send-message::before { content: "✉" !important; font-family: inherit !important; }
+.icon-write::before        { content: "✎" !important; font-family: inherit !important; }
+.icon-collapse::before     { content: "◀" !important; font-family: inherit !important; }
+.icon-faq::before          { content: "?" !important; font-family: inherit !important; }
+
+/* Progress / scroll-to-top button */
+.progress-wrap::after {
+  content: "↑" !important;
+  font-family: inherit !important;
+}
+
+/* Mobile menu has-children arrow */
+.inner-mobile-nav #menu-mobile-menu div.menu-item-has-children-mobile > a::after {
+  content: " ▾" !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+}
+
+/* Sidebar has-children arrow */
+.section-menu-left .menu-list .menu-item.has-children::after {
+  content: "▾" !important;
+  font-family: inherit !important;
+  font-size: 16px !important;
+}
