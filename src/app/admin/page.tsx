@@ -64,6 +64,9 @@ export default function AdminPage() {
   const [uForm, setUForm] = useState({ upiId:'', label:'', limit:'100', priority:'0' });
   const [uLoading, setULoading] = useState(false);
   const [editUpi,  setEditUpi]  = useState<any>(null);
+  const [editRates, setEditRates] = useState<any>(null);  // market being rate-edited
+  const [liveCheck, setLiveCheck] = useState<any>(null);  // real-time profit check result
+  const [checkLoading, setCheckLoading] = useState(false);
   // Notifications state
   const [notifs,       setNotifs]       = useState<any[]>([]);
   const [festivals,    setFestivals]    = useState<any[]>([]);
@@ -299,6 +302,42 @@ export default function AdminPage() {
       toast.success('Reset to defaults');
       authFetch('/api/admin/spin-segments').then(r=>r.json()).then(d=>{ setSegments(d.rewards??[]); setSegTotal(d.totalProbability??0); });
     }
+  }
+
+  async function saveRates() {
+    if (!editRates) return;
+    setULoading(true);
+    const r = await authFetch('/api/admin/markets', {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'update_rates',
+        marketId: editRates.id,
+        payoutSingle:      Number(editRates.payoutSingle),
+        payoutJodi:        Number(editRates.payoutJodi),
+        payoutSP:          Number(editRates.payoutSP),
+        payoutDP:          Number(editRates.payoutDP),
+        payoutTP:          Number(editRates.payoutTP),
+        payoutHalfSangam:  Number(editRates.payoutHalfSangam),
+        payoutFullSangam:  Number(editRates.payoutFullSangam),
+      }),
+    });
+    const d = await r.json();
+    if (r.ok) { toast.success('Game rates updated!'); setEditRates(null); load(); }
+    else toast.error(d.error ?? 'Failed');
+    setULoading(false);
+  }
+
+  async function checkLiveResult(marketId: string, openPatti: string, closePatti: string) {
+    if (!openPatti || openPatti.length < 3 || !closePatti || closePatti.length < 3) {
+      setLiveCheck(null); return;
+    }
+    setCheckLoading(true);
+    try {
+      const r = await authFetch(`/api/admin/markets?check=1&marketId=${marketId}&openPatti=${openPatti}&closePatti=${closePatti}`);
+      const d = await r.json();
+      setLiveCheck(d);
+    } catch { setLiveCheck(null); }
+    setCheckLoading(false);
   }
 
   async function saveEditUpi() {

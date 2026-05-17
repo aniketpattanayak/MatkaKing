@@ -16,7 +16,18 @@ const FALLBACK_MARKETS = [
 ];
 
 // maxSelect = max columns user can select at once
-const GAME_TYPES = [
+// Use market-specific rates if available
+  const rates = {
+    ANK:         market?.payoutSingle   ?? 90,
+    JODI:        market?.payoutJodi     ?? 900,
+    SP:          market?.payoutSP       ?? 140,
+    DP:          market?.payoutDP       ?? 280,
+    TP:          market?.payoutTP       ?? 450,
+    HALF_SANGAM: market?.payoutHalfSangam ?? 1500,
+    FULL_SANGAM: market?.payoutFullSangam ?? 11000,
+  };
+
+  const GAME_TYPES = [
   { key: 'ANK',          label: 'Ank',        payout: 90,    maxSelect: 1, desc: 'Pick 1 digit from any 1 column' },
   { key: 'JODI',         label: 'Jodi',        payout: 900,   maxSelect: 2, desc: 'Pick 2 adjacent columns → 2-digit number' },
   { key: 'SINGLE_PATTI', label: 'SP',          payout: 140,   maxSelect: 3, desc: '3 adjacent columns → 3-digit patti' },
@@ -167,6 +178,7 @@ export default function MatkaPage() {
   const [allMarkets,   setAllMarkets]   = useState<any[]>([]);
   const [marketsLoading, setMarketsLoading] = useState(true);
   const [market,   setMarket]   = useState<any>(null);
+  const [marketSelected, setMarketSelected] = useState(false); // user clicked a market
   const [gameType, setGameType] = useState(GAME_TYPES[0]);
   const [session,  setSession]  = useState<'OPEN'|'CLOSE'>('OPEN');
 
@@ -210,7 +222,7 @@ export default function MatkaPage() {
           jodi:   m.results?.[0]?.jodi ?? '??',
         }));
         setAllMarkets(normalized);
-        setMarket(normalized[0]);
+        setMarket(normalized[0]); // preselect but don't show game yet
       })
       .catch(() => {
         setAllMarkets(FALLBACK_allMarkets.map(m => ({...m, open:m.openTime,close:m.closeTime,result:m.resultTime,status:m.isOpen?'OPEN':'CLOSED',patti:'???-?',jodi:'??'})));
@@ -330,6 +342,83 @@ export default function MatkaPage() {
     </>
   );
 
+  // Market selection screen - shown before entering the game
+  if (!marketSelected) return (
+    <>
+      <Header />
+      <div style={{ paddingTop:120, minHeight:'100vh' }}>
+        <div className="tf-container" style={{ paddingTop:40, paddingBottom:60 }}>
+          <div style={{ textAlign:'center', marginBottom:40 }}>
+            <h1 style={{ fontWeight:900, fontSize:36, marginBottom:10 }}>Matka King</h1>
+            <p style={{ color:'var(--Secondary)', fontSize:16 }}>Select a market to start playing</p>
+          </div>
+
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(300px, 1fr))', gap:24, maxWidth:1000, margin:'0 auto' }}>
+            {allMarkets.map((m:any) => {
+              const isOpen = m.status === 'OPEN' || m.isOpen;
+              return (
+                <div key={m.id} onClick={()=>{ if(!loggedIn){ toast.error('Please login to play'); return; } setMarket(m); setMarketSelected(true); }}
+                  style={{ background:'linear-gradient(135deg,var(--Bg-2),var(--Bg-10))', borderRadius:24, padding:32, border:`2px solid ${isOpen?'rgba(46,204,113,0.4)':'rgba(100,100,100,0.2)'}`, cursor:'pointer', transition:'all 0.2s', position:'relative', overflow:'hidden' }}
+                  onMouseEnter={e=>(e.currentTarget.style.transform='translateY(-4px)')}
+                  onMouseLeave={e=>(e.currentTarget.style.transform='translateY(0)')}>
+
+                  {/* Status badge */}
+                  <div style={{ position:'absolute', top:20, right:20, padding:'4px 14px', borderRadius:999, fontSize:12, fontWeight:800, background:isOpen?'rgba(46,204,113,0.15)':'rgba(239,68,68,0.12)', color:isOpen?'#2ECC71':'#ef4444', border:`1px solid ${isOpen?'rgba(46,204,113,0.4)':'rgba(239,68,68,0.3)'}` }}>
+                    {isOpen ? '● OPEN' : '● CLOSED'}
+                  </div>
+
+                  {/* Market name */}
+                  <h2 style={{ fontWeight:900, fontSize:28, marginBottom:8 }}>{m.name}</h2>
+
+                  {/* Times */}
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:20, color:'var(--Secondary)', fontSize:14 }}>
+                    <span style={{ color:'#2ECC71', fontWeight:700 }}>● {m.open ?? m.openTime}</span>
+                    <span>→</span>
+                    <span style={{ color:'#ef4444', fontWeight:700 }}>● {m.close ?? m.closeTime}</span>
+                  </div>
+
+                  {/* Last result */}
+                  <div style={{ display:'flex', gap:20, marginBottom:24 }}>
+                    <div>
+                      <p style={{ fontSize:10, color:'var(--Secondary)', textTransform:'uppercase', fontWeight:700, marginBottom:4 }}>Patti · Ank</p>
+                      <p style={{ fontWeight:900, fontSize:22, color:'#ffcb52' }}>{m.patti ?? '???-?'}</p>
+                    </div>
+                    <div>
+                      <p style={{ fontSize:10, color:'var(--Secondary)', textTransform:'uppercase', fontWeight:700, marginBottom:4 }}>Jodi</p>
+                      <p style={{ fontWeight:900, fontSize:22, color:'#ffcb52' }}>{m.jodi ?? '??'}</p>
+                    </div>
+                  </div>
+
+                  {/* Game rates quick view */}
+                  <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                    {[
+                      ['Ank', m.payoutSingle ?? 90],
+                      ['Jodi', m.payoutJodi ?? 900],
+                      ['SP', m.payoutSP ?? 140],
+                      ['DP', m.payoutDP ?? 280],
+                    ].map(([label, val]) => (
+                      <span key={String(label)} style={{ background:'rgba(254,140,69,0.1)', border:'1px solid rgba(254,140,69,0.2)', borderRadius:8, padding:'4px 10px', fontSize:12, fontWeight:700, color:'var(--Main-color)' }}>
+                        {label} {val}x
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Play button */}
+                  <div style={{ marginTop:24 }}>
+                    <button style={{ width:'100%', height:48, borderRadius:14, border:'none', cursor:'pointer', fontWeight:800, fontSize:15, background: isOpen ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'rgba(100,100,100,0.2)', color: isOpen ? '#fff' : 'var(--Secondary)' }}>
+                      {isOpen ? 'Play Now →' : 'View Results'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      <footer id="footer"><div className="footer-bottom" style={{paddingTop:24,paddingBottom:24}}><div className="tf-container"><div className="wrapper"><div className="right"><span>© 2025 Supreme Gaming Engine</span></div></div></div></div></footer>
+    </>
+  );
+
   return (
     <>
       <Header />
@@ -380,7 +469,7 @@ export default function MatkaPage() {
           <div style={{ background: 'var(--Bg-2)', borderRadius: 14, padding: '13px 18px', marginBottom: 18, border: '1px solid var(--Border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                {GAME_TYPES.map(g => (
+                {activeGameTypes.map(g => (
                   <button key={g.key} onClick={() => setGameType(g)} style={{
                     padding: '7px 13px', borderRadius: 999, border: '1px solid',
                     borderColor: gameType.key === g.key ? '#fe8c45' : 'var(--Border)',
@@ -643,7 +732,7 @@ export default function MatkaPage() {
                   <h4 style={{ fontWeight: 700, fontSize: 13 }}>💰 Game Rates</h4>
                   <span style={{ fontSize: 10, color: 'var(--Secondary)' }}>{market.name}</span>
                 </div>
-                {GAME_TYPES.map(g => (
+                {activeGameTypes.map(g => (
                   <div key={g.key} onClick={() => setGameType(g)} style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     padding: '6px 9px', borderRadius: 7, marginBottom: 3, cursor: 'pointer',
