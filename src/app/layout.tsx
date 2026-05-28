@@ -18,7 +18,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="body popup-loader counter-scroll">
         <div id="wrapper">{children}</div>
-        <Toaster richColors position="top-right" />
+        <Toaster
+          position="top-right"
+          theme="dark"
+          toastOptions={{
+            style: {
+              background: 'linear-gradient(135deg, #1a0d2e 0%, #2d1b4e 100%)',
+              border: '1px solid rgba(254,140,69,0.3)',
+              color: '#fff',
+              fontWeight: 600,
+              borderRadius: '12px',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+            },
+            classNames: {
+              error:   'kh-toast-error',
+              success: 'kh-toast-success',
+              warning: 'kh-toast-warning',
+              info:    'kh-toast-info',
+            },
+          }}
+        />
       </body>
     </html>
   );

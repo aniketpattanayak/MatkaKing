@@ -47,6 +47,7 @@ export default function AdminPage() {
 
   // ── Matka form ──────────────────────────────────────────────────────────────
   const [mResult,  setMResult]  = useState({ marketId:'', openPatti:'', closePatti:'' });
+  const [declareStage, setDeclareStage] = useState<'OPEN'|'CLOSE'>('OPEN');
   const [mForm,    setMForm]    = useState({ name:'', openTime:'09:30', closeTime:'11:30', resultTime:'12:00' });
   const [mCreate,  setMCreate]  = useState(false); // show create form
   const [mLoading, setMLoading] = useState(false);
@@ -217,14 +218,25 @@ export default function AdminPage() {
   }
 
   // ── Matka actions ────────────────────────────────────────────────────────────
-  async function declareResult() {
-    if (!mResult.marketId || mResult.openPatti.length !== 3 || mResult.closePatti.length !== 3)
-      return toast.error('Select market and enter 3-digit patties');
+  async function declareOpen() {
+    if (!mResult.marketId || mResult.openPatti.length !== 3)
+      return toast.error('Select market and enter 3-digit Open Patti');
     setMLoading(true);
-    const r = await authFetch('/api/admin/markets', { method:'POST', body: JSON.stringify({ action:'declare_result', ...mResult }) });
+    const r = await authFetch('/api/admin/markets', { method:'POST', body: JSON.stringify({ action:'declare_open', marketId: mResult.marketId, openPatti: mResult.openPatti }) });
     const d = await r.json();
-    if (r.ok) { toast.success(`✓ Result declared! Jodi: ${d.jodi} · Settled: ${d.settled} bets · Paid: ₹${d.totalPayout?.toLocaleString()}`); load(); setMResult({ marketId:'', openPatti:'', closePatti:'' }); }
-    else toast.error(d.error);
+    if (r.ok) { toast.success(`✓ Open declared! Ank: ${d.openAnk} · Settled ${d.settled} open-side bets · Paid ₹${d.totalPayout?.toLocaleString()}`); load(); setDeclareStage('CLOSE'); }
+    else toast.error(d.error ?? 'Failed');
+    setMLoading(false);
+  }
+
+  async function declareClose() {
+    if (!mResult.marketId || mResult.closePatti.length !== 3)
+      return toast.error('Select market and enter 3-digit Close Patti');
+    setMLoading(true);
+    const r = await authFetch('/api/admin/markets', { method:'POST', body: JSON.stringify({ action:'declare_close', marketId: mResult.marketId, closePatti: mResult.closePatti }) });
+    const d = await r.json();
+    if (r.ok) { toast.success(`✓ Close declared! Jodi: ${d.jodi} · Settled ${d.settled} bets · Paid ₹${d.totalPayout?.toLocaleString()}`); load(); setMResult({ marketId:'', openPatti:'', closePatti:'' }); setDeclareStage('OPEN'); }
+    else toast.error(d.error ?? 'Failed');
     setMLoading(false);
   }
 
@@ -325,6 +337,44 @@ export default function AdminPage() {
     if (r.ok) { toast.success('Game rates updated!'); setEditRates(null); load(); }
     else toast.error(d.error ?? 'Failed');
     setULoading(false);
+  }
+
+  // Toggle daily auto-rollover for a market
+  async function toggleRecurring(id: string, current: boolean) {
+    const r = await authFetch('/api/admin/markets', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'update_recurring', marketId: id, isRecurring: !current }),
+    });
+    if (r.ok) { toast.success(`Daily auto-reset: ${!current ? 'ON' : 'OFF'}`); load(); }
+    else toast.error('Failed');
+  }
+
+  // Pause market for a specific date (YYYY-MM-DD)
+  async function pauseDate(id: string, date: string) {
+    const r = await authFetch('/api/admin/markets', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'pause_date', marketId: id, date }),
+    });
+    if (r.ok) { toast.success(`Paused for ${date}`); load(); }
+    else toast.error('Failed');
+  }
+
+  // Unpause a date
+  async function unpauseDate(id: string, date: string) {
+    const r = await authFetch('/api/admin/markets', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'unpause_date', marketId: id, date }),
+    });
+    if (r.ok) { toast.success(`Unpaused ${date}`); load(); }
+    else toast.error('Failed');
+  }
+
+  // Returns tomorrow's date in IST as YYYY-MM-DD
+  function tomorrowIST(): string {
+    const now = new Date();
+    const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+    istNow.setUTCDate(istNow.getUTCDate() + 1);
+    return istNow.toISOString().slice(0, 10);
   }
 
   async function checkLiveResult(marketId: string, openPatti: string, closePatti: string) {
@@ -882,16 +932,77 @@ export default function AdminPage() {
                         <span style={{ fontSize:11, fontWeight:700, padding:'2px 10px', borderRadius:999,
                           background:m.isOpen?'rgba(254,140,69,0.15)':'rgba(100,100,100,0.2)',
                           color:m.isOpen?'#fe8c45':'var(--Secondary)'}}>{m.isOpen?'OPEN':'CLOSED'}</span>
+                        <button onClick={()=>setEditRates(editRates?.id===m.id?null:{...m})} style={{ padding:'5px 12px', borderRadius:8, border:`1px solid ${editRates?.id===m.id?'#ffcb52':'rgba(255,203,82,0.35)'}`, background:'rgba(255,203,82,0.08)', color:'#ffcb52', fontSize:12, cursor:'pointer', fontWeight:700 }}>
+                          Rates
+                        </button>
                         <button onClick={()=>toggleMarket(m.id)} style={{ padding:'5px 12px', borderRadius:8, border:'1px solid var(--Border)', background:'var(--Bg-3)', color:'var(--Secondary)', fontSize:12, cursor:'pointer', fontWeight:600 }}>
                           {m.isOpen?'Close':'Open'}
                         </button>
                         <button onClick={()=>deleteMarket(m.id,m.name)} style={{ padding:'5px 10px', borderRadius:8, border:'1px solid rgba(239,68,68,0.3)', background:'rgba(239,68,68,0.1)', color:'#ef4444', fontSize:12, cursor:'pointer' }}>Del</button>
                       </div>
                     </div>
-                    <div style={{ display:'flex', gap:20, fontSize:12, color:'var(--Secondary)' }}>
+                    <div style={{ display:'flex', gap:20, fontSize:12, color:'var(--Secondary)', alignItems:'center', flexWrap:'wrap' }}>
                       <span> {m._count?.bets??0} bets</span>
                       {m.results?.[0] && <span>Last result: <strong style={{ color:'#ffcb52', fontFamily:'monospace' }}>{m.results[0].jodi}</strong></span>}
+
+                      {/* Daily auto-reset toggle */}
+                      <label style={{ display:'flex', alignItems:'center', gap:8, marginLeft:'auto', cursor:'pointer' }}>
+                        <input type="checkbox" checked={!!m.isRecurring} onChange={()=>toggleRecurring(m.id, !!m.isRecurring)} style={{ cursor:'pointer' }}/>
+                        <span style={{ fontSize:11, color: m.isRecurring ? '#4ade80' : 'var(--Secondary)', fontWeight:700 }}>
+                          Daily auto-reset {m.isRecurring ? 'ON' : 'OFF'}
+                        </span>
+                      </label>
+
+                      {m.isRecurring && (
+                        <button onClick={()=>pauseDate(m.id, tomorrowIST())} style={{ padding:'3px 10px', borderRadius:7, border:'1px solid rgba(254,140,69,0.35)', background:'rgba(254,140,69,0.08)', color:'#fe8c45', fontSize:11, cursor:'pointer', fontWeight:700 }}>
+                          Pause tomorrow ({tomorrowIST()})
+                        </button>
+                      )}
                     </div>
+
+                    {/* Paused dates list */}
+                    {m.isRecurring && m.pausedDates && m.pausedDates.length > 0 && (
+                      <div style={{ marginTop:8, display:'flex', flexWrap:'wrap', gap:6, alignItems:'center' }}>
+                        <span style={{ fontSize:10, color:'var(--Secondary)', fontWeight:700 }}>Paused dates:</span>
+                        {m.pausedDates.map((d:string) => (
+                          <span key={d} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'3px 9px', borderRadius:7, background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', fontSize:11, color:'#fca5a5', fontFamily:'monospace' }}>
+                            {d}
+                            <span onClick={()=>unpauseDate(m.id, d)} style={{ cursor:'pointer', fontSize:13, lineHeight:1, color:'#ef4444' }}>×</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {editRates?.id===m.id && (
+                      <div style={{ marginTop:14, padding:'14px 16px', background:'rgba(255,203,82,0.05)', border:'1px solid rgba(255,203,82,0.25)', borderRadius:10 }}>
+                        <p style={{ fontWeight:700, fontSize:13, color:'#ffcb52', marginBottom:12 }}>Game Rates — {m.name}</p>
+                        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:12 }}>
+                          {[
+                            ['Ank (Single)','payoutSingle'],
+                            ['Jodi','payoutJodi'],
+                            ['SP (Single Patti)','payoutSP'],
+                            ['DP (Double Patti)','payoutDP'],
+                            ['TP (Triple Patti)','payoutTP'],
+                            ['Half Sangam','payoutHalfSangam'],
+                            ['Full Sangam','payoutFullSangam'],
+                          ].map(([lab,field]:any) => (
+                            <div key={field}>
+                              <label style={{ fontSize:10, fontWeight:700, color:'var(--Secondary)', display:'block', marginBottom:4, textTransform:'uppercase' }}>{lab}</label>
+                              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                                <input type="number" value={editRates[field]} onChange={e=>setEditRates({...editRates,[field]:e.target.value})} style={{ width:'100%', padding:'7px 9px', borderRadius:7, background:'var(--Bg-3)', border:'1px solid var(--Border-2)', color:'#fff', fontSize:13, fontWeight:700, outline:'none' }}/>
+                                <span style={{ fontSize:12, color:'var(--Secondary)' }}>x</span>
+                              </div>
+                            </div>
+                          ))}
+                          <div style={{ display:'flex', alignItems:'flex-end', gap:6 }}>
+                            <button onClick={saveRates} style={{ flex:1, height:34, borderRadius:8, border:'none', background:'linear-gradient(270deg,#ffcb52,#FFA500)', color:'#1a0f00', fontWeight:800, fontSize:12, cursor:'pointer' }}>
+                              Save
+                            </button>
+                            <button onClick={()=>setEditRates(null)} style={{ height:34, padding:'0 12px', borderRadius:8, border:'1px solid var(--Border)', background:'transparent', color:'var(--Secondary)', fontWeight:700, fontSize:12, cursor:'pointer' }}>Cancel</button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -935,9 +1046,30 @@ export default function AdminPage() {
                     </div>
                   )}
 
-                  <button onClick={declareResult} disabled={mLoading} style={{ width:'100%', height:50, borderRadius:12, border:'none', cursor:'pointer', background:'linear-gradient(270deg,#fe8c45,#ca2826)', color:'#fff', fontWeight:900, fontSize:15, opacity:mLoading?0.6:1 }}>
-                    {mLoading ? ' Settling bets...' : 'Declare Result & Settle All Bets'}
-                  </button>
+                  <div style={{ display:'flex', gap:6, background:'var(--Bg-3)', borderRadius:10, padding:4, border:'1px solid var(--Border)' }}>
+                    {(['OPEN','CLOSE'] as const).map(s => (
+                      <button key={s} onClick={()=>setDeclareStage(s)} style={{
+                        flex:1, padding:'8px 12px', borderRadius:7, border:'none', cursor:'pointer',
+                        background: declareStage===s ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'transparent',
+                        color: declareStage===s ? '#fff' : 'var(--Secondary)',
+                        fontWeight:700, fontSize:12,
+                      }}>{s === 'OPEN' ? 'Step 1: Declare Open' : 'Step 2: Declare Close'}</button>
+                    ))}
+                  </div>
+
+                  {declareStage === 'OPEN' && (
+                    <button onClick={declareOpen} disabled={mLoading} style={{ width:'100%', height:50, borderRadius:12, border:'none', cursor:'pointer', background:'linear-gradient(270deg,#fe8c45,#ca2826)', color:'#fff', fontWeight:900, fontSize:15, opacity:mLoading?0.6:1 }}>
+                      {mLoading ? 'Declaring Open...' : 'Declare Open — Settle Open-side Bets'}
+                    </button>
+                  )}
+                  {declareStage === 'CLOSE' && (
+                    <button onClick={declareClose} disabled={mLoading} style={{ width:'100%', height:50, borderRadius:12, border:'none', cursor:'pointer', background:'linear-gradient(270deg,#fe8c45,#ca2826)', color:'#fff', fontWeight:900, fontSize:15, opacity:mLoading?0.6:1 }}>
+                      {mLoading ? 'Declaring Close...' : 'Declare Close — Settle Jodi + Close + Sangam'}
+                    </button>
+                  )}
+                  <p style={{ fontSize:11, color:'var(--Secondary)', textAlign:'center', marginTop:-4, lineHeight:1.5 }}>
+                    Step 1 at open time. Step 2 at close time.
+                  </p>
                 </div>
               </div>
             </div>

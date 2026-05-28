@@ -128,3 +128,80 @@
   font-family: inherit !important;
   font-size: 16px !important;
 }
+
+
+/* ── KismatHub branded toasts (sonner) ─────────────────────────────────────── */
+.kh-toast-error {
+  background: linear-gradient(135deg, #2a0a0a 0%, #4a0e0e 100%) !important;
+  border: 1px solid rgba(231,76,60,0.4) !important;
+  color: #ff7a6e !important;
+}
+.kh-toast-success {
+  background: linear-gradient(135deg, #0a2a17 0%, #0e4a26 100%) !important;
+  border: 1px solid rgba(46,204,113,0.4) !important;
+  color: #4ade80 !important;
+}
+.kh-toast-warning {
+  background: linear-gradient(135deg, #2a1f0a 0%, #4a380e 100%) !important;
+  border: 1px solid rgba(254,140,69,0.4) !important;
+  color: #ffcb52 !important;
+}
+.kh-toast-info {
+  background: linear-gradient(135deg, #0a1f2a 0%, #0e384a 100%) !important;
+  border: 1px solid rgba(52,152,219,0.4) !important;
+  color: #5eb3f0 !important;
+}
+[data-sonner-toast] {
+  padding: 14px 18px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+[data-sonner-toast] [data-icon] {
+  display: none !important;   /* hide sonner's default icon (was showing as square too) */
+}
+
+/* ── Replace broken icomoon dropdown caret with pure-CSS triangle ────────── */
+/* Kill the original icomoon ::after that renders as a square */
+.main-menu .navigation li.has-child > a::after,
+.main-menu .navigation li.has-child > a::before,
+#header-main .navigation li.has-child > a::after,
+#header-main .navigation li.has-child > a::before {
+  content: none !important;
+  display: none !important;
+  font-family: inherit !important;
+}
+
+/* Now draw a real triangle caret using border tricks */
+.main-menu .navigation li.has-child > a,
+#header-main .navigation li.has-child > a {
+  position: relative;
+  padding-right: 16px !important;
+}
+.main-menu .navigation li.has-child > a::after,
+#header-main .navigation li.has-child > a::after {
+  content: '' !important;
+  display: inline-block !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-left: 4px solid transparent !important;
+  border-right: 4px solid transparent !important;
+  border-top: 5px solid currentColor !important;
+  margin-left: 6px !important;
+  vertical-align: middle !important;
+  opacity: 0.7 !important;
+  position: static !important;
+  right: auto !important;
+  font-family: inherit !important;
+}
+
+/* Catch-all: any leftover icomoon font in any element renders text not square */
+*[class*="icon-"]::before,
+*[class*="icon-"]::after {
+  font-family: inherit !important;
+}
+
+/* If any element still uses font-family: icomoon directly, neutralize it */
+[style*="font-family: icomoon"],
+[style*="font-family:icomoon"] {
+  font-family: inherit !important;
+}

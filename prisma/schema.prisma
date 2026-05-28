@@ -223,6 +223,8 @@ model MatkaMarket {
   payoutHalfSangam Int        @default(1500)
   payoutFullSangam Int        @default(11000)
   isActive        Boolean      @default(true)
+  isRecurring     Boolean      @default(false)     // Auto-reset daily at midnight IST
+  pausedDates     String[]     @default([])        // Dates to skip in 'YYYY-MM-DD' format
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 

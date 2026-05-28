@@ -34,7 +34,7 @@ export default function LotteryPage() {
                 <div className="header-right">
                   <div className="btn-buy-tickets">
                     <Link className="tf-btn" href="/games/lottery">
-                      <i className="icon-tickets"></i>Buy Tickets
+                      Buy Tickets
                     </Link>
                   </div>
                 </div>

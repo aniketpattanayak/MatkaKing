@@ -113,73 +113,200 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  // ── Declare result & settle bets ──────────────────────────────────────────
-  if (action === 'declare_result') {
+  // ── Declare OPEN patti (Step 1) ───────────────────────────────────────────
+  // Settles only: SINGLE_ANK (session=OPEN), SP/DP/TP (session=OPEN)
+  // Leaves ACTIVE: JODI, close-side bets, Half Sangam, Full Sangam
+  if (action === 'declare_open') {
+    const { openPatti } = body;
+    if (!marketId || !openPatti || openPatti.length !== 3)
+      return NextResponse.json({ error: 'marketId and 3-digit openPatti required' }, { status: 400 });
+
     const market = await prisma.matkaMarket.findUnique({ where: { id: marketId } });
     if (!market) return NextResponse.json({ error: 'Market not found' }, { status: 404 });
 
-    const openAnk  = openPatti.split('').reduce((s: number, d: string) => s + parseInt(d), 0) % 10;
-    const closeAnk = closePatti.split('').reduce((s: number, d: string) => s + parseInt(d), 0) % 10;
-    const jodi     = `${openAnk}${closeAnk}`;
+    const openAnk = openPatti.split('').reduce((s: number, d: string) => s + parseInt(d), 0) % 10;
 
-    const PAYOUT: Record<string, number> = {
-      ANK: 90, SINGLE_ANK: 90, JODI: 900,
-      SINGLE_PATTI: 140, SP: 140,
-      DOUBLE_PATTI: 280, DP: 280,
-      TRIPLE_PATTI: 450, TP: 450,
-      HALF_SANGAM: 1500, FULL_SANGAM: 11000,
+    const RATES: Record<string, number> = {
+      SINGLE_ANK: market.payoutSingle, ANK: market.payoutSingle,
+      SINGLE_PATTI: market.payoutSP,   SP: market.payoutSP,
+      DOUBLE_PATTI: market.payoutDP,   DP: market.payoutDP,
+      TRIPLE_PATTI: market.payoutTP,   TP: market.payoutTP,
     };
 
-    // Get all ACTIVE bets for this market
-    const bets = await prisma.matkaBet.findMany({
+    // Find or create result row for today
+    let result = await prisma.matkaResult.findFirst({
+      where: { marketId, declaredAt: { gte: new Date(new Date().setHours(0,0,0,0)) } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!result) {
+      result = await prisma.matkaResult.create({
+        data: { marketId, openPatti, openAnk, declaredAt: new Date() },
+      });
+    } else {
+      result = await prisma.matkaResult.update({
+        where: { id: result.id },
+        data: { openPatti, openAnk, declaredAt: new Date() },
+      });
+    }
+
+    // Settle only open-side bets
+    const openBets = await prisma.matkaBet.findMany({
+      where: {
+        marketId, status: 'ACTIVE', session: 'OPEN',
+        betType: { in: ['SINGLE_ANK', 'SINGLE_PATTI', 'DOUBLE_PATTI', 'TRIPLE_PATTI'] },
+      },
+    });
+
+    let totalPayout = 0;
+
+    await prisma.$transaction(async tx => {
+      for (const bet of openBets) {
+        let won = false;
+        const bv = bet.betValue;
+        const bt = bet.betType;
+
+        if (bt === 'SINGLE_ANK' && bv === String(openAnk)) won = true;
+        if ((bt === 'SINGLE_PATTI' || bt === 'DOUBLE_PATTI' || bt === 'TRIPLE_PATTI') && bv === openPatti) won = true;
+
+        const wonAmount = won ? bet.amount * (RATES[bt] ?? 0) : 0;
+
+        await tx.matkaBet.update({
+          where: { id: bet.id },
+          data: { status: won ? 'WON' : 'LOST', wonAmount, resultId: result!.id },
+        });
+
+        if (won && wonAmount > 0) {
+          totalPayout += wonAmount;
+          await tx.wallet.update({
+            where: { userId: bet.userId },
+            data: { balance: { increment: wonAmount }, totalWon: { increment: wonAmount } },
+          });
+          await tx.transaction.create({
+            data: {
+              userId: bet.userId, type: 'WIN_CREDIT', status: 'SUCCESS',
+              coins: wonAmount, amount: 0,
+              orderId: `MKW-O-${Date.now()}-${bet.id.slice(-4)}`,
+            },
+          });
+        }
+      }
+
+      await tx.matkaResult.update({
+        where: { id: result!.id },
+        data: { totalPayout: { increment: totalPayout } },
+      });
+    });
+
+    return NextResponse.json({ ok: true, settled: openBets.length, totalPayout, openAnk, openPatti });
+  }
+
+  // ── Declare CLOSE patti (Step 2) ──────────────────────────────────────────
+  // Settles: JODI, close-side SINGLE_ANK/SP/DP/TP, HALF_SANGAM, FULL_SANGAM
+  if (action === 'declare_close') {
+    const { closePatti } = body;
+    if (!marketId || !closePatti || closePatti.length !== 3)
+      return NextResponse.json({ error: 'marketId and 3-digit closePatti required' }, { status: 400 });
+
+    const market = await prisma.matkaMarket.findUnique({ where: { id: marketId } });
+    if (!market) return NextResponse.json({ error: 'Market not found' }, { status: 404 });
+
+    // Find today's result row (must exist with openPatti already)
+    const result = await prisma.matkaResult.findFirst({
+      where: { marketId, declaredAt: { gte: new Date(new Date().setHours(0,0,0,0)) } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!result || !result.openPatti || result.openAnk === null) {
+      return NextResponse.json({ error: 'Declare Open Patti first' }, { status: 400 });
+    }
+
+    const closeAnk = closePatti.split('').reduce((s: number, d: string) => s + parseInt(d), 0) % 10;
+    const jodi = `${result.openAnk}${closeAnk}`;
+    const openPatti = result.openPatti;
+    const openAnk = result.openAnk;
+
+    const RATES: Record<string, number> = {
+      SINGLE_ANK: market.payoutSingle, ANK: market.payoutSingle,
+      JODI: market.payoutJodi,
+      SINGLE_PATTI: market.payoutSP,   SP: market.payoutSP,
+      DOUBLE_PATTI: market.payoutDP,   DP: market.payoutDP,
+      TRIPLE_PATTI: market.payoutTP,   TP: market.payoutTP,
+      HALF_SANGAM: market.payoutHalfSangam,
+      FULL_SANGAM: market.payoutFullSangam,
+    };
+
+    // Settle everything still ACTIVE for this market
+    const remaining = await prisma.matkaBet.findMany({
       where: { marketId, status: 'ACTIVE' },
     });
 
     let totalPayout = 0;
 
     await prisma.$transaction(async tx => {
-      for (const bet of bets) {
+      for (const bet of remaining) {
         let won = false;
         const bv = bet.betValue;
-        const bt = bet.betType?.toUpperCase();
+        const bt = bet.betType;
 
-        if ((bt === 'ANK' || bt === 'SINGLE_ANK') &&
-          (bet.session === 'OPEN' ? bv === String(openAnk) : bv === String(closeAnk))) won = true;
+        if (bt === 'SINGLE_ANK' && bet.session === 'CLOSE' && bv === String(closeAnk)) won = true;
         if (bt === 'JODI' && bv === jodi) won = true;
-        if ((bt === 'SINGLE_PATTI' || bt === 'SP') && (bv === openPatti || bv === closePatti)) won = true;
-        if ((bt === 'DOUBLE_PATTI' || bt === 'DP') && (bv === openPatti || bv === closePatti)) won = true;
-        if ((bt === 'TRIPLE_PATTI' || bt === 'TP') && (bv === openPatti || bv === closePatti)) won = true;
+        if ((bt === 'SINGLE_PATTI' || bt === 'DOUBLE_PATTI' || bt === 'TRIPLE_PATTI') && bet.session === 'CLOSE' && bv === closePatti) won = true;
 
-        const winAmount = won ? bet.amount * (PAYOUT[bet.betType ?? ''] ?? 0) : 0;
+        // Half Sangam variants: bet value stored as either "openAnk-closePatti" or "openPatti-closeAnk"
+        if (bt === 'HALF_SANGAM') {
+          const [a, b] = bv.split('-');
+          if (a && b) {
+            // Variant A: open ank + close patti
+            if (a === String(openAnk) && b === closePatti) won = true;
+            // Variant B: open patti + close ank
+            if (a === openPatti && b === String(closeAnk)) won = true;
+          }
+        }
 
-        // BetStatus: WON or LOST
+        // Full Sangam: "openPatti-closePatti"
+        if (bt === 'FULL_SANGAM') {
+          const [a, b] = bv.split('-');
+          if (a === openPatti && b === closePatti) won = true;
+        }
+
+        const wonAmount = won ? bet.amount * (RATES[bt] ?? 0) : 0;
+
         await tx.matkaBet.update({
           where: { id: bet.id },
-          data: { status: won ? 'WON' : 'LOST', winAmount },
+          data: { status: won ? 'WON' : 'LOST', wonAmount, resultId: result.id },
         });
 
-        if (won && winAmount > 0) {
-          totalPayout += winAmount;
+        if (won && wonAmount > 0) {
+          totalPayout += wonAmount;
           await tx.wallet.update({
             where: { userId: bet.userId },
-            data: { balance: { increment: winAmount }, totalWon: { increment: winAmount } },
+            data: { balance: { increment: wonAmount }, totalWon: { increment: wonAmount } },
           });
           await tx.transaction.create({
             data: {
               userId: bet.userId, type: 'WIN_CREDIT', status: 'SUCCESS',
-              coins: winAmount, amount: 0,
-              orderId: `MKW-${Date.now()}-${bet.id.slice(-4)}`,
+              coins: wonAmount, amount: 0,
+              orderId: `MKW-C-${Date.now()}-${bet.id.slice(-4)}`,
             },
           });
         }
       }
 
-      await tx.matkaResult.create({
-        data: { marketId, openPatti, closePatti, openAnk, closeAnk, jodi, declaredAt: new Date() },
+      await tx.matkaResult.update({
+        where: { id: result.id },
+        data: {
+          closePatti, closeAnk, jodi,
+          totalPayout: { increment: totalPayout },
+          declaredAt: new Date(),
+        },
+      });
+
+      await tx.matkaMarket.update({
+        where: { id: marketId },
+        data: { isResultDeclared: true, isOpen: false },
       });
     });
 
-    return NextResponse.json({ ok: true, settled: bets.length, totalPayout, jodi });
+    return NextResponse.json({ ok: true, settled: remaining.length, totalPayout, jodi, openAnk, closeAnk });
   }
 
   // ── Update game rates ────────────────────────────────────────────────────
@@ -199,6 +326,45 @@ export async function POST(req: NextRequest) {
       },
     });
     return json({ ok: true, market: updated });
+  }
+
+  // ── Toggle isRecurring flag ──────────────────────────────────────────────
+  if (action === 'update_recurring') {
+    const { marketId, isRecurring } = body;
+    if (!marketId) return json({ error: 'marketId required' }, 400);
+    const updated = await prisma.matkaMarket.update({
+      where: { id: marketId },
+      data: { isRecurring: Boolean(isRecurring) },
+    });
+    return json({ ok: true, market: updated });
+  }
+
+  // ── Add a date to pausedDates (skip auto-rollover on that day) ───────────
+  if (action === 'pause_date') {
+    const { marketId, date } = body;  // date format: "YYYY-MM-DD"
+    if (!marketId || !date) return json({ error: 'marketId and date required' }, 400);
+    const m = await prisma.matkaMarket.findUnique({ where: { id: marketId } });
+    if (!m) return json({ error: 'Market not found' }, 404);
+    if (!m.pausedDates.includes(date)) {
+      await prisma.matkaMarket.update({
+        where: { id: marketId },
+        data: { pausedDates: { push: date } },
+      });
+    }
+    return json({ ok: true });
+  }
+
+  // ── Remove a date from pausedDates ───────────────────────────────────────
+  if (action === 'unpause_date') {
+    const { marketId, date } = body;
+    if (!marketId || !date) return json({ error: 'marketId and date required' }, 400);
+    const m = await prisma.matkaMarket.findUnique({ where: { id: marketId } });
+    if (!m) return json({ error: 'Market not found' }, 404);
+    await prisma.matkaMarket.update({
+      where: { id: marketId },
+      data: { pausedDates: m.pausedDates.filter((d: string) => d !== date) },
+    });
+    return json({ ok: true });
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });

@@ -31,7 +31,7 @@ export default function HeroSlider() {
                 <h4 className="title fw-9 mb-16">Only $25 per line <br/>4 hours to go!</h4>
                 <p className="text-color-clip fs-50">{slide.prize}</p>
                 <div className="bot">
-                  <Link className="tf-btn btn-play" href="/games/lottery">Play from $25 <i className="icon-right"></i></Link>
+                  <Link className="tf-btn btn-play" href="/games/lottery">Play from $25 </Link>
                   <p className="sub fs-14 type-secondary text-center">*Guaranteed</p>
                 </div>
               </div>

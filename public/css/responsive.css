@@ -185,3 +185,17 @@ img { max-width: 100%; height: auto; }
   .hero-price { font-size: 36px !important; }
   .hero-title { font-size: 20px !important; }
 }
+
+/* ── Matka game page: drum + Game Rates panel responsive ─────────────────── */
+.matka-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .matka-grid {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+}

@@ -17,14 +17,19 @@ const FALLBACK_MARKETS = [
 ];
 
 // maxSelect = max columns user can select at once
+// `phase` controls when the bet is allowed:
+//   'pre-open' = only before open result is declared (jodi/sangam)
+//   'open'     = only before open is declared (open ank + open pana)
+//   'close'    = bettable until close declared (close ank + close pana)
 const GAME_TYPES = [
-  { key: 'ANK',          label: 'Ank',        payout: 90,    maxSelect: 1, desc: 'Pick 1 digit from any 1 column' },
-  { key: 'JODI',         label: 'Jodi',        payout: 900,   maxSelect: 2, desc: 'Pick 2 adjacent columns → 2-digit number' },
-  { key: 'SINGLE_PATTI', label: 'SP',          payout: 140,   maxSelect: 3, desc: '3 adjacent columns → 3-digit patti' },
-  { key: 'DOUBLE_PATTI', label: 'DP',          payout: 280,   maxSelect: 3, desc: '3 columns — 2 same + 1 different digit' },
-  { key: 'TRIPLE_PATTI', label: 'TP',          payout: 450,   maxSelect: 3, desc: '3 columns — all same digit' },
-  { key: 'HALF_SANGAM',  label: 'Half Sangam', payout: 1500,  maxSelect: 4, desc: '4 columns — Ank + Patti' },
-  { key: 'FULL_SANGAM',  label: 'Full Sangam', payout: 11000, maxSelect: 6, desc: '6 columns — Open Patti + Close Patti' },
+  { key: 'ANK',           label: 'Ank',          payout: 90,    maxSelect: 1, desc: 'Pick 1 digit (Open or Close session)',           phases: ['open','close'] },
+  { key: 'JODI',          label: 'Jodi',         payout: 900,   maxSelect: 2, desc: 'Open Ank + Close Ank — only before open result', phases: ['pre-open'] },
+  { key: 'SINGLE_PATTI',  label: 'SP',           payout: 140,   maxSelect: 3, desc: '3-digit patti (Open or Close session)',          phases: ['open','close'] },
+  { key: 'DOUBLE_PATTI',  label: 'DP',           payout: 280,   maxSelect: 3, desc: '3 columns — 2 same + 1 different digit',         phases: ['open','close'] },
+  { key: 'TRIPLE_PATTI',  label: 'TP',           payout: 450,   maxSelect: 3, desc: '3 columns — all same digit',                     phases: ['open','close'] },
+  { key: 'HALF_SANGAM_A', label: 'Half Sangam A',payout: 1500,  maxSelect: 4, desc: 'Open Ank × Close Patti — only before open',     phases: ['pre-open'] },
+  { key: 'HALF_SANGAM_B', label: 'Half Sangam B',payout: 1500,  maxSelect: 4, desc: 'Open Patti × Close Ank — only before open',     phases: ['pre-open'] },
+  { key: 'FULL_SANGAM',   label: 'Full Sangam',  payout: 11000, maxSelect: 6, desc: 'Open Patti × Close Patti — only before open',   phases: ['pre-open'] },
 ];
 
 const NUM_COLS = 8;
@@ -202,15 +207,24 @@ export default function MatkaPage() {
       .then(d => {
         const markets = d.markets?.length > 0 ? d.markets : FALLBACK_MARKETS;
         // Normalize DB fields to component fields
-        const normalized = markets.map((m: any) => ({
-          ...m,
-          open:   m.openTime   ?? m.open,
-          close:  m.closeTime  ?? m.close,
-          result: m.resultTime ?? m.result,
-          status: m.isOpen ? 'OPEN' : 'CLOSED',
-          patti:  m.results?.[0]?.openPatti ? `${m.results[0].openPatti}-${m.results[0].openAnk}` : '???-?',
-          jodi:   m.results?.[0]?.jodi ?? '??',
-        }));
+        const normalized = markets.map((m: any) => {
+          const today = m.results?.[0];
+          const openDeclared  = !!today?.openPatti;
+          const closeDeclared = !!today?.closePatti;
+          return {
+            ...m,
+            open:   m.openTime   ?? m.open,
+            close:  m.closeTime  ?? m.close,
+            result: m.resultTime ?? m.result,
+            status: m.isOpen ? 'OPEN' : 'CLOSED',
+            openDeclared,
+            closeDeclared,
+            openPatti:  today?.openPatti  ?? null,
+            closePatti: today?.closePatti ?? null,
+            patti:  today?.openPatti ? `${today.openPatti}-${today.openAnk}` : '???-?',
+            jodi:   today?.jodi ?? '??',
+          };
+        });
         setAllMarkets(normalized);
         setMarket(normalized[0]); // preselect but don't show game yet
       })
@@ -267,8 +281,12 @@ export default function MatkaPage() {
   const betValue = (() => {
     const vals = selectedStateIndices.map(x => x.d!);
     if (vals.length === 0) return '—';
-    if (gameType.key === 'HALF_SANGAM' && vals.length === 4)
+    // Half Sangam A: open ank (1) + close patti (3)  →  D-DDD
+    if (gameType.key === 'HALF_SANGAM_A' && vals.length === 4)
       return `${vals[0]}-${vals[1]}${vals[2]}${vals[3]}`;
+    // Half Sangam B: open patti (3) + close ank (1)  →  DDD-D
+    if (gameType.key === 'HALF_SANGAM_B' && vals.length === 4)
+      return `${vals[0]}${vals[1]}${vals[2]}-${vals[3]}`;
     if (gameType.key === 'FULL_SANGAM' && vals.length === 6)
       return `${vals[0]}${vals[1]}${vals[2]}-${vals[3]}${vals[4]}${vals[5]}`;
     return vals.join('');
@@ -281,6 +299,12 @@ export default function MatkaPage() {
   const addToCart = () => {
     if (!readyToAdd) return toast.warning(`Select ${gameType.maxSelect} digit${gameType.maxSelect > 1 ? 's' : ''} first`);
     if (market.status === 'CLOSED') return toast.error('Market is closed');
+    if (phase === 'done')     return toast.error('Result declared — betting closed');
+    if (!availableTypes.find(g => g.key === gameType.key))
+      return toast.error(`${gameType.label} cannot be placed — open result already declared`);
+    // Open-session ank/pana not allowed after open declared
+    if (phase === 'close' && session === 'OPEN')
+      return toast.error('Open session is closed — open result already declared');
     setCart(p => [...p, {
       market: market.name, label: gameType.label, session,
       value: betValue, amount, potential: amount * gameType.payout,
@@ -321,6 +345,38 @@ export default function MatkaPage() {
     ? Array.from({ length: NUM_COLS }, (_, i) => i)         // [0,1,2,3,4,5,6,7]
     : Array.from({ length: NUM_COLS }, (_, i) => NUM_COLS - 1 - i); // [7,6,5,4,3,2,1,0]
 
+  // ── Phase logic (computed up-top so hooks below stay in fixed order) ───────
+  // pre-open  → open result NOT yet declared  → everything bettable
+  // close     → open result declared, close not yet  → only close-side bets
+  // done      → both declared                 → no betting
+  const openDeclared  = !!market?.openDeclared;
+  const closeDeclared = !!market?.closeDeclared;
+  const phase: 'pre-open'|'close'|'done' =
+    closeDeclared ? 'done' : openDeclared ? 'close' : 'pre-open';
+
+  // If admin declared open while user was on a now-disabled bet type, snap back.
+  // Hooks must run on every render → placed BEFORE early returns.
+  useEffect(() => {
+    if (!market) return;
+    const allowed = GAME_TYPES.filter(g => {
+      if (phase === 'done')     return false;
+      if (phase === 'pre-open') return true;
+      return ['ANK','SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(g.key);
+    });
+    if (allowed.length && !allowed.find(g => g.key === gameType.key)) {
+      setGameType(allowed[0]);
+      setDigits(Array(NUM_COLS).fill(null));
+    }
+  }, [phase, market]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Force session = CLOSE once open is declared
+  useEffect(() => {
+    if (phase === 'close' && session !== 'CLOSE') {
+      setSession('CLOSE');
+      setTimeout(() => setScrollTrigger(t => t + 1), 80);
+    }
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (marketsLoading || !market) return (
     <>
       <Header />
@@ -346,6 +402,14 @@ export default function MatkaPage() {
     ...g,
     payout: gameRates[g.key as keyof typeof gameRates] ?? g.payout,
   }));
+
+  // Phase + availableTypes are also computed up top (before early returns)
+  // so they're available here for JSX. See the block above the early-return guard.
+  const availableTypes = dynamicTypes.filter(g => {
+    if (phase === 'done')     return false;
+    if (phase === 'pre-open') return true;
+    return ['ANK','SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(g.key);
+  });
 
   // Market selection screen - shown before entering the game
   if (!marketSelected) return (
@@ -470,11 +534,36 @@ export default function MatkaPage() {
       <div className="main-content" style={{ paddingTop: 18 }}>
         <div className="tf-container">
 
+          {/* Phase banner */}
+          {phase !== 'pre-open' && (
+            <div style={{
+              background: phase === 'done' ? 'rgba(231,76,60,0.10)' : 'rgba(52,152,219,0.10)',
+              border: `1px solid ${phase === 'done' ? 'rgba(231,76,60,0.4)' : 'rgba(52,152,219,0.4)'}`,
+              borderRadius: 12, padding: '10px 16px', marginBottom: 14,
+              display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+            }}>
+              <span style={{ fontWeight: 800, color: phase === 'done' ? '#E74C3C' : '#3498DB' }}>
+                {phase === 'done' ? '● Result Declared' : '● Open Result Out'}
+              </span>
+              {phase === 'close' && (
+                <span style={{ fontSize: 13, color: 'var(--Secondary)' }}>
+                  Open Patti: <strong style={{ color: '#fff' }}>{market.openPatti}</strong> &nbsp;·&nbsp;
+                  Only <strong style={{ color: '#fff' }}>Close Ank, Close SP/DP/TP</strong> are still bettable. Jodi &amp; Sangam are closed.
+                </span>
+              )}
+              {phase === 'done' && (
+                <span style={{ fontSize: 13, color: 'var(--Secondary)' }}>
+                  Today's result is out. No more bets accepted. Come back tomorrow.
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Game Type + Open/Close */}
           <div style={{ background: 'var(--Bg-2)', borderRadius: 14, padding: '13px 18px', marginBottom: 18, border: '1px solid var(--Border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                {dynamicTypes.map(g => (
+                {availableTypes.map(g => (
                   <button key={g.key} onClick={() => setGameType(g)} style={{
                     padding: '7px 13px', borderRadius: 999, border: '1px solid',
                     borderColor: gameType.key === g.key ? '#fe8c45' : 'var(--Border)',
@@ -491,14 +580,23 @@ export default function MatkaPage() {
                 {loggedIn && <span style={{ color: '#ffcb52', fontWeight: 700, fontSize: 13 }}>💰 {balance.toLocaleString()}</span>}
                 {/* OPEN / CLOSE toggle */}
                 <div style={{ display: 'flex', background: 'var(--Bg-3)', borderRadius: 999, padding: 3, border: '1px solid var(--Border)' }}>
-                  {(['OPEN', 'CLOSE'] as const).map(s => (
-                    <button key={s} onClick={() => switchSession(s)} style={{
-                      padding: '8px 22px', borderRadius: 999, border: 'none', cursor: 'pointer',
-                      fontWeight: 700, fontSize: 13, transition: 'all 0.2s',
-                      background: session === s ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'transparent',
-                      color: session === s ? '#fff' : 'var(--Secondary)',
-                    }}>{s}</button>
-                  ))}
+                  {(['OPEN', 'CLOSE'] as const).map(s => {
+                    const disabled = phase === 'close' && s === 'OPEN';
+                    return (
+                      <button key={s}
+                        onClick={() => !disabled && switchSession(s)}
+                        disabled={disabled}
+                        title={disabled ? 'Open result already declared' : ''}
+                        style={{
+                          padding: '8px 22px', borderRadius: 999, border: 'none',
+                          cursor: disabled ? 'not-allowed' : 'pointer',
+                          fontWeight: 700, fontSize: 13, transition: 'all 0.2s',
+                          background: session === s ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'transparent',
+                          color: session === s ? '#fff' : 'var(--Secondary)',
+                          opacity: disabled ? 0.35 : 1,
+                        }}>{s}{disabled ? ' 🔒' : ''}</button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -512,7 +610,7 @@ export default function MatkaPage() {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 18, alignItems: 'start' }}>
+          <div className="matka-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 18, alignItems: 'start' }}>
 
             {/* ── Drum picker ── */}
             <div style={{ background: 'var(--Bg-2)', borderRadius: 18, border: '1px solid var(--Border)', overflow: 'hidden' }}>
