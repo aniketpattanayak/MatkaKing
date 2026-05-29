@@ -339,44 +339,6 @@ export default function AdminPage() {
     setULoading(false);
   }
 
-  // Toggle daily auto-rollover for a market
-  async function toggleRecurring(id: string, current: boolean) {
-    const r = await authFetch('/api/admin/markets', {
-      method: 'POST',
-      body: JSON.stringify({ action: 'update_recurring', marketId: id, isRecurring: !current }),
-    });
-    if (r.ok) { toast.success(`Daily auto-reset: ${!current ? 'ON' : 'OFF'}`); load(); }
-    else toast.error('Failed');
-  }
-
-  // Pause market for a specific date (YYYY-MM-DD)
-  async function pauseDate(id: string, date: string) {
-    const r = await authFetch('/api/admin/markets', {
-      method: 'POST',
-      body: JSON.stringify({ action: 'pause_date', marketId: id, date }),
-    });
-    if (r.ok) { toast.success(`Paused for ${date}`); load(); }
-    else toast.error('Failed');
-  }
-
-  // Unpause a date
-  async function unpauseDate(id: string, date: string) {
-    const r = await authFetch('/api/admin/markets', {
-      method: 'POST',
-      body: JSON.stringify({ action: 'unpause_date', marketId: id, date }),
-    });
-    if (r.ok) { toast.success(`Unpaused ${date}`); load(); }
-    else toast.error('Failed');
-  }
-
-  // Returns tomorrow's date in IST as YYYY-MM-DD
-  function tomorrowIST(): string {
-    const now = new Date();
-    const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
-    istNow.setUTCDate(istNow.getUTCDate() + 1);
-    return istNow.toISOString().slice(0, 10);
-  }
-
   async function checkLiveResult(marketId: string, openPatti: string, closePatti: string) {
     if (!openPatti || openPatti.length < 3 || !closePatti || closePatti.length < 3) {
       setLiveCheck(null); return;
@@ -941,37 +903,10 @@ export default function AdminPage() {
                         <button onClick={()=>deleteMarket(m.id,m.name)} style={{ padding:'5px 10px', borderRadius:8, border:'1px solid rgba(239,68,68,0.3)', background:'rgba(239,68,68,0.1)', color:'#ef4444', fontSize:12, cursor:'pointer' }}>Del</button>
                       </div>
                     </div>
-                    <div style={{ display:'flex', gap:20, fontSize:12, color:'var(--Secondary)', alignItems:'center', flexWrap:'wrap' }}>
+                    <div style={{ display:'flex', gap:20, fontSize:12, color:'var(--Secondary)' }}>
                       <span> {m._count?.bets??0} bets</span>
                       {m.results?.[0] && <span>Last result: <strong style={{ color:'#ffcb52', fontFamily:'monospace' }}>{m.results[0].jodi}</strong></span>}
-
-                      {/* Daily auto-reset toggle */}
-                      <label style={{ display:'flex', alignItems:'center', gap:8, marginLeft:'auto', cursor:'pointer' }}>
-                        <input type="checkbox" checked={!!m.isRecurring} onChange={()=>toggleRecurring(m.id, !!m.isRecurring)} style={{ cursor:'pointer' }}/>
-                        <span style={{ fontSize:11, color: m.isRecurring ? '#4ade80' : 'var(--Secondary)', fontWeight:700 }}>
-                          Daily auto-reset {m.isRecurring ? 'ON' : 'OFF'}
-                        </span>
-                      </label>
-
-                      {m.isRecurring && (
-                        <button onClick={()=>pauseDate(m.id, tomorrowIST())} style={{ padding:'3px 10px', borderRadius:7, border:'1px solid rgba(254,140,69,0.35)', background:'rgba(254,140,69,0.08)', color:'#fe8c45', fontSize:11, cursor:'pointer', fontWeight:700 }}>
-                          Pause tomorrow ({tomorrowIST()})
-                        </button>
-                      )}
                     </div>
-
-                    {/* Paused dates list */}
-                    {m.isRecurring && m.pausedDates && m.pausedDates.length > 0 && (
-                      <div style={{ marginTop:8, display:'flex', flexWrap:'wrap', gap:6, alignItems:'center' }}>
-                        <span style={{ fontSize:10, color:'var(--Secondary)', fontWeight:700 }}>Paused dates:</span>
-                        {m.pausedDates.map((d:string) => (
-                          <span key={d} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'3px 9px', borderRadius:7, background:'rgba(239,68,68,0.1)', border:'1px solid rgba(239,68,68,0.3)', fontSize:11, color:'#fca5a5', fontFamily:'monospace' }}>
-                            {d}
-                            <span onClick={()=>unpauseDate(m.id, d)} style={{ cursor:'pointer', fontSize:13, lineHeight:1, color:'#ef4444' }}>×</span>
-                          </span>
-                        ))}
-                      </div>
-                    )}
 
                     {editRates?.id===m.id && (
                       <div style={{ marginTop:14, padding:'14px 16px', background:'rgba(255,203,82,0.05)', border:'1px solid rgba(255,203,82,0.25)', borderRadius:10 }}>

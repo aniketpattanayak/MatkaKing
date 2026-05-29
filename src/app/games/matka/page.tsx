@@ -38,7 +38,7 @@ const VISIBLE  = 5;    // visible rows; centre = selected
 const DIGITS   = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 interface CartItem {
-  market: string; label: string; key: string; session: 'OPEN'|'CLOSE';
+  market: string; label: string; session: 'OPEN'|'CLOSE';
   value: string; amount: number; potential: number;
 }
 
@@ -302,13 +302,11 @@ export default function MatkaPage() {
     if (phase === 'done')     return toast.error('Result declared — betting closed');
     if (!availableTypes.find(g => g.key === gameType.key))
       return toast.error(`${gameType.label} cannot be placed — open result already declared`);
-    // Open-session ank/pana not allowed after open declared (skip for Sangam/Jodi — they're already filtered by availableTypes)
-    const isSangamOrJodiBet = ['JODI','HALF_SANGAM_A','HALF_SANGAM_B','FULL_SANGAM'].includes(gameType.key);
-    if (!isSangamOrJodiBet && phase === 'close' && session === 'OPEN')
+    // Open-session ank/pana not allowed after open declared
+    if (phase === 'close' && session === 'OPEN')
       return toast.error('Open session is closed — open result already declared');
     setCart(p => [...p, {
-      market: market.name, label: gameType.label, key: gameType.key,
-      session: isSangamOrJodiBet ? 'OPEN' : session,
+      market: market.name, label: gameType.label, session,
       value: betValue, amount, potential: amount * gameType.payout,
     }]);
     setDigits(Array(NUM_COLS).fill(null));
@@ -329,7 +327,7 @@ export default function MatkaPage() {
       for (const b of cart) {
         await authFetch('/api/matka/result', {
           method: 'POST',
-          body: JSON.stringify({ action: 'place_bet', marketId: market.id, betType: b.key, betValue: b.value, session: b.session, amount: b.amount }),
+          body: JSON.stringify({ action: 'place_bet', marketId: market.id, betType: b.label, betValue: b.value, session: b.session, amount: b.amount }),
         });
       }
     } catch { /* demo ok */ }
@@ -580,8 +578,7 @@ export default function MatkaPage() {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 {loggedIn && <span style={{ color: '#ffcb52', fontWeight: 700, fontSize: 13 }}>💰 {balance.toLocaleString()}</span>}
-                {/* OPEN / CLOSE toggle — hidden for Jodi/Sangam (not session-bound) */}
-                {!['JODI','HALF_SANGAM_A','HALF_SANGAM_B','FULL_SANGAM'].includes(gameType.key) && (
+                {/* OPEN / CLOSE toggle */}
                 <div style={{ display: 'flex', background: 'var(--Bg-3)', borderRadius: 999, padding: 3, border: '1px solid var(--Border)' }}>
                   {(['OPEN', 'CLOSE'] as const).map(s => {
                     const disabled = phase === 'close' && s === 'OPEN';
@@ -601,24 +598,15 @@ export default function MatkaPage() {
                     );
                   })}
                 </div>
-                )}
               </div>
             </div>
 
             <p style={{ marginTop: 8, fontSize: 11, color: 'var(--Secondary)' }}>
               <strong style={{ color: 'var(--Main-color)' }}>{gameType.label}</strong> — {gameType.desc} &nbsp;·&nbsp;
-              Select <strong style={{ color: '#fff' }}>{gameType.maxSelect}</strong> column{gameType.maxSelect > 1 ? 's' : ''}
-              {!['JODI','HALF_SANGAM_A','HALF_SANGAM_B','FULL_SANGAM'].includes(gameType.key) && (
-                <> &nbsp;·&nbsp;
-                {session === 'OPEN'
-                  ? <span style={{ color: '#2ECC71' }}>← Open: columns read left to right</span>
-                  : <span style={{ color: '#3498DB' }}>Close: columns read right to left →</span>}
-                </>
-              )}
-              {gameType.key === 'HALF_SANGAM_A' && <> &nbsp;·&nbsp; <span style={{ color: '#ffcb52' }}>Col 1 = Open Ank · Col 2-4 = Close Patti</span></>}
-              {gameType.key === 'HALF_SANGAM_B' && <> &nbsp;·&nbsp; <span style={{ color: '#ffcb52' }}>Col 1-3 = Open Patti · Col 4 = Close Ank</span></>}
-              {gameType.key === 'FULL_SANGAM'   && <> &nbsp;·&nbsp; <span style={{ color: '#ffcb52' }}>Col 1-3 = Open Patti · Col 4-6 = Close Patti</span></>}
-              {gameType.key === 'JODI'          && <> &nbsp;·&nbsp; <span style={{ color: '#ffcb52' }}>Col 1 = Open Ank · Col 2 = Close Ank</span></>}
+              Select <strong style={{ color: '#fff' }}>{gameType.maxSelect}</strong> column{gameType.maxSelect > 1 ? 's' : ''} &nbsp;·&nbsp;
+              {session === 'OPEN'
+                ? <span style={{ color: '#2ECC71' }}>← Open: columns read left to right</span>
+                : <span style={{ color: '#3498DB' }}>Close: columns read right to left →</span>}
             </p>
           </div>
 

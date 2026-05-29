@@ -328,44 +328,5 @@ export async function POST(req: NextRequest) {
     return json({ ok: true, market: updated });
   }
 
-  // ── Toggle isRecurring flag ──────────────────────────────────────────────
-  if (action === 'update_recurring') {
-    const { marketId, isRecurring } = body;
-    if (!marketId) return json({ error: 'marketId required' }, 400);
-    const updated = await prisma.matkaMarket.update({
-      where: { id: marketId },
-      data: { isRecurring: Boolean(isRecurring) },
-    });
-    return json({ ok: true, market: updated });
-  }
-
-  // ── Add a date to pausedDates (skip auto-rollover on that day) ───────────
-  if (action === 'pause_date') {
-    const { marketId, date } = body;  // date format: "YYYY-MM-DD"
-    if (!marketId || !date) return json({ error: 'marketId and date required' }, 400);
-    const m = await prisma.matkaMarket.findUnique({ where: { id: marketId } });
-    if (!m) return json({ error: 'Market not found' }, 404);
-    if (!m.pausedDates.includes(date)) {
-      await prisma.matkaMarket.update({
-        where: { id: marketId },
-        data: { pausedDates: { push: date } },
-      });
-    }
-    return json({ ok: true });
-  }
-
-  // ── Remove a date from pausedDates ───────────────────────────────────────
-  if (action === 'unpause_date') {
-    const { marketId, date } = body;
-    if (!marketId || !date) return json({ error: 'marketId and date required' }, 400);
-    const m = await prisma.matkaMarket.findUnique({ where: { id: marketId } });
-    if (!m) return json({ error: 'Market not found' }, 404);
-    await prisma.matkaMarket.update({
-      where: { id: marketId },
-      data: { pausedDates: m.pausedDates.filter((d: string) => d !== date) },
-    });
-    return json({ ok: true });
-  }
-
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
 }
