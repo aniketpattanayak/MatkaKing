@@ -23,12 +23,24 @@ export async function POST(req: NextRequest) {
     if (!p) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json();
-    const { action, seriesId, name, prefix, ticketPrice, prizePool, totalTickets, drawAt, status } = body;
+    const { action, seriesId, name, prefix, ticketPrice, prizePool, firstPrize, secondPrize, thirdPrize, totalTickets, drawAt, status } = body;
 
     // ── Create series ────────────────────────────────────────────────────────
     if (action === 'create_series') {
-      if (!name || !prefix || !ticketPrice || !prizePool || !totalTickets || !drawAt)
-        return NextResponse.json({ error: 'All fields required' }, { status: 400 });
+      // Compute prizes — accept either explicit 3-tier values or legacy prizePool (then split 60/30/10)
+      let p1 = Number(firstPrize ?? 0);
+      let p2 = Number(secondPrize ?? 0);
+      let p3 = Number(thirdPrize ?? 0);
+      if (p1 + p2 + p3 === 0 && prizePool) {
+        const pool = Number(prizePool);
+        p1 = Math.floor(pool * 0.6);
+        p2 = Math.floor(pool * 0.3);
+        p3 = pool - p1 - p2;
+      }
+      const totalPrize = p1 + p2 + p3;
+
+      if (!name || !prefix || !ticketPrice || !totalTickets || !drawAt || totalPrize <= 0)
+        return NextResponse.json({ error: 'All fields required (name, prefix, ticketPrice, prizes, totalTickets, drawAt)' }, { status: 400 });
 
       const cleanPrefix = prefix.toUpperCase();
       const total       = Number(totalTickets);
@@ -44,10 +56,13 @@ export async function POST(req: NextRequest) {
         data: {
           name,
           prefix:      cleanPrefix,
-          startNumber: startNum,      // ✅ correct field
-          endNumber:   endNum,        // ✅ correct field
+          startNumber: startNum,
+          endNumber:   endNum,
           ticketPrice: Number(ticketPrice),
-          prizePool:   Number(prizePool),
+          prizePool:   totalPrize,
+          firstPrize:  p1,
+          secondPrize: p2,
+          thirdPrize:  p3,
           drawAt:      new Date(drawAt),
           status:      'OPEN',
           isActive:    true,

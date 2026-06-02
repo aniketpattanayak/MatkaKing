@@ -15,7 +15,7 @@ export default function Header() {
   const [user,    setUser]    = useState<SessionUser | null>(null);
   const [modal,   setModal]   = useState<'login'|'register'|null>(null);
   const [loading, setLoading] = useState(false);
-  const [form,    setForm]    = useState({ name:'', email:'', password:'', confirm:'' });
+  const [form,    setForm]    = useState({ name:'', email:'', password:'', confirm:'', referral:'' });
   const [dropdown,setDropdown]= useState(false);
   const [mobileNav,setMobileNav]=useState(false);
   const [topBar,setTopBar]=useState(true);
@@ -41,13 +41,20 @@ export default function Header() {
     try {
       const res = await fetch(`/api/auth/${modal}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
+        body: JSON.stringify({ name: form.name, email: form.email, password: form.password, referralCode: form.referral?.trim() || undefined }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error);
       setToken(d.token); setCachedUser(d.user); setUser(d.user); setModal(null);
-      setForm({ name:'', email:'', password:'', confirm:'' });
-      toast.success(modal === 'login' ? `Welcome back, ${d.user.name}!` : `Welcome ${d.user.name}! +50 free coins!`);
+      setForm({ name:'', email:'', password:'', confirm:'', referral:'' });
+      if (modal === 'login') {
+        toast.success(`Welcome back, ${d.user.name}!`);
+      } else {
+        const msg = d.referralApplied
+          ? `Welcome ${d.user.name}! +60 free coins (50 signup + 10 referral)!`
+          : `Welcome ${d.user.name}! +50 free coins!`;
+        toast.success(msg);
+      }
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
   };
 
@@ -328,6 +335,15 @@ export default function Header() {
                 {modal==='register' && (
                   <input type="password" placeholder="Confirm password" required value={form.confirm}
                     onChange={e=>setForm({...form,confirm:e.target.value})} style={inp}/>
+                )}
+                {modal==='register' && (
+                  <div>
+                    <input placeholder="Referral code (optional)" value={form.referral}
+                      onChange={e=>setForm({...form,referral:e.target.value})} style={inp}/>
+                    <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:6, paddingLeft:4 }}>
+                      Have a friend's code? Get an extra 10 coins, your friend gets 20 coins!
+                    </p>
+                  </div>
                 )}
                 <button type="submit" disabled={loading} className="tf-btn" style={{
                   width:'100%', justifyContent:'center', height:50, fontSize:15, marginTop:4, opacity:loading?0.6:1

@@ -37,7 +37,7 @@ export default function AdminPage() {
   const [data,        setData]        = useState<any>({ upis:[], markets:[], series:[], users:[], spinConfig:null });
 
   // ── Lottery form ────────────────────────────────────────────────────────────
-  const [lForm, setLForm] = useState({ name:'', prefix:'', ticketPrice:'25', prizePool:'2000000', totalTickets:'9999', drawAt:'' });
+  const [lForm, setLForm] = useState({ name:'', prefix:'', ticketPrice:'25', firstPrize:'100000', secondPrize:'50000', thirdPrize:'25000', totalTickets:'9999', drawAt:'' });
   const [lLoading,   setLLoading]   = useState(false);
   const [drawSeries, setDrawSeries] = useState<any>(null);  // series being drawn
   const [drawInfo,   setDrawInfo]   = useState<any>(null);  // eligibility info from API
@@ -47,7 +47,6 @@ export default function AdminPage() {
 
   // ── Matka form ──────────────────────────────────────────────────────────────
   const [mResult,  setMResult]  = useState({ marketId:'', openPatti:'', closePatti:'' });
-  const [declareStage, setDeclareStage] = useState<'OPEN'|'CLOSE'>('OPEN');
   const [mForm,    setMForm]    = useState({ name:'', openTime:'09:30', closeTime:'11:30', resultTime:'12:00' });
   const [mCreate,  setMCreate]  = useState(false); // show create form
   const [mLoading, setMLoading] = useState(false);
@@ -167,7 +166,7 @@ export default function AdminPage() {
     setLLoading(true);
     const r = await authFetch('/api/admin/lottery', { method:'POST', body: JSON.stringify({ action:'create_series', ...lForm }) });
     const d = await r.json();
-    if (r.ok) { toast.success(`✓ ${d.series.name} created with ${d.ticketsGenerated} tickets!`); load(); setLForm({ name:'', prefix:'', ticketPrice:'25', prizePool:'2000000', totalTickets:'9999', drawAt:'' }); }
+    if (r.ok) { toast.success(`✓ ${d.series.name} created with ${d.ticketsGenerated} tickets!`); load(); setLForm({ name:'', prefix:'', ticketPrice:'25', firstPrize:'100000', secondPrize:'50000', thirdPrize:'25000', totalTickets:'9999', drawAt:'' }); }
     else toast.error(d.error);
     setLLoading(false);
   }
@@ -203,14 +202,20 @@ export default function AdminPage() {
     if (!drawSeries) return;
     setDrawLoading(true);
     try {
+      const forcedTickets = manualTicket ? { first: manualTicket } : undefined;
       const r = await authFetch('/api/admin/lottery-draw', {
         method: 'POST',
-        body: JSON.stringify({ seriesId: drawSeries.id, action, forcedTicketCode: manualTicket || undefined }),
+        body: JSON.stringify({ seriesId: drawSeries.id, action, forcedTickets }),
       });
       const d = await r.json();
       if (r.ok) {
         setDrawResult(d);
-        toast.success(d.type === 'REAL' ? ` Winner: ${d.winner?.name} with ticket ${d.winnerTicket}!` : ` Dummy draw completed. Ticket: ${d.winnerTicket}`);
+        if (d.type === 'REAL') {
+          const w1 = d.winners?.[0];
+          toast.success(`Draw complete! 1st: ${w1?.ticketCode} (${w1?.winnerName ?? 'winner'}) · 2nd: ${d.winners?.[1]?.ticketCode} · 3rd: ${d.winners?.[2]?.ticketCode}`);
+        } else {
+          toast.success('Dummy draw — house won all 3 tiers');
+        }
         load(); // refresh series list
       } else { toast.error(d.error); }
     } catch { toast.error('Draw failed'); }
@@ -218,25 +223,14 @@ export default function AdminPage() {
   }
 
   // ── Matka actions ────────────────────────────────────────────────────────────
-  async function declareOpen() {
-    if (!mResult.marketId || mResult.openPatti.length !== 3)
-      return toast.error('Select market and enter 3-digit Open Patti');
+  async function declareResult() {
+    if (!mResult.marketId || mResult.openPatti.length !== 3 || mResult.closePatti.length !== 3)
+      return toast.error('Select market and enter 3-digit patties');
     setMLoading(true);
-    const r = await authFetch('/api/admin/markets', { method:'POST', body: JSON.stringify({ action:'declare_open', marketId: mResult.marketId, openPatti: mResult.openPatti }) });
+    const r = await authFetch('/api/admin/markets', { method:'POST', body: JSON.stringify({ action:'declare_result', ...mResult }) });
     const d = await r.json();
-    if (r.ok) { toast.success(`✓ Open declared! Ank: ${d.openAnk} · Settled ${d.settled} open-side bets · Paid ₹${d.totalPayout?.toLocaleString()}`); load(); setDeclareStage('CLOSE'); }
-    else toast.error(d.error ?? 'Failed');
-    setMLoading(false);
-  }
-
-  async function declareClose() {
-    if (!mResult.marketId || mResult.closePatti.length !== 3)
-      return toast.error('Select market and enter 3-digit Close Patti');
-    setMLoading(true);
-    const r = await authFetch('/api/admin/markets', { method:'POST', body: JSON.stringify({ action:'declare_close', marketId: mResult.marketId, closePatti: mResult.closePatti }) });
-    const d = await r.json();
-    if (r.ok) { toast.success(`✓ Close declared! Jodi: ${d.jodi} · Settled ${d.settled} bets · Paid ₹${d.totalPayout?.toLocaleString()}`); load(); setMResult({ marketId:'', openPatti:'', closePatti:'' }); setDeclareStage('OPEN'); }
-    else toast.error(d.error ?? 'Failed');
+    if (r.ok) { toast.success(`✓ Result declared! Jodi: ${d.jodi} · Settled: ${d.settled} bets · Paid: ₹${d.totalPayout?.toLocaleString()}`); load(); setMResult({ marketId:'', openPatti:'', closePatti:'' }); }
+    else toast.error(d.error);
     setMLoading(false);
   }
 
@@ -686,7 +680,26 @@ export default function AdminPage() {
                     <div><label style={label}>Ticket Price (₹)</label><input type="number" value={lForm.ticketPrice} onChange={e=>setLForm({...lForm,ticketPrice:e.target.value})} style={inp}/></div>
                     <div><label style={label}>Total Tickets</label><input type="number" value={lForm.totalTickets} onChange={e=>setLForm({...lForm,totalTickets:e.target.value})} style={inp}/></div>
                   </div>
-                  <div><label style={label}>Prize Pool (₹)</label><input type="number" value={lForm.prizePool} onChange={e=>setLForm({...lForm,prizePool:e.target.value})} style={inp}/></div>
+                  <div style={{ gridColumn:'1/-1', padding:'12px 14px', background:'rgba(255,203,82,0.05)', borderRadius:10, border:'1px solid rgba(255,203,82,0.2)' }}>
+                    <label style={{...label, color:'#ffcb52', marginBottom:10}}>Prize Tiers (3 winners will be picked)</label>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
+                      <div>
+                        <label style={{fontSize:10, color:'var(--Secondary)', display:'block', marginBottom:4, fontWeight:700}}>1ST PRIZE (₹)</label>
+                        <input type="number" value={lForm.firstPrize} onChange={e=>setLForm({...lForm,firstPrize:e.target.value})} style={inp}/>
+                      </div>
+                      <div>
+                        <label style={{fontSize:10, color:'var(--Secondary)', display:'block', marginBottom:4, fontWeight:700}}>2ND PRIZE (₹)</label>
+                        <input type="number" value={lForm.secondPrize} onChange={e=>setLForm({...lForm,secondPrize:e.target.value})} style={inp}/>
+                      </div>
+                      <div>
+                        <label style={{fontSize:10, color:'var(--Secondary)', display:'block', marginBottom:4, fontWeight:700}}>3RD PRIZE (₹)</label>
+                        <input type="number" value={lForm.thirdPrize} onChange={e=>setLForm({...lForm,thirdPrize:e.target.value})} style={inp}/>
+                      </div>
+                    </div>
+                    <p style={{fontSize:11, color:'var(--Secondary)', marginTop:8}}>
+                      Total prize pool: <strong style={{color:'#ffcb52'}}>₹{(Number(lForm.firstPrize||0)+Number(lForm.secondPrize||0)+Number(lForm.thirdPrize||0)).toLocaleString()}</strong>
+                    </p>
+                  </div>
                   <div><label style={label}>Draw Date</label><input type="date" value={lForm.drawAt} onChange={e=>setLForm({...lForm,drawAt:e.target.value})} style={inp}/></div>
 
                   <div style={{ background:'rgba(255,203,82,0.08)', border:'1px solid rgba(255,203,82,0.2)', borderRadius:10, padding:'10px 14px', fontSize:12, color:'var(--Secondary)' }}>
@@ -779,7 +792,10 @@ export default function AdminPage() {
                         {[
                           ['Tickets Sold', `${drawInfo.soldCount} / ${drawInfo.totalTickets}`,'#fff'],
                           ['Revenue Collected', `₹${drawInfo.totalRevenue?.toLocaleString()}`,'#ffcb52'],
-                          ['Prize Pool', `₹${drawInfo.prizePool?.toLocaleString()}`,'#ef4444'],
+                          ['1st Prize', `₹${drawInfo.series?.firstPrize?.toLocaleString() ?? '0'}`,'#ffcb52'],
+                          ['2nd Prize', `₹${drawInfo.series?.secondPrize?.toLocaleString() ?? '0'}`,'#3498DB'],
+                          ['3rd Prize', `₹${drawInfo.series?.thirdPrize?.toLocaleString() ?? '0'}`,'#9B59B6'],
+                          ['Total Prizes', `₹${drawInfo.totalPrizes?.toLocaleString()}`,'#ef4444'],
                           [`Required (Prize + ${drawInfo.commissionPercent}% commission)`, `₹${drawInfo.commissionNeeded?.toLocaleString()}`,'var(--Secondary)'],
                           drawInfo.isSafe
                             ? ['Your Profit', `₹${drawInfo.adminProfit?.toLocaleString()} `,'#2ECC71']
@@ -796,12 +812,12 @@ export default function AdminPage() {
                       {drawInfo.isSafe && (
                         <div style={{marginBottom:16}}>
                           <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>
-                            Manual Winner Ticket (optional)
+                            Manual 1st Prize Ticket (optional) — 2nd and 3rd will be random
                           </label>
                           <input placeholder={`Leave blank for random · or enter e.g. ${drawInfo.series?.prefix}4521`}
                             value={manualTicket} onChange={e=>setManualTicket(e.target.value.toUpperCase())}
                             style={{width:'100%',padding:'11px 14px',borderRadius:10,background:'var(--Bg-3)',border:'1px solid var(--Border-2)',color:'var(--White)',fontFamily:'monospace',fontWeight:700,fontSize:15,outline:'none'}}/>
-                          <p style={{fontSize:11,color:'var(--Secondary)',marginTop:4}}>Leave blank = system picks random sold ticket</p>
+                          <p style={{fontSize:11,color:'var(--Secondary)',marginTop:4}}>Leave blank = system picks 3 random sold tickets</p>
                         </div>
                       )}
 
@@ -811,13 +827,13 @@ export default function AdminPage() {
                         {/* Real Draw — only when safe */}
                         {drawInfo.isSafe && (
                           <button onClick={()=>executeDraw('real_draw')} disabled={drawLoading} style={{width:'100%',height:52,borderRadius:13,border:'none',cursor:'pointer',fontWeight:900,fontSize:16,background:'linear-gradient(270deg,#2ECC71,#16a34a)',color:'#fff',opacity:drawLoading?0.6:1}}>
-                            {drawLoading?' Drawing...':'Real Draw — Pick Random Winner'}
+                            {drawLoading?' Drawing...':'Real Draw — Pick 3 Winners (1st, 2nd, 3rd)'}
                           </button>
                         )}
 
                         {/* Force Dummy — always available */}
                         <button onClick={()=>executeDraw('force_dummy')} disabled={drawLoading} style={{width:'100%',height:52,borderRadius:13,border:`2px solid rgba(148,163,184,0.3)`,cursor:'pointer',fontWeight:900,fontSize:15,background:'rgba(148,163,184,0.08)',color:'var(--Secondary)',opacity:drawLoading?0.6:1}}>
-                          {drawLoading?' Processing...':'Force Dummy — Assign Prize to House Account'}
+                          {drawLoading?' Processing...':'Force Dummy — Assign All 3 Prizes to House'}
                         </button>
 
                         {/* Auto info when not safe */}
@@ -894,9 +910,6 @@ export default function AdminPage() {
                         <span style={{ fontSize:11, fontWeight:700, padding:'2px 10px', borderRadius:999,
                           background:m.isOpen?'rgba(254,140,69,0.15)':'rgba(100,100,100,0.2)',
                           color:m.isOpen?'#fe8c45':'var(--Secondary)'}}>{m.isOpen?'OPEN':'CLOSED'}</span>
-                        <button onClick={()=>setEditRates(editRates?.id===m.id?null:{...m})} style={{ padding:'5px 12px', borderRadius:8, border:`1px solid ${editRates?.id===m.id?'#ffcb52':'rgba(255,203,82,0.35)'}`, background:'rgba(255,203,82,0.08)', color:'#ffcb52', fontSize:12, cursor:'pointer', fontWeight:700 }}>
-                          Rates
-                        </button>
                         <button onClick={()=>toggleMarket(m.id)} style={{ padding:'5px 12px', borderRadius:8, border:'1px solid var(--Border)', background:'var(--Bg-3)', color:'var(--Secondary)', fontSize:12, cursor:'pointer', fontWeight:600 }}>
                           {m.isOpen?'Close':'Open'}
                         </button>
@@ -907,37 +920,6 @@ export default function AdminPage() {
                       <span> {m._count?.bets??0} bets</span>
                       {m.results?.[0] && <span>Last result: <strong style={{ color:'#ffcb52', fontFamily:'monospace' }}>{m.results[0].jodi}</strong></span>}
                     </div>
-
-                    {editRates?.id===m.id && (
-                      <div style={{ marginTop:14, padding:'14px 16px', background:'rgba(255,203,82,0.05)', border:'1px solid rgba(255,203,82,0.25)', borderRadius:10 }}>
-                        <p style={{ fontWeight:700, fontSize:13, color:'#ffcb52', marginBottom:12 }}>Game Rates — {m.name}</p>
-                        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:12 }}>
-                          {[
-                            ['Ank (Single)','payoutSingle'],
-                            ['Jodi','payoutJodi'],
-                            ['SP (Single Patti)','payoutSP'],
-                            ['DP (Double Patti)','payoutDP'],
-                            ['TP (Triple Patti)','payoutTP'],
-                            ['Half Sangam','payoutHalfSangam'],
-                            ['Full Sangam','payoutFullSangam'],
-                          ].map(([lab,field]:any) => (
-                            <div key={field}>
-                              <label style={{ fontSize:10, fontWeight:700, color:'var(--Secondary)', display:'block', marginBottom:4, textTransform:'uppercase' }}>{lab}</label>
-                              <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-                                <input type="number" value={editRates[field]} onChange={e=>setEditRates({...editRates,[field]:e.target.value})} style={{ width:'100%', padding:'7px 9px', borderRadius:7, background:'var(--Bg-3)', border:'1px solid var(--Border-2)', color:'#fff', fontSize:13, fontWeight:700, outline:'none' }}/>
-                                <span style={{ fontSize:12, color:'var(--Secondary)' }}>x</span>
-                              </div>
-                            </div>
-                          ))}
-                          <div style={{ display:'flex', alignItems:'flex-end', gap:6 }}>
-                            <button onClick={saveRates} style={{ flex:1, height:34, borderRadius:8, border:'none', background:'linear-gradient(270deg,#ffcb52,#FFA500)', color:'#1a0f00', fontWeight:800, fontSize:12, cursor:'pointer' }}>
-                              Save
-                            </button>
-                            <button onClick={()=>setEditRates(null)} style={{ height:34, padding:'0 12px', borderRadius:8, border:'1px solid var(--Border)', background:'transparent', color:'var(--Secondary)', fontWeight:700, fontSize:12, cursor:'pointer' }}>Cancel</button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -981,30 +963,9 @@ export default function AdminPage() {
                     </div>
                   )}
 
-                  <div style={{ display:'flex', gap:6, background:'var(--Bg-3)', borderRadius:10, padding:4, border:'1px solid var(--Border)' }}>
-                    {(['OPEN','CLOSE'] as const).map(s => (
-                      <button key={s} onClick={()=>setDeclareStage(s)} style={{
-                        flex:1, padding:'8px 12px', borderRadius:7, border:'none', cursor:'pointer',
-                        background: declareStage===s ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'transparent',
-                        color: declareStage===s ? '#fff' : 'var(--Secondary)',
-                        fontWeight:700, fontSize:12,
-                      }}>{s === 'OPEN' ? 'Step 1: Declare Open' : 'Step 2: Declare Close'}</button>
-                    ))}
-                  </div>
-
-                  {declareStage === 'OPEN' && (
-                    <button onClick={declareOpen} disabled={mLoading} style={{ width:'100%', height:50, borderRadius:12, border:'none', cursor:'pointer', background:'linear-gradient(270deg,#fe8c45,#ca2826)', color:'#fff', fontWeight:900, fontSize:15, opacity:mLoading?0.6:1 }}>
-                      {mLoading ? 'Declaring Open...' : 'Declare Open — Settle Open-side Bets'}
-                    </button>
-                  )}
-                  {declareStage === 'CLOSE' && (
-                    <button onClick={declareClose} disabled={mLoading} style={{ width:'100%', height:50, borderRadius:12, border:'none', cursor:'pointer', background:'linear-gradient(270deg,#fe8c45,#ca2826)', color:'#fff', fontWeight:900, fontSize:15, opacity:mLoading?0.6:1 }}>
-                      {mLoading ? 'Declaring Close...' : 'Declare Close — Settle Jodi + Close + Sangam'}
-                    </button>
-                  )}
-                  <p style={{ fontSize:11, color:'var(--Secondary)', textAlign:'center', marginTop:-4, lineHeight:1.5 }}>
-                    Step 1 at open time. Step 2 at close time.
-                  </p>
+                  <button onClick={declareResult} disabled={mLoading} style={{ width:'100%', height:50, borderRadius:12, border:'none', cursor:'pointer', background:'linear-gradient(270deg,#fe8c45,#ca2826)', color:'#fff', fontWeight:900, fontSize:15, opacity:mLoading?0.6:1 }}>
+                    {mLoading ? ' Settling bets...' : 'Declare Result & Settle All Bets'}
+                  </button>
                 </div>
               </div>
             </div>

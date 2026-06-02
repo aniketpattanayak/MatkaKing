@@ -146,7 +146,18 @@ model LotterySeries {
   endNumber   Int                               // 9999
   ticketPrice Int                               // in Coins
   drawAt      DateTime
-  prizePool   Int                               // Coins
+  prizePool   Int                               // sum of all 3 prizes (Coins)
+  firstPrize  Int           @default(0)         // 1st place prize (Coins)
+  secondPrize Int           @default(0)         // 2nd place prize (Coins)
+  thirdPrize  Int           @default(0)         // 3rd place prize (Coins)
+  // Draw results
+  firstWinnerId   String?
+  firstTicket     String?
+  secondWinnerId  String?
+  secondTicket    String?
+  thirdWinnerId   String?
+  thirdTicket     String?
+  drawnAt         DateTime?
   status      LotteryStatus @default(OPEN)
   isActive    Boolean       @default(true)
   createdAt   DateTime      @default(now())
@@ -223,8 +234,6 @@ model MatkaMarket {
   payoutHalfSangam Int        @default(1500)
   payoutFullSangam Int        @default(11000)
   isActive        Boolean      @default(true)
-  isRecurring     Boolean      @default(false)     // Auto-reset daily at midnight IST
-  pausedDates     String[]     @default([])        // Dates to skip in 'YYYY-MM-DD' format
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 

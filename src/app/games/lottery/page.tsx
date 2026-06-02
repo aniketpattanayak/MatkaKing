@@ -8,7 +8,10 @@ import { authFetch, getCachedUser, fetchCurrentUser } from '@/lib/auth-client';
 
 interface Series {
   id: string; name: string; prefix: string; ticketPrice: number;
-  prizePool: number; drawAt: string; status: string; totalTickets: number;
+  prizePool: number; firstPrize?: number; secondPrize?: number; thirdPrize?: number;
+  firstTicket?: string | null; secondTicket?: string | null; thirdTicket?: string | null;
+  drawnAt?: string | null;
+  drawAt: string; status: string; totalTickets: number;
   _count?: { tickets: number };
 }
 interface Ticket { ticketCode: string; ticketId: string; isSold: boolean; price: number; }
@@ -208,18 +211,49 @@ export default function LotteryPage() {
                   <h3 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>{series.name}</h3>
                   <p style={{ color: 'var(--Secondary)', fontSize: 13 }}>Series: {series.prefix}0001 – {series.prefix}{String(series.totalTickets || 9999).padStart(4, '0')}</p>
                 </div>
-                <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
-                  {[
-                    { label: 'Prize Pool', value: `₹${(series.prizePool).toLocaleString('en-IN')}`, color: '#ffcb52' },
-                    { label: 'Per Ticket',  value: `₹${series.ticketPrice}`,                           color: '#fff' },
-                    { label: 'Draw Date',   value: new Date(series.drawAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }), color: '#fff' },
-                  ].map(({ label, value, color }) => (
-                    <div key={label} style={{ textAlign: 'right' }}>
-                      <p style={{ color: 'var(--Secondary)', fontSize: 11, marginBottom: 2, textTransform: 'uppercase' }}>{label}</p>
-                      <p style={{ fontWeight: 900, fontSize: 18, color }}>{value}</p>
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                  <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                    <div style={{ background:'rgba(255,203,82,0.1)', border:'1px solid rgba(255,203,82,0.3)', borderRadius:10, padding:'8px 14px', minWidth:90 }}>
+                      <p style={{ color:'var(--Secondary)', fontSize:10, marginBottom:2, textTransform:'uppercase', fontWeight:700 }}>1st Prize</p>
+                      <p style={{ fontWeight:900, fontSize:17, color:'#ffcb52' }}>₹{(series.firstPrize ?? Math.floor(series.prizePool * 0.6)).toLocaleString('en-IN')}</p>
                     </div>
-                  ))}
+                    <div style={{ background:'rgba(52,152,219,0.1)', border:'1px solid rgba(52,152,219,0.3)', borderRadius:10, padding:'8px 14px', minWidth:90 }}>
+                      <p style={{ color:'var(--Secondary)', fontSize:10, marginBottom:2, textTransform:'uppercase', fontWeight:700 }}>2nd Prize</p>
+                      <p style={{ fontWeight:900, fontSize:17, color:'#3498DB' }}>₹{(series.secondPrize ?? Math.floor(series.prizePool * 0.3)).toLocaleString('en-IN')}</p>
+                    </div>
+                    <div style={{ background:'rgba(155,89,182,0.1)', border:'1px solid rgba(155,89,182,0.3)', borderRadius:10, padding:'8px 14px', minWidth:90 }}>
+                      <p style={{ color:'var(--Secondary)', fontSize:10, marginBottom:2, textTransform:'uppercase', fontWeight:700 }}>3rd Prize</p>
+                      <p style={{ fontWeight:900, fontSize:17, color:'#9B59B6' }}>₹{(series.thirdPrize ?? Math.floor(series.prizePool * 0.1)).toLocaleString('en-IN')}</p>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', gap:24, marginLeft:'auto' }}>
+                    <div style={{ textAlign:'right' }}>
+                      <p style={{ color: 'var(--Secondary)', fontSize: 11, marginBottom: 2, textTransform: 'uppercase' }}>Per Ticket</p>
+                      <p style={{ fontWeight: 900, fontSize: 16, color: '#fff' }}>₹{series.ticketPrice}</p>
+                    </div>
+                    <div style={{ textAlign:'right' }}>
+                      <p style={{ color: 'var(--Secondary)', fontSize: 11, marginBottom: 2, textTransform: 'uppercase' }}>Draw Date</p>
+                      <p style={{ fontWeight: 900, fontSize: 16, color: '#fff' }}>{new Date(series.drawAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                    </div>
+                  </div>
                 </div>
+
+                {series.status === 'DRAWN' && (series.firstTicket || series.secondTicket || series.thirdTicket) && (
+                  <div style={{ marginTop:16, width:'100%', padding:'16px 18px', background:'linear-gradient(135deg, rgba(46,204,113,0.1), rgba(46,204,113,0.04))', border:'1px solid rgba(46,204,113,0.35)', borderRadius:12 }}>
+                    <p style={{ fontWeight:900, fontSize:13, color:'#2ECC71', marginBottom:10, textTransform:'uppercase', letterSpacing:1 }}>🏆 Winners</p>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:10 }}>
+                      {series.firstTicket && (
+                        <div><p style={{fontSize:10, color:'var(--Secondary)', fontWeight:700}}>1ST</p><p style={{fontWeight:900, fontSize:16, color:'#ffcb52', fontFamily:'monospace'}}>{series.firstTicket}</p></div>
+                      )}
+                      {series.secondTicket && (
+                        <div><p style={{fontSize:10, color:'var(--Secondary)', fontWeight:700}}>2ND</p><p style={{fontWeight:900, fontSize:16, color:'#3498DB', fontFamily:'monospace'}}>{series.secondTicket}</p></div>
+                      )}
+                      {series.thirdTicket && (
+                        <div><p style={{fontSize:10, color:'var(--Secondary)', fontWeight:700}}>3RD</p><p style={{fontWeight:900, fontSize:16, color:'#9B59B6', fontFamily:'monospace'}}>{series.thirdTicket}</p></div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Search */}
