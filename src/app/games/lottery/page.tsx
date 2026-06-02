@@ -8,28 +8,14 @@ import { authFetch, getCachedUser, fetchCurrentUser } from '@/lib/auth-client';
 
 interface Series {
   id: string; name: string; prefix: string; ticketPrice: number;
-  prizePool: number; firstPrize?: number; secondPrize?: number; thirdPrize?: number;
+  prizePool: number;
+  firstPrize?: number; secondPrize?: number; thirdPrize?: number;
   firstTicket?: string | null; secondTicket?: string | null; thirdTicket?: string | null;
   drawnAt?: string | null;
   drawAt: string; status: string; totalTickets: number;
   _count?: { tickets: number };
 }
-interface Ticket { ticketCode: string; ticketId: string; isSold: boolean; price: number; }
-
-// Fallback mock tickets when DB not available
-function mockTickets(prefix: string, query: string, limit = 80): Ticket[] {
-  const q = query.toUpperCase().trim();
-  const out: Ticket[] = [];
-  for (let i = 1; i <= 9999 && out.length < limit; i++) {
-    const code = `${prefix}${String(i).padStart(4, '0')}`;
-    if (!q || code.includes(q)) {
-      let h = 0;
-      for (let j = 0; j < code.length; j++) h = (h * 31 + code.charCodeAt(j)) & 0xffffffff;
-      out.push({ ticketCode: code, ticketId: code, isSold: Math.abs(h) % 10 < 3, price: 25 });
-    }
-  }
-  return out;
-}
+interface Ticket { ticketCode: string; ticketId: string; isSold: boolean; }
 
 export default function LotteryPage() {
   const [allSeries,  setAllSeries]  = useState<Series[]>([]);
@@ -42,6 +28,11 @@ export default function LotteryPage() {
   const [balance,    setBalance]    = useState(0);
   const [loggedIn,   setLoggedIn]   = useState(false);
   const [loadingSeries, setLoadingSeries] = useState(true);
+  const [total,      setTotal]      = useState(0);
+  const [offset,     setOffset]     = useState(0);
+  const [customQty,  setCustomQty]  = useState('');
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const PAGE_SIZE = 120;
   const debounce = useRef<any>();
 
   // Load user
@@ -65,37 +56,51 @@ export default function LotteryPage() {
       .finally(() => setLoadingSeries(false));
   }, []);
 
-  // Search tickets
-  const searchTickets = useCallback((q: string) => {
+  // Load tickets from DB only — no fake mock fallback
+  const loadTickets = useCallback((q: string, off: number) => {
     if (!series) return;
-    authFetch(`/api/lottery/search?seriesId=${series.id}&q=${q}&limit=80`)
+    setLoadingTickets(true);
+    fetch(`/api/lottery/search?seriesId=${series.id}&q=${q}&limit=${PAGE_SIZE}&offset=${off}`)
       .then(r => r.json())
       .then(d => {
-        if (d.tickets?.length > 0) setTickets(d.tickets);
-        else setTickets(mockTickets(series.prefix, q));
+        setTickets(d.tickets ?? []);
+        setTotal(d.total ?? 0);
       })
-      .catch(() => setTickets(mockTickets(series.prefix, q)));
+      .catch(() => { setTickets([]); setTotal(0); })
+      .finally(() => setLoadingTickets(false));
   }, [series]);
 
-  useEffect(() => {
-    if (!series) return;
-    setTickets(mockTickets(series.prefix, ''));
-    clearTimeout(debounce.current);
-    debounce.current = setTimeout(() => searchTickets(query), 300);
-  }, [query, series, searchTickets]);
-
+  // Reset when series changes
   useEffect(() => {
     if (!series) return;
     setSelected(new Set());
     setQuery('');
-    setTickets(mockTickets(series.prefix, ''));
+    setOffset(0);
   }, [series]);
+
+  // Search debounce — fetches page from DB
+  useEffect(() => {
+    if (!series) return;
+    clearTimeout(debounce.current);
+    debounce.current = setTimeout(() => {
+      setOffset(0);
+      loadTickets(query, 0);
+    }, 250);
+  }, [query, series, loadTickets]);
+
+  // When user paginates
+  useEffect(() => {
+    if (!series) return;
+    loadTickets(query, offset);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offset]);
 
   const applyFilter = () => {
     if (!series) return;
-    const filtered = mockTickets(series.prefix, query).filter(t => !lucky || t.ticketCode.includes(lucky));
-    setTickets(filtered);
-    toast.info(`${filtered.filter(t => !t.isSold).length} tickets found`);
+    // 'lucky' is treated as additional contains filter on top of query
+    const q = (query + lucky).trim();
+    setOffset(0);
+    loadTickets(q, 0);
   };
 
   const quickBuy = async (qty: number) => {
@@ -116,7 +121,7 @@ export default function LotteryPage() {
       toast.error(e.message ?? 'Purchase failed');
     }
     setBuying(false);
-    searchTickets(query);
+    loadTickets(query, offset);
   };
 
   const buySelected = async () => {
@@ -132,7 +137,7 @@ export default function LotteryPage() {
         body: JSON.stringify({ seriesId: series.id, ticketCodes: selectedTickets.map(t => t.ticketCode) }),
       });
       const data = await res.json();
-      if (res.ok) { setBalance(data.newBalance ?? balance - cost); toast.success(`${data.count} tickets bought! Check Dashboard to view them.`); setSelected(new Set()); searchTickets(query); }
+      if (res.ok) { setBalance(data.newBalance ?? balance - cost); toast.success(`${data.count} tickets bought! Check Dashboard to view them.`); setSelected(new Set()); loadTickets(query, offset); }
       else toast.error(data.error ?? 'Failed');
     } catch(e:any) { toast.error(e.message); }
     setBuying(false);
@@ -211,8 +216,8 @@ export default function LotteryPage() {
                   <h3 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>{series.name}</h3>
                   <p style={{ color: 'var(--Secondary)', fontSize: 13 }}>Series: {series.prefix}0001 – {series.prefix}{String(series.totalTickets || 9999).padStart(4, '0')}</p>
                 </div>
-                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                  <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                  <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                     <div style={{ background:'rgba(255,203,82,0.1)', border:'1px solid rgba(255,203,82,0.3)', borderRadius:10, padding:'8px 14px', minWidth:90 }}>
                       <p style={{ color:'var(--Secondary)', fontSize:10, marginBottom:2, textTransform:'uppercase', fontWeight:700 }}>1st Prize</p>
                       <p style={{ fontWeight:900, fontSize:17, color:'#ffcb52' }}>₹{(series.firstPrize ?? Math.floor(series.prizePool * 0.6)).toLocaleString('en-IN')}</p>
@@ -226,7 +231,7 @@ export default function LotteryPage() {
                       <p style={{ fontWeight:900, fontSize:17, color:'#9B59B6' }}>₹{(series.thirdPrize ?? Math.floor(series.prizePool * 0.1)).toLocaleString('en-IN')}</p>
                     </div>
                   </div>
-                  <div style={{ display:'flex', gap:24, marginLeft:'auto' }}>
+                  <div style={{ display:'flex', gap:20, marginLeft:'auto' }}>
                     <div style={{ textAlign:'right' }}>
                       <p style={{ color: 'var(--Secondary)', fontSize: 11, marginBottom: 2, textTransform: 'uppercase' }}>Per Ticket</p>
                       <p style={{ fontWeight: 900, fontSize: 16, color: '#fff' }}>₹{series.ticketPrice}</p>
@@ -239,8 +244,8 @@ export default function LotteryPage() {
                 </div>
 
                 {series.status === 'DRAWN' && (series.firstTicket || series.secondTicket || series.thirdTicket) && (
-                  <div style={{ marginTop:16, width:'100%', padding:'16px 18px', background:'linear-gradient(135deg, rgba(46,204,113,0.1), rgba(46,204,113,0.04))', border:'1px solid rgba(46,204,113,0.35)', borderRadius:12 }}>
-                    <p style={{ fontWeight:900, fontSize:13, color:'#2ECC71', marginBottom:10, textTransform:'uppercase', letterSpacing:1 }}>🏆 Winners</p>
+                  <div style={{ marginTop:14, width:'100%', padding:'14px 16px', background:'linear-gradient(135deg, rgba(46,204,113,0.1), rgba(46,204,113,0.04))', border:'1px solid rgba(46,204,113,0.35)', borderRadius:12 }}>
+                    <p style={{ fontWeight:900, fontSize:13, color:'#2ECC71', marginBottom:8, textTransform:'uppercase', letterSpacing:1 }}>🏆 Winners</p>
                     <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:10 }}>
                       {series.firstTicket && (
                         <div><p style={{fontSize:10, color:'var(--Secondary)', fontWeight:700}}>1ST</p><p style={{fontWeight:900, fontSize:16, color:'#ffcb52', fontFamily:'monospace'}}>{series.firstTicket}</p></div>
@@ -270,18 +275,53 @@ export default function LotteryPage() {
               </div>
 
               {/* Quick buy */}
-              <div style={{ background: 'var(--Bg-2)', borderRadius: 14, padding: '18px 24px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid var(--Border)' }}>
-                <span style={{ fontWeight: 700, color: 'var(--Secondary)', fontSize: 13 }}>⚡ QUICK BUY:</span>
-                {[10, 20, 50].map(qty => (
-                  <button key={qty} onClick={() => quickBuy(qty)} disabled={buying} className="tf-btn" style={{ height: 40, fontSize: 13, padding: '0 18px' }}>
-                    {qty} Tickets — ₹{qty * series.ticketPrice}
+              <div style={{ background: 'var(--Bg-2)', borderRadius: 14, padding: '18px 24px', marginBottom: 24, border: '1px solid var(--Border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+                  <span style={{ fontWeight: 700, color: 'var(--Secondary)', fontSize: 13 }}>⚡ QUICK BUY:</span>
+                  {[10, 20, 50, 100].map(qty => (
+                    <button key={qty} onClick={() => quickBuy(qty)} disabled={buying} className="tf-btn" style={{ height: 40, fontSize: 13, padding: '0 18px' }}>
+                      {qty} Tickets — ₹{(qty * series.ticketPrice).toLocaleString('en-IN')}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', paddingTop: 14, borderTop: '1px solid var(--Border)' }}>
+                  <span style={{ fontWeight: 700, color: 'var(--Secondary)', fontSize: 13 }}>OR ENTER ANY AMOUNT:</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={10000}
+                    placeholder="e.g. 500"
+                    value={customQty}
+                    onChange={e => setCustomQty(e.target.value.replace(/[^0-9]/g, ''))}
+                    style={{ width: 140, padding: '11px 14px', borderRadius: 10, background: 'var(--Bg-3)', border: '1px solid var(--Border-2)', color: 'var(--White)', fontSize: 14, outline: 'none', fontWeight: 700 }}
+                  />
+                  <span style={{ fontWeight: 700, color: '#ffcb52' }}>
+                    {customQty && Number(customQty) > 0 ? `= ₹${(Number(customQty) * series.ticketPrice).toLocaleString('en-IN')}` : ''}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const n = Number(customQty);
+                      if (!n || n < 1) return toast.error('Enter a quantity of at least 1');
+                      if (n > 10000) return toast.error('Maximum 10,000 tickets per purchase');
+                      quickBuy(n);
+                    }}
+                    disabled={buying || !customQty}
+                    className="tf-btn"
+                    style={{ height: 40, fontSize: 13, padding: '0 22px', opacity: (!customQty || buying) ? 0.5 : 1 }}
+                  >
+                    Buy {customQty || '?'} Tickets
                   </button>
-                ))}
-                <span style={{ color: 'var(--Secondary)', fontSize: 12, marginLeft: 'auto' }}>₹{series.ticketPrice}/ticket · 1 Coin = 1 INR</span>
+                  <span style={{ color: 'var(--Secondary)', fontSize: 12, marginLeft: 'auto' }}>₹{series.ticketPrice}/ticket · 1 Coin = 1 INR · Server picks random available</span>
+                </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <span style={{ fontWeight: 700, fontSize: 16 }}>{available.length} available tickets</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+                <div>
+                  <span style={{ fontWeight: 700, fontSize: 16 }}>{available.length} available</span>
+                  <span style={{ color: 'var(--Secondary)', fontSize: 13, marginLeft: 8 }}>
+                    of {tickets.length} on this page · Total in series: {total.toLocaleString()}
+                  </span>
+                </div>
                 {selected.size > 0 && <span style={{ color: 'var(--Main-color)', fontWeight: 700 }}>{selected.size} selected · ₹{cost.toLocaleString()}</span>}
               </div>
 
@@ -290,7 +330,7 @@ export default function LotteryPage() {
                 {tickets.map(t => {
                   const sel = selected.has(t.ticketId);
                   return (
-                    <div key={t.ticketId} onClick={() => !t.isSold && toggle(t.ticketId)} style={{
+                    <div key={t.ticketId} title={t.isSold ? 'This ticket is already sold' : 'Click to select'} onClick={() => !t.isSold && toggle(t.ticketId)} style={{
                       padding: '10px 4px', borderRadius: 10, textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, fontSize: 13,
                       cursor: t.isSold ? 'not-allowed' : 'pointer', border: '1px solid',
                       borderColor: t.isSold ? 'transparent' : sel ? 'var(--Main-color)' : 'var(--Border-2)',
@@ -306,6 +346,60 @@ export default function LotteryPage() {
                   );
                 })}
               </div>
+
+              {/* Loading indicator */}
+              {loadingTickets && (
+                <p style={{ textAlign: 'center', color: 'var(--Secondary)', padding: '10px 0', fontSize: 13 }}>Loading...</p>
+              )}
+
+              {/* Empty state */}
+              {!loadingTickets && tickets.length === 0 && (
+                <div style={{ textAlign:'center', padding:'40px 20px', color:'var(--Secondary)' }}>
+                  <p style={{ fontSize:15, marginBottom:8 }}>No tickets match your search.</p>
+                  <p style={{ fontSize:12 }}>Try clearing the search or check the next page.</p>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {total > PAGE_SIZE && (
+                <div style={{ display:'flex', justifyContent:'center', alignItems:'center', gap:10, padding:'24px 0', marginBottom: selected.size > 0 ? 110 : 20, flexWrap:'wrap' }}>
+                  <button
+                    onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
+                    disabled={offset === 0 || loadingTickets}
+                    style={{ padding:'8px 16px', borderRadius:8, border:'1px solid var(--Border)', background:'var(--Bg-2)', color: offset === 0 ? 'var(--Secondary)' : 'var(--White)', cursor: offset === 0 ? 'not-allowed' : 'pointer', fontWeight:700, fontSize:13 }}
+                  >
+                    ← Prev
+                  </button>
+                  <span style={{ fontSize:13, color:'var(--Secondary)', fontWeight:700 }}>
+                    {offset + 1} – {Math.min(offset + PAGE_SIZE, total)} of {total.toLocaleString()}
+                  </span>
+                  <button
+                    onClick={() => setOffset(offset + PAGE_SIZE)}
+                    disabled={offset + PAGE_SIZE >= total || loadingTickets}
+                    style={{ padding:'8px 16px', borderRadius:8, border:'1px solid var(--Border)', background:'var(--Bg-2)', color: offset + PAGE_SIZE >= total ? 'var(--Secondary)' : 'var(--White)', cursor: offset + PAGE_SIZE >= total ? 'not-allowed' : 'pointer', fontWeight:700, fontSize:13 }}
+                  >
+                    Next →
+                  </button>
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginLeft:14 }}>
+                    <span style={{ fontSize:12, color:'var(--Secondary)' }}>Jump to ticket:</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={total}
+                      placeholder="e.g. 5000"
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          const n = Number((e.target as HTMLInputElement).value);
+                          if (n && n >= 1 && n <= total) {
+                            setOffset(Math.max(0, Math.floor((n - 1) / PAGE_SIZE) * PAGE_SIZE));
+                          }
+                        }
+                      }}
+                      style={{ width:90, padding:'6px 10px', borderRadius:7, background:'var(--Bg-3)', border:'1px solid var(--Border-2)', color:'var(--White)', fontSize:13, outline:'none' }}
+                    />
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

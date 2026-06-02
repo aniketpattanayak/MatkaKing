@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       }
     } else {
       // Quick buy — pick random available tickets
-      const qty = Math.min(Number(quantity) || 1, 50);
+      const qty = Math.min(Math.max(Number(quantity) || 1, 1), 10000);
       ticketsToBook = await prisma.lotteryTicket.findMany({
         where: { seriesId, isSold: false },
         take: qty,
