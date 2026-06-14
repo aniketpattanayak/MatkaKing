@@ -8,14 +8,14 @@ export interface SessionUser {
   referralCode?: string;
 }
 
-// ─── In-memory cache (faster than localStorage on repeat reads) ───────────────
+// ─── In-memory cache ──────────────────────────────────────────────────────────
 let _token: string | null = undefined as any;
 let _user:  SessionUser | null = null;
-let _fetchPromise: Promise<SessionUser | null> | null = null; // deduplicate concurrent calls
+let _fetchPromise: Promise<SessionUser | null> | null = null;
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 export function getToken(): string | null {
-  if (_token !== undefined) return _token;            // in-memory hit — no IO
+  if (_token !== undefined) return _token;
   _token = typeof window !== 'undefined'
     ? localStorage.getItem('sge_token')
     : null;
@@ -37,7 +37,7 @@ export function clearToken() {
 
 // ─── User cache helpers ───────────────────────────────────────────────────────
 export function getCachedUser(): SessionUser | null {
-  if (_user) return _user;                           // in-memory hit — no JSON.parse
+  if (_user) return _user;
   try {
     const raw = localStorage.getItem('sge_user');
     if (!raw) return null;
@@ -47,27 +47,29 @@ export function getCachedUser(): SessionUser | null {
 }
 
 export function setCachedUser(u: SessionUser) {
-  _user = u;                                         // update in-memory ref
+  _user = u;
   localStorage.setItem('sge_user', JSON.stringify(u));
+  // Broadcast so any component (e.g. Header) can react to the fresh balance
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('kh-balance-update', { detail: u }));
+  }
 }
 
-// ─── Optimized fetch — single Authorization header build ─────────────────────
+// ─── Auth fetch ───────────────────────────────────────────────────────────────
 export function authFetch(url: string, opts: RequestInit = {}): Promise<Response> {
   const token = getToken();
-  // Reuse headers object to avoid repeated spread allocations
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(opts.headers as Record<string, string> ?? {}),
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-
   return fetch(url, { ...opts, headers });
 }
 
-// ─── Deduplicated user fetch — concurrent callers share ONE in-flight request ─
+// ─── fetchCurrentUser — deduplicates concurrent calls but ALWAYS fetches fresh
+// (does NOT short-circuit on _user so balance is always up-to-date)
 export function fetchCurrentUser(): Promise<SessionUser | null> {
   if (!getToken()) return Promise.resolve(null);
-  if (_user) return Promise.resolve(_user);          // already have it in memory
 
   // If a fetch is already in-flight, return the same promise (no duplicate requests)
   if (_fetchPromise) return _fetchPromise;
@@ -77,10 +79,17 @@ export function fetchCurrentUser(): Promise<SessionUser | null> {
     .then(d => {
       _fetchPromise = null;
       if (!d?.user) return null;
-      setCachedUser(d.user);
+      setCachedUser(d.user);  // this also fires the kh-balance-update event
       return d.user as SessionUser;
     })
     .catch(() => { _fetchPromise = null; return null; });
 
   return _fetchPromise;
+}
+
+// ─── refreshBalance — force fresh fetch even if one just completed
+// Call this after any action that changes balance (bet, spin, deposit)
+export function refreshBalance(): Promise<SessionUser | null> {
+  _fetchPromise = null; // clear any cached promise so we always go to network
+  return fetchCurrentUser();
 }

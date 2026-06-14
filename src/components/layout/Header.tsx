@@ -5,9 +5,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Gamepad2, Ticket, LayoutDashboard, Wallet, Settings,
-  LogOut, User, ChevronDown, X, Menu, Coins, Sun, Moon
+  LogOut, User, ChevronDown, X, Menu, Coins
 } from 'lucide-react';
-import { getToken, setToken, clearToken, getCachedUser, setCachedUser, fetchCurrentUser, type SessionUser } from '@/lib/auth-client';
+import { getToken, setToken, clearToken, getCachedUser, setCachedUser, fetchCurrentUser, refreshBalance, type SessionUser } from '@/lib/auth-client';
 
 export default function Header() {
   const router      = useRouter();
@@ -19,29 +19,20 @@ export default function Header() {
   const [dropdown,setDropdown]= useState(false);
   const [mobileNav,setMobileNav]=useState(false);
   const [topBar,setTopBar]=useState(true);
-  const [theme, setTheme] = useState<'dark'|'light'>('dark');
-
-  useEffect(() => {
-    const t = (document.documentElement.getAttribute('data-theme') as 'dark'|'light') || 'dark';
-    setTheme(t);
-    const obs = new MutationObserver(() => {
-      setTheme((document.documentElement.getAttribute('data-theme') as 'dark'|'light') || 'dark');
-    });
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => obs.disconnect();
-  }, []);
-
-  const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
-    document.documentElement.setAttribute('data-theme', next);
-    try { localStorage.setItem('kh-theme', next); } catch {}
-  };
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Show cached user instantly (for name/avatar), then fetch fresh balance
     const c = getCachedUser(); if (c) setUser(c);
-    if (getToken()) fetchCurrentUser().then(u => { if (u) setUser(u); });
+    if (getToken()) refreshBalance().then(u => { if (u) setUser(u); });
+
+    // Listen for balance updates from any page (wallet, matka, spin, etc.)
+    const onBalanceUpdate = (e: Event) => {
+      const u = (e as CustomEvent<SessionUser>).detail;
+      if (u) setUser({ ...u });
+    };
+    window.addEventListener('kh-balance-update', onBalanceUpdate);
+    return () => window.removeEventListener('kh-balance-update', onBalanceUpdate);
   }, []);
 
   useEffect(() => {
@@ -189,12 +180,6 @@ export default function Header() {
 
                 {/* Right section */}
                 <div className="header-right" style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <button onClick={toggleTheme} title={theme==='dark'?'Light mode':'Dark mode'}
-                    style={{ width:38, height:38, borderRadius:'50%', border:'1px solid var(--Border)', background:'var(--Bg-3)', color:'var(--Main-color)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'transform 0.15s' }}
-                    onMouseEnter={e=>e.currentTarget.style.transform='scale(1.1)'}
-                    onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}>
-                    {theme==='dark' ? <Sun size={17}/> : <Moon size={17}/>}
-                  </button>
                   {user ? (
                     <>
                       {/* Balance pill */}

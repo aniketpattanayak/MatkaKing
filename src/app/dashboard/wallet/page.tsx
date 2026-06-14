@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Copy, CheckCircle, RefreshCw, Wallet, ArrowDownLeft, Clock } from 'lucide-react';
 import Header from '@/components/layout/Header';
-import { authFetch, getCachedUser, fetchCurrentUser, getToken } from '@/lib/auth-client';
+import { authFetch, getCachedUser, setCachedUser, fetchCurrentUser, refreshBalance, getToken } from '@/lib/auth-client';
 
 const QUICK_AMOUNTS = [100, 200, 500, 1000, 2000, 5000];
 
@@ -31,7 +31,7 @@ export default function WalletPage() {
     if (!getToken()) { router.push('/'); return; }
     const u = getCachedUser();
     if (u) { setUser(u); setBalance(u.balance); }
-    fetchCurrentUser().then(u => { if (u) { setUser(u); setBalance(u.balance); } });
+    refreshBalance().then(u => { if (u) { setUser(u); setBalance(u.balance); } });
     loadHistory();
   }, []);
 
@@ -40,7 +40,7 @@ export default function WalletPage() {
       const r = await authFetch('/api/user/wallet');
       const d = await r.json();
       if (d.transactions) setTransactions(d.transactions);
-      if (d.wallet)       setBalance(d.wallet.balance);
+      if (d.wallet) { setBalance(d.wallet.balance); const cu = getCachedUser(); if (cu) setCachedUser({...cu, balance: d.wallet.balance}); }
     } catch { /* ignore */ }
   };
 
@@ -69,7 +69,7 @@ export default function WalletPage() {
           clearInterval(pollRef.current);
           clearInterval(timerRef.current);
           setConfirmed(true);
-          setBalance(b => b + d.coins);
+          setBalance(b => { const nb = b + d.coins; const cu = getCachedUser(); if (cu) setCachedUser({...cu, balance: nb}); return nb; });
           toast.success(`${d.coins} Coins credited automatically!`);
           loadHistory();
         }
