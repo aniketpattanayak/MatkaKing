@@ -9,7 +9,7 @@
 // Vercel automatically protects this URL via CRON_SECRET (set in env vars).
 
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/api-helper';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
