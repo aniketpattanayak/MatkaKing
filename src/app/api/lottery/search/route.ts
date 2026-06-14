@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-import { prisma, verifyToken } from '@/lib/api-helper';
+import { prisma } from '@/lib/api-helper';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -8,28 +7,27 @@ export async function GET(req: NextRequest) {
   const q        = searchParams.get('q') ?? '';
   const limit    = Math.min(parseInt(searchParams.get('limit') ?? '100'), 500);
 
-  if (!seriesId) return NextResponse.json({ tickets: [] });
+  if (!seriesId) return NextResponse.json({ tickets: [], totalAvailable: 0, totalInSeries: 0 });
 
   try {
-    const tickets = await prisma.lotteryTicket.findMany({
-      where: {
-        seriesId,
-        ...(q ? { ticketCode: { contains: q.toUpperCase() } } : {}),
-      },
-      take: limit,
-      orderBy: { ticketCode: 'asc' },
-      select: { id: true, ticketCode: true, isSold: true },
-    });
+    const where = { seriesId, ...(q ? { ticketCode: { contains: q.toUpperCase() } } : {}) };
+
+    const [tickets, totalAvailable, totalInSeries] = await Promise.all([
+      prisma.lotteryTicket.findMany({
+        where, take: limit, orderBy: { ticketCode: 'asc' },
+        select: { id: true, ticketCode: true, isSold: true },
+      }),
+      prisma.lotteryTicket.count({ where: { seriesId, isSold: false } }),
+      prisma.lotteryTicket.count({ where: { seriesId } }),
+    ]);
 
     return NextResponse.json({
-      tickets: tickets.map(t => ({
-        ticketId:   t.id,
-        ticketCode: t.ticketCode,
-        isSold:     t.isSold,
-      })),
+      tickets: tickets.map(t => ({ ticketId: t.id, ticketCode: t.ticketCode, isSold: t.isSold })),
+      totalAvailable,
+      totalInSeries,
     });
   } catch (e: any) {
     console.error('lottery search error:', e.message);
-    return NextResponse.json({ tickets: [], error: e.message });
+    return NextResponse.json({ tickets: [], totalAvailable: 0, totalInSeries: 0, error: e.message });
   }
 }

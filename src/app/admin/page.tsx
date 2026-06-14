@@ -9,10 +9,10 @@ import { authFetch, getToken } from '@/lib/auth-client';
 import {
   LayoutDashboard, Ticket, Dices, RotateCcw, Wallet, Users, CreditCard,
   RefreshCw, Plus, Trash2, CheckCircle, XCircle, ChevronRight, AlertTriangle,
-  TrendingUp, Activity, Settings, Eye, Bell, Calendar, Star, Gift, Send, Pin
+  TrendingUp, Activity, Settings, Eye, Bell, Calendar, Star, Gift, Send, Pin, Trophy
 } from 'lucide-react';
 
-type Tab = 'overview'|'lottery'|'matka'|'spin'|'upi'|'users'|'payments'|'notifications';
+type Tab = 'overview'|'lottery'|'matka'|'spin'|'upi'|'users'|'payments'|'notifications'|'results';
 
 const TABS: { key: Tab; icon: string; label: string }[] = [
   { key: 'overview', icon: '', label: 'Overview'   },
@@ -23,6 +23,7 @@ const TABS: { key: Tab; icon: string; label: string }[] = [
   { key: 'users',    icon: '', label: 'Users'      },
   { key: 'payments',      icon: '', label: 'Payments'      },
   { key: 'notifications', icon: '', label: 'Notifications' },
+  { key: 'results',       icon: '', label: 'Results'       },
 ];
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
@@ -37,7 +38,7 @@ export default function AdminPage() {
   const [data,        setData]        = useState<any>({ upis:[], markets:[], series:[], users:[], spinConfig:null });
 
   // ── Lottery form ────────────────────────────────────────────────────────────
-  const [lForm, setLForm] = useState({ name:'', prefix:'', ticketPrice:'25', firstPrize:'100000', secondPrize:'50000', thirdPrize:'25000', totalTickets:'9999', drawAt:'' });
+  const [lForm, setLForm] = useState({ name:'', prefix:'', ticketPrice:'25', prizePool:'2000000', totalTickets:'9999', drawAt:'' });
   const [lLoading,   setLLoading]   = useState(false);
   const [drawSeries, setDrawSeries] = useState<any>(null);  // series being drawn
   const [drawInfo,   setDrawInfo]   = useState<any>(null);  // eligibility info from API
@@ -75,6 +76,11 @@ export default function AdminPage() {
   const [flForm,       setFlForm]       = useState({ name:'', prefix:'', ticketPrice:'10', prizePool:'100000', totalTickets:'1000', drawAt:'' });
   const [showFLottery, setShowFLottery] = useState<string|null>(null); // festivalId for lottery creation
   const [nLoading,     setNLoading]     = useState(false);
+
+  // Results
+  const [results, setResults] = useState<any>({ lottery:[], matka:[], spin:[], spinStats:{} });
+  const [resultsTab, setResultsTab] = useState<'lottery'|'matka'|'spin'>('lottery');
+  const [resultsLoading, setResultsLoading] = useState(false);
 
   // ── Load ────────────────────────────────────────────────────────────────────
   useEffect(() => { load(); }, []);
@@ -166,7 +172,7 @@ export default function AdminPage() {
     setLLoading(true);
     const r = await authFetch('/api/admin/lottery', { method:'POST', body: JSON.stringify({ action:'create_series', ...lForm }) });
     const d = await r.json();
-    if (r.ok) { toast.success(`✓ ${d.series.name} created with ${d.ticketsGenerated} tickets!`); load(); setLForm({ name:'', prefix:'', ticketPrice:'25', firstPrize:'100000', secondPrize:'50000', thirdPrize:'25000', totalTickets:'9999', drawAt:'' }); }
+    if (r.ok) { toast.success(`✓ ${d.series.name} created with ${d.ticketsGenerated} tickets!`); load(); setLForm({ name:'', prefix:'', ticketPrice:'25', prizePool:'2000000', totalTickets:'9999', drawAt:'' }); }
     else toast.error(d.error);
     setLLoading(false);
   }
@@ -202,20 +208,14 @@ export default function AdminPage() {
     if (!drawSeries) return;
     setDrawLoading(true);
     try {
-      const forcedTickets = manualTicket ? { first: manualTicket } : undefined;
       const r = await authFetch('/api/admin/lottery-draw', {
         method: 'POST',
-        body: JSON.stringify({ seriesId: drawSeries.id, action, forcedTickets }),
+        body: JSON.stringify({ seriesId: drawSeries.id, action, forcedTicketCode: manualTicket || undefined }),
       });
       const d = await r.json();
       if (r.ok) {
         setDrawResult(d);
-        if (d.type === 'REAL') {
-          const w1 = d.winners?.[0];
-          toast.success(`Draw complete! 1st: ${w1?.ticketCode} (${w1?.winnerName ?? 'winner'}) · 2nd: ${d.winners?.[1]?.ticketCode} · 3rd: ${d.winners?.[2]?.ticketCode}`);
-        } else {
-          toast.success('Dummy draw — house won all 3 tiers');
-        }
+        toast.success(d.type === 'REAL' ? ` Winner: ${d.winner?.name} with ticket ${d.winnerTicket}!` : ` Dummy draw completed. Ticket: ${d.winnerTicket}`);
         load(); // refresh series list
       } else { toast.error(d.error); }
     } catch { toast.error('Draw failed'); }
@@ -401,7 +401,18 @@ export default function AdminPage() {
   }
 
   // ── Patti Ank preview ────────────────────────────────────────────────────────
-  const ank = (patti: string) => patti.length === 3 ? patti.split('').reduce((s,d) => s+parseInt(d), 0) % 10 : '?';
+  async function loadResults() {
+    setResultsLoading(true);
+    try {
+      const r = await authFetch('/api/admin/results');
+      const d = await r.json();
+      if (r.ok) setResults(d);
+      else toast.error(d.error ?? 'Failed to load results');
+    } catch { toast.error('Failed to load results'); }
+    setResultsLoading(false);
+  }
+
+    const ank = (patti: string) => patti.length === 3 ? patti.split('').reduce((s,d) => s+parseInt(d), 0) % 10 : '?';
 
   // ── Render ───────────────────────────────────────────────────────────────────
 
@@ -680,26 +691,7 @@ export default function AdminPage() {
                     <div><label style={label}>Ticket Price (₹)</label><input type="number" value={lForm.ticketPrice} onChange={e=>setLForm({...lForm,ticketPrice:e.target.value})} style={inp}/></div>
                     <div><label style={label}>Total Tickets</label><input type="number" value={lForm.totalTickets} onChange={e=>setLForm({...lForm,totalTickets:e.target.value})} style={inp}/></div>
                   </div>
-                  <div style={{ gridColumn:'1/-1', padding:'12px 14px', background:'rgba(255,203,82,0.05)', borderRadius:10, border:'1px solid rgba(255,203,82,0.2)' }}>
-                    <label style={{...label, color:'#ffcb52', marginBottom:10}}>Prize Tiers (3 winners will be picked)</label>
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
-                      <div>
-                        <label style={{fontSize:10, color:'var(--Secondary)', display:'block', marginBottom:4, fontWeight:700}}>1ST PRIZE (₹)</label>
-                        <input type="number" value={lForm.firstPrize} onChange={e=>setLForm({...lForm,firstPrize:e.target.value})} style={inp}/>
-                      </div>
-                      <div>
-                        <label style={{fontSize:10, color:'var(--Secondary)', display:'block', marginBottom:4, fontWeight:700}}>2ND PRIZE (₹)</label>
-                        <input type="number" value={lForm.secondPrize} onChange={e=>setLForm({...lForm,secondPrize:e.target.value})} style={inp}/>
-                      </div>
-                      <div>
-                        <label style={{fontSize:10, color:'var(--Secondary)', display:'block', marginBottom:4, fontWeight:700}}>3RD PRIZE (₹)</label>
-                        <input type="number" value={lForm.thirdPrize} onChange={e=>setLForm({...lForm,thirdPrize:e.target.value})} style={inp}/>
-                      </div>
-                    </div>
-                    <p style={{fontSize:11, color:'var(--Secondary)', marginTop:8}}>
-                      Total prize pool: <strong style={{color:'#ffcb52'}}>₹{(Number(lForm.firstPrize||0)+Number(lForm.secondPrize||0)+Number(lForm.thirdPrize||0)).toLocaleString()}</strong>
-                    </p>
-                  </div>
+                  <div><label style={label}>Prize Pool (₹)</label><input type="number" value={lForm.prizePool} onChange={e=>setLForm({...lForm,prizePool:e.target.value})} style={inp}/></div>
                   <div><label style={label}>Draw Date</label><input type="date" value={lForm.drawAt} onChange={e=>setLForm({...lForm,drawAt:e.target.value})} style={inp}/></div>
 
                   <div style={{ background:'rgba(255,203,82,0.08)', border:'1px solid rgba(255,203,82,0.2)', borderRadius:10, padding:'10px 14px', fontSize:12, color:'var(--Secondary)' }}>
@@ -792,10 +784,7 @@ export default function AdminPage() {
                         {[
                           ['Tickets Sold', `${drawInfo.soldCount} / ${drawInfo.totalTickets}`,'#fff'],
                           ['Revenue Collected', `₹${drawInfo.totalRevenue?.toLocaleString()}`,'#ffcb52'],
-                          ['1st Prize', `₹${drawInfo.series?.firstPrize?.toLocaleString() ?? '0'}`,'#ffcb52'],
-                          ['2nd Prize', `₹${drawInfo.series?.secondPrize?.toLocaleString() ?? '0'}`,'#3498DB'],
-                          ['3rd Prize', `₹${drawInfo.series?.thirdPrize?.toLocaleString() ?? '0'}`,'#9B59B6'],
-                          ['Total Prizes', `₹${drawInfo.totalPrizes?.toLocaleString()}`,'#ef4444'],
+                          ['Prize Pool', `₹${drawInfo.prizePool?.toLocaleString()}`,'#ef4444'],
                           [`Required (Prize + ${drawInfo.commissionPercent}% commission)`, `₹${drawInfo.commissionNeeded?.toLocaleString()}`,'var(--Secondary)'],
                           drawInfo.isSafe
                             ? ['Your Profit', `₹${drawInfo.adminProfit?.toLocaleString()} `,'#2ECC71']
@@ -812,12 +801,12 @@ export default function AdminPage() {
                       {drawInfo.isSafe && (
                         <div style={{marginBottom:16}}>
                           <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>
-                            Manual 1st Prize Ticket (optional) — 2nd and 3rd will be random
+                            Manual Winner Ticket (optional)
                           </label>
                           <input placeholder={`Leave blank for random · or enter e.g. ${drawInfo.series?.prefix}4521`}
                             value={manualTicket} onChange={e=>setManualTicket(e.target.value.toUpperCase())}
                             style={{width:'100%',padding:'11px 14px',borderRadius:10,background:'var(--Bg-3)',border:'1px solid var(--Border-2)',color:'var(--White)',fontFamily:'monospace',fontWeight:700,fontSize:15,outline:'none'}}/>
-                          <p style={{fontSize:11,color:'var(--Secondary)',marginTop:4}}>Leave blank = system picks 3 random sold tickets</p>
+                          <p style={{fontSize:11,color:'var(--Secondary)',marginTop:4}}>Leave blank = system picks random sold ticket</p>
                         </div>
                       )}
 
@@ -827,13 +816,13 @@ export default function AdminPage() {
                         {/* Real Draw — only when safe */}
                         {drawInfo.isSafe && (
                           <button onClick={()=>executeDraw('real_draw')} disabled={drawLoading} style={{width:'100%',height:52,borderRadius:13,border:'none',cursor:'pointer',fontWeight:900,fontSize:16,background:'linear-gradient(270deg,#2ECC71,#16a34a)',color:'#fff',opacity:drawLoading?0.6:1}}>
-                            {drawLoading?' Drawing...':'Real Draw — Pick 3 Winners (1st, 2nd, 3rd)'}
+                            {drawLoading?' Drawing...':'Real Draw — Pick Random Winner'}
                           </button>
                         )}
 
                         {/* Force Dummy — always available */}
                         <button onClick={()=>executeDraw('force_dummy')} disabled={drawLoading} style={{width:'100%',height:52,borderRadius:13,border:`2px solid rgba(148,163,184,0.3)`,cursor:'pointer',fontWeight:900,fontSize:15,background:'rgba(148,163,184,0.08)',color:'var(--Secondary)',opacity:drawLoading?0.6:1}}>
-                          {drawLoading?' Processing...':'Force Dummy — Assign All 3 Prizes to House'}
+                          {drawLoading?' Processing...':'Force Dummy — Assign Prize to House Account'}
                         </button>
 
                         {/* Auto info when not safe */}
@@ -1319,6 +1308,179 @@ export default function AdminPage() {
                    <strong style={{ color:'#ffcb52' }}>Auto-verification tip:</strong> To fully automate payment verification (no manual approval), integrate a payment gateway like <strong style={{ color:'#fff' }}>Razorpay</strong> or <strong style={{ color:'#fff' }}>Cashfree</strong> — they send automatic webhooks when payment succeeds.
                 </div>
               </div>
+            </div>
+          )}
+
+
+          {/* ── RESULTS TAB ── */}
+          {tab==='results' && (
+            <div>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20, flexWrap:'wrap', gap:12 }}>
+                <div>
+                  <h3 style={{ fontWeight:900, fontSize:22 }}>Game Results</h3>
+                  <p style={{ color:'var(--Secondary)', fontSize:13, marginTop:4 }}>Winners across Lottery, Matka King and Spin Wheel</p>
+                </div>
+                <button onClick={loadResults} disabled={resultsLoading} style={{ padding:'8px 18px', borderRadius:999, border:'1px solid var(--Border)', background:'var(--Bg-2)', color:'var(--Secondary)', fontSize:13, cursor:'pointer', fontWeight:600 }}>
+                  {resultsLoading ? 'Loading...' : '↻ Load / Refresh Results'}
+                </button>
+              </div>
+
+              <div style={{ display:'flex', gap:5, background:'var(--Bg-2)', borderRadius:12, padding:4, marginBottom:20, border:'1px solid var(--Border)', width:'fit-content' }}>
+                {(['lottery','matka','spin'] as const).map(g => (
+                  <button key={g} onClick={()=>{ setResultsTab(g); if(results.lottery.length===0 && results.matka.length===0) loadResults(); }} style={{ padding:'8px 20px', borderRadius:9, border:'none', cursor:'pointer', fontWeight:700, fontSize:13, background:resultsTab===g?'linear-gradient(270deg,#fe8c45,#ca2826)':'transparent', color:resultsTab===g?'#fff':'var(--Secondary)' }}>
+                    {g==='lottery'?'🎟 Lottery':g==='matka'?'🎲 Matka King':'🎡 Spin Wheel'}
+                  </button>
+                ))}
+              </div>
+
+              {/* LOTTERY RESULTS */}
+              {resultsTab==='lottery' && (results.lottery.length===0 ? (
+                <div style={{ ...card, padding:40, textAlign:'center', color:'var(--Secondary)' }}>
+                  <p style={{ fontSize:15, marginBottom:8 }}>No drawn lotteries yet.</p>
+                  <p style={{ fontSize:12 }}>Click "Load / Refresh Results" above.</p>
+                </div>
+              ) : results.lottery.map((s:any) => (
+                <div key={s.id} style={{ ...card, marginBottom:16 }}>
+                  <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--Border)', background:s.isDummy?'rgba(239,68,68,0.06)':'rgba(46,204,113,0.06)', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:10 }}>
+                    <div>
+                      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <h4 style={{ fontWeight:900, fontSize:17 }}>{s.name}</h4>
+                        <span style={{ padding:'2px 10px', borderRadius:999, fontSize:10, fontWeight:700, background:s.isDummy?'rgba(239,68,68,0.2)':'rgba(46,204,113,0.2)', color:s.isDummy?'#ef4444':'#2ECC71' }}>
+                          {s.isDummy?'🏠 DUMMY':'🏆 REAL DRAW'}
+                        </span>
+                      </div>
+                      <p style={{ fontSize:12, color:'var(--Secondary)', marginTop:3 }}>Prefix: {s.prefix} · Drawn: {s.drawnAt?new Date(s.drawnAt).toLocaleString('en-IN'):'—'}</p>
+                    </div>
+                    <div style={{ display:'flex', gap:20, fontSize:13 }}>
+                      <div style={{ textAlign:'right' }}><p style={{ color:'var(--Secondary)', fontSize:11 }}>Prize Pool</p><p style={{ fontWeight:900, color:'#ffcb52' }}>₹{s.prizePool?.toLocaleString()}</p></div>
+                    </div>
+                  </div>
+                  <div style={{ padding:'16px 20px' }}>
+                    {s.winners && s.winners.length > 0 ? (
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(200px, 1fr))', gap:12 }}>
+                        {s.winners.map((w:any, i:number) => (
+                          <div key={i} style={{ padding:'14px 16px', borderRadius:12, background:i===0?'rgba(255,203,82,0.07)':i===1?'rgba(52,152,219,0.07)':'rgba(155,89,182,0.07)', border:`1px solid ${i===0?'rgba(255,203,82,0.25)':i===1?'rgba(52,152,219,0.25)':'rgba(155,89,182,0.25)'}` }}>
+                            <p style={{ fontSize:10, fontWeight:700, color:i===0?'#ffcb52':i===1?'#3498DB':'#9B59B6', textTransform:'uppercase', marginBottom:6 }}>{w.tier} Prize</p>
+                            <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:18, color:'var(--White)', marginBottom:4 }}>{w.ticket??'N/A'}</p>
+                            <p style={{ fontWeight:700, fontSize:13, marginBottom:2 }}>{w.user?.name??'House Account'}</p>
+                            <p style={{ fontSize:11, color:'var(--Secondary)', marginBottom:6 }}>{w.user?.email}</p>
+                            <p style={{ fontWeight:900, color:'#2ECC71', fontSize:14 }}>₹{w.prize?.toLocaleString()}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p style={{ color:'var(--Secondary)', fontSize:13 }}>No winner data available.</p>
+                    )}
+                  </div>
+                </div>
+              )))}
+
+              {/* MATKA RESULTS */}
+              {resultsTab==='matka' && (results.matka.length===0 ? (
+                <div style={{ ...card, padding:40, textAlign:'center', color:'var(--Secondary)' }}>
+                  <p style={{ fontSize:15, marginBottom:8 }}>No declared matka results yet.</p>
+                  <p style={{ fontSize:12 }}>Click "Load / Refresh Results" above.</p>
+                </div>
+              ) : results.matka.map((r:any) => (
+                <div key={r.id} style={{ ...card, marginBottom:12 }}>
+                  <div style={{ padding:'14px 20px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:10, borderBottom:'1px solid var(--Border)', background:'rgba(0,0,0,0.1)' }}>
+                    <div>
+                      <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                        <h4 style={{ fontWeight:800, fontSize:16 }}>{r.market?.name}</h4>
+                        {r.isDummyResult && <span style={{ padding:'2px 8px', borderRadius:999, fontSize:10, fontWeight:700, background:'rgba(239,68,68,0.2)', color:'#ef4444' }}>DUMMY</span>}
+                      </div>
+                      <p style={{ fontSize:12, color:'var(--Secondary)', marginTop:3 }}>Declared: {r.declaredAt?new Date(r.declaredAt).toLocaleString('en-IN'):'Pending'}</p>
+                    </div>
+                    <div style={{ display:'flex', gap:16, alignItems:'center', flexWrap:'wrap' }}>
+                      <div style={{ textAlign:'center' }}>
+                        <p style={{ fontSize:10, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase' }}>Open</p>
+                        <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:18, color:'#fe8c45' }}>{r.openPatti??'???'}</p>
+                        <p style={{ fontSize:11, color:'var(--Secondary)' }}>Ank: {r.openAnk??'?'}</p>
+                      </div>
+                      <span style={{ color:'var(--Secondary)', fontSize:20 }}>—</span>
+                      <div style={{ textAlign:'center' }}>
+                        <p style={{ fontSize:10, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase' }}>Close</p>
+                        <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:18, color:'#3498DB' }}>{r.closePatti??'???'}</p>
+                        <p style={{ fontSize:11, color:'var(--Secondary)' }}>Ank: {r.closeAnk??'?'}</p>
+                      </div>
+                      <div style={{ textAlign:'center', padding:'8px 16px', borderRadius:12, background:'rgba(255,203,82,0.1)', border:'1px solid rgba(255,203,82,0.3)' }}>
+                        <p style={{ fontSize:10, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', marginBottom:4 }}>Jodi</p>
+                        <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:26, color:'#ffcb52' }}>{r.jodi??'??'}</p>
+                      </div>
+                      <div style={{ textAlign:'right' }}>
+                        <p style={{ fontSize:10, color:'var(--Secondary)', fontWeight:700 }}>Payout</p>
+                        <p style={{ fontWeight:900, color:'#2ECC71', fontSize:15 }}>₹{r.totalPayout?.toLocaleString()??0}</p>
+                        <p style={{ fontSize:10, color:'var(--Secondary)' }}>{r.bets?.length??0} winners</p>
+                      </div>
+                    </div>
+                  </div>
+                  {r.bets && r.bets.length > 0 && (
+                    <div style={{ padding:'12px 20px' }}>
+                      <p style={{ fontSize:11, fontWeight:700, color:'var(--Secondary)', marginBottom:8, textTransform:'uppercase' }}>Winners ({r.bets.length})</p>
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
+                        {r.bets.slice(0,8).map((b:any) => (
+                          <div key={b.id} style={{ padding:'6px 12px', borderRadius:8, background:'rgba(46,204,113,0.08)', border:'1px solid rgba(46,204,113,0.2)', fontSize:12 }}>
+                            <span style={{ fontWeight:700 }}>{b.user?.name??'User'}</span>
+                            <span style={{ color:'#2ECC71', marginLeft:8, fontWeight:700 }}>+₹{b.wonAmount?.toLocaleString()}</span>
+                          </div>
+                        ))}
+                        {r.bets.length > 8 && <span style={{ fontSize:12, color:'var(--Secondary)', padding:'6px 0' }}>+{r.bets.length-8} more</span>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )))}
+
+              {/* SPIN RESULTS */}
+              {resultsTab==='spin' && (
+                <div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:12, marginBottom:20 }}>
+                    {[
+                      { label:'Total Wins Shown', value: results.spin?.length??0, color:'#3498DB' },
+                      { label:'Total Coins Paid Out', value:`₹${(results.spinStats?.totalWon??0).toLocaleString()}`, color:'#2ECC71' },
+                      { label:'Paid vs Free', value:`${results.spin?.filter((r:any)=>!r.isFree).length??0} paid / ${results.spin?.filter((r:any)=>r.isFree).length??0} free`, color:'#ffcb52' },
+                    ].map(s => (
+                      <div key={s.label} style={{ ...card, padding:'16px 20px' }}>
+                        <p style={{ fontSize:11, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', marginBottom:6 }}>{s.label}</p>
+                        <p style={{ fontWeight:900, fontSize:20, color:s.color }}>{s.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {results.spin.length===0 ? (
+                    <div style={{ ...card, padding:40, textAlign:'center', color:'var(--Secondary)' }}>
+                      <p style={{ fontSize:15, marginBottom:8 }}>No spin wins yet.</p>
+                      <p style={{ fontSize:12 }}>Click "Load / Refresh Results" above.</p>
+                    </div>
+                  ) : (
+                    <div style={card}>
+                      <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                        <thead><tr style={{ background:'rgba(0,0,0,0.2)' }}>
+                          {['Player','Coins Won','Type','Date & Time'].map(h=><th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:10, fontWeight:700, color:'var(--Secondary)', textTransform:'uppercase' }}>{h}</th>)}
+                        </tr></thead>
+                        <tbody>
+                          {results.spin.map((r:any) => (
+                            <tr key={r.id} style={{ borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
+                              <td style={{ padding:'12px 14px' }}>
+                                <p style={{ fontWeight:700, fontSize:13 }}>{r.userName}</p>
+                                <p style={{ fontSize:11, color:'var(--Secondary)' }}>{r.userEmail}</p>
+                              </td>
+                              <td style={{ padding:'12px 14px', fontWeight:900, color:'#2ECC71', fontSize:15 }}>+₹{r.coinsWon?.toLocaleString()}</td>
+                              <td style={{ padding:'12px 14px' }}>
+                                <span style={{ padding:'2px 10px', borderRadius:999, fontSize:10, fontWeight:700, background:r.isFree?'rgba(46,204,113,0.15)':'rgba(100,100,100,0.15)', color:r.isFree?'#2ECC71':'var(--Secondary)' }}>
+                                  {r.isFree?'FREE SPIN':'Paid'}
+                                </span>
+                              </td>
+                              <td style={{ padding:'12px 14px', fontSize:12, color:'var(--Secondary)' }}>
+                                {new Date(r.spunAt).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

@@ -1,23 +1,20 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark'|'light'>('dark');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const current = (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'dark';
+    const current = (document.documentElement.getAttribute('data-theme') as 'dark'|'light') || 'dark';
     setTheme(current);
     setMounted(true);
-
-    const observer = new MutationObserver(() => {
-      const t = (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'dark';
-      setTheme(t);
+    const obs = new MutationObserver(() => {
+      setTheme((document.documentElement.getAttribute('data-theme') as 'dark'|'light') || 'dark');
     });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    return () => observer.disconnect();
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => obs.disconnect();
   }, []);
 
   const toggle = () => {
@@ -30,13 +27,10 @@ export default function ThemeToggle() {
   if (!mounted) return null;
 
   return (
-    <button
-      onClick={toggle}
-      className="kh-theme-toggle"
-      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-    >
-      {theme === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
+    <button onClick={toggle} className="kh-theme-toggle"
+      aria-label={theme==='dark'?'Switch to light mode':'Switch to dark mode'}
+      title={theme==='dark'?'Switch to light mode':'Switch to dark mode'}>
+      {theme==='dark' ? <Sun size={22}/> : <Moon size={22}/>}
     </button>
   );
 }

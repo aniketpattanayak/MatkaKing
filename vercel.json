@@ -1,6 +1,14 @@
 {
   "crons": [
     {
+      "path": "/api/cron/lottery-autodraw",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/matka-autoopen",
+      "schedule": "*/30 * * * *"
+    },
+    {
       "path": "/api/cron/rollover",
       "schedule": "30 18 * * *"
     }
