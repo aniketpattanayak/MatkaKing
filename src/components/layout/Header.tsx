@@ -21,17 +21,21 @@ export default function Header() {
   const [topBar,setTopBar]=useState(true);
   const [theme, setTheme] = useState<'dark'|'light'>('dark');
 
-  // Load saved theme on mount
   useEffect(() => {
-    const saved = (typeof window !== 'undefined' && localStorage.getItem('kh-theme')) as 'dark'|'light'|null;
-    const initial = saved ?? 'dark';
-    setTheme(initial);
-    document.documentElement.setAttribute('data-theme', initial);
+    const t = (document.documentElement.getAttribute('data-theme') as 'dark'|'light') || 'dark';
+    setTheme(t);
+    const obs = new MutationObserver(() => {
+      const t2 = (document.documentElement.getAttribute('data-theme') as 'dark'|'light') || 'dark';
+      setTheme(t2);
+    });
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => obs.disconnect();
   }, []);
 
   const toggleTheme = () => {
-    const next = theme === 'dark' ? 'light' : 'dark';
-    setTheme(next);
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    setTheme(next as 'dark'|'light');
     document.documentElement.setAttribute('data-theme', next);
     try { localStorage.setItem('kh-theme', next); } catch {}
   };
@@ -187,14 +191,9 @@ export default function Header() {
 
                 {/* Right section */}
                 <div className="header-right" style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  {/* Light/Dark theme toggle */}
-                  <button
-                    onClick={toggleTheme}
-                    className="kh-theme-toggle"
-                    title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                    aria-label="Toggle theme"
-                  >
-                    {theme === 'dark' ? <Sun size={18}/> : <Moon size={18}/>}
+                  <button onClick={toggleTheme} title={theme==='dark'?'Light mode':'Dark mode'}
+                    style={{ width:38, height:38, borderRadius:'50%', border:'1px solid var(--Border)', background:'var(--Bg-3)', color:'var(--Main-color)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    {theme==='dark' ? <Sun size={17}/> : <Moon size={17}/>}
                   </button>
                   {user ? (
                     <>

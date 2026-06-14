@@ -3,21 +3,17 @@
 import { useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
 
-// Floating theme toggle — appears on every page via root layout.
-// The shared Header also has its own inline toggle; this one is the
-// universal fallback so games pages (with custom headers) still get it.
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const saved = (typeof window !== 'undefined' && localStorage.getItem('kh-theme')) as 'dark' | 'light' | null;
-    const initial = saved ?? 'dark';
-    setTheme(initial);
-    document.documentElement.setAttribute('data-theme', initial);
+    // Read the theme that was set by the inline script in <head>
+    const current = (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'dark';
+    setTheme(current);
     setMounted(true);
 
-    // Keep in sync if another toggle (e.g. the header) changes it
+    // Stay in sync if another toggle changes data-theme
     const observer = new MutationObserver(() => {
       const t = (document.documentElement.getAttribute('data-theme') as 'dark' | 'light') || 'dark';
       setTheme(t);
@@ -33,17 +29,18 @@ export default function ThemeToggle() {
     try { localStorage.setItem('kh-theme', next); } catch {}
   };
 
+  // Don't render anything until client-side — avoids hydration mismatch
   if (!mounted) return null;
 
   return (
     <button
       onClick={toggle}
-      aria-label="Toggle light/dark theme"
+      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       style={{
         position: 'fixed',
-        bottom: 20,
-        left: 20,
+        bottom: 24,
+        left: 24,
         zIndex: 9998,
         width: 48,
         height: 48,
@@ -55,11 +52,11 @@ export default function ThemeToggle() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
-        transition: 'transform 0.2s, background 0.2s',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+        transition: 'transform 0.15s',
       }}
-      onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.08)'; }}
-      onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+      onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; }}
+      onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; }}
     >
       {theme === 'dark' ? <Sun size={22} /> : <Moon size={22} />}
     </button>

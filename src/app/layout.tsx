@@ -3,13 +3,13 @@ import { Toaster } from 'sonner';
 import ThemeToggle from '@/components/ThemeToggle';
 
 export const metadata: Metadata = {
-  title: 'Supreme Gaming Engine',
+  title: 'KismatHub — Lottery · Matka King · Spin Wheel',
   description: 'High-Density Multi-Game Platform',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="stylesheet" href="/css/b75d11021ca9fab7.css" />
         <link rel="stylesheet" href="/css/29f8e8d639aa40ea.css" />
@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="stylesheet" href="/css/4b0b69904f7263ad.css" />
         <link rel="stylesheet" href="/css/responsive.css" />
         <link rel="stylesheet" href="/css/icomoon-fix.css" />
-        {/* No-flash theme init: set data-theme before paint */}
+        {/* Apply saved theme before first paint — prevents flash */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('kh-theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,
