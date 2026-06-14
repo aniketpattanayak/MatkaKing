@@ -7,8 +7,8 @@ export default function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const current = (document.documentElement.getAttribute('data-theme') as 'dark'|'light') || 'dark';
-    setTheme(current);
+    const t = (document.documentElement.getAttribute('data-theme') as 'dark'|'light') || 'dark';
+    setTheme(t);
     setMounted(true);
     const obs = new MutationObserver(() => {
       setTheme((document.documentElement.getAttribute('data-theme') as 'dark'|'light') || 'dark');
@@ -28,8 +28,7 @@ export default function ThemeToggle() {
 
   return (
     <button onClick={toggle} className="kh-theme-toggle"
-      aria-label={theme==='dark'?'Switch to light mode':'Switch to dark mode'}
-      title={theme==='dark'?'Switch to light mode':'Switch to dark mode'}>
+      title={theme==='dark'?'Light mode':'Dark mode'}>
       {theme==='dark' ? <Sun size={22}/> : <Moon size={22}/>}
     </button>
   );

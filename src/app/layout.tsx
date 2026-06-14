@@ -3,7 +3,7 @@ import { Toaster } from 'sonner';
 import ThemeToggle from '@/components/ThemeToggle';
 
 export const metadata: Metadata = {
-  title: 'KismatHub — Lottery · Matka King · Spin Wheel',
+  title: 'KismatHub',
   description: 'KismatHub Gaming Platform',
 };
 
