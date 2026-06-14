@@ -17,6 +17,8 @@ export default function DashboardPage() {
   const [lotteryBets,  setLotteryBets]  = useState<any[]>([]);
   const [matkaBets,    setMatkaBets]    = useState<any[]>([]);
   const [wins,         setWins]         = useState<any[]>([]);
+  const [lotteryWinners, setLotteryWinners] = useState<any[]>([]);
+  const [winnersLoading, setWinnersLoading] = useState(false);
   const [loading,      setLoading]      = useState(true);
 
   useEffect(() => {
@@ -110,7 +112,7 @@ export default function DashboardPage() {
               ['tickets','My Lottery Tickets',Ticket],
               ['matka','My Matka Bets',Dices],
               ['results','Win History',Trophy],
-              ['winners','🏆 Lottery Winners',Star],
+              ['winners','🏆 Winners',Star],
             ] as const).map(([k,l,Icon]) => (
               <button key={k} onClick={()=>setTab(k as Tab)} style={{
                 display:'flex', alignItems:'center', gap:6, flex:1,
@@ -329,7 +331,7 @@ export default function DashboardPage() {
             <div>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:12}}>
                 <div>
-                  <h3 style={{fontWeight:900,fontSize:22}}>Lottery Winners</h3>
+                  <h3 style={{fontWeight:900,fontSize:22}}>🏆 Lottery Winners</h3>
                   <p style={{color:'var(--Secondary)',fontSize:13,marginTop:4}}>See who won each lottery draw</p>
                 </div>
                 <button onClick={()=>{
@@ -339,33 +341,39 @@ export default function DashboardPage() {
                   {winnersLoading?'Loading...':'↻ Load Winners'}
                 </button>
               </div>
-              {lotteryWinners.length===0?(
+              {lotteryWinners.length===0 ? (
                 <div style={{background:'var(--Bg-2)',borderRadius:16,border:'1px solid var(--Border)',padding:40,textAlign:'center',color:'var(--Secondary)'}}>
-                  <p style={{fontSize:15,marginBottom:8}}>Click "Load Winners" to see lottery results</p>
+                  <div style={{fontSize:48,marginBottom:12}}>🎟️</div>
+                  <p style={{fontSize:15,marginBottom:8,fontWeight:700}}>Click "Load Winners" to see results</p>
+                  <p style={{fontSize:12}}>All drawn lotteries with their 1st, 2nd and 3rd prize winners</p>
                 </div>
-              ):lotteryWinners.map((s:any)=>(
+              ) : lotteryWinners.map((s:any) => (
                 <div key={s.id} style={{background:'var(--Bg-2)',borderRadius:16,border:'1px solid var(--Border)',overflow:'hidden',marginBottom:16}}>
                   <div style={{padding:'16px 20px',borderBottom:'1px solid var(--Border)',background:'rgba(0,0,0,0.08)',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
                     <div>
                       <h4 style={{fontWeight:900,fontSize:17}}>{s.name}</h4>
-                      <p style={{fontSize:12,color:'var(--Secondary)',marginTop:3}}>Prefix: {s.prefix} · Drawn: {s.drawnAt?new Date(s.drawnAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—'}</p>
+                      <p style={{fontSize:12,color:'var(--Secondary)',marginTop:3}}>
+                        {s.prefix}0001 – {s.prefix}{String(s.endNumber??9999).padStart(4,'0')} · Drawn: {s.drawnAt?new Date(s.drawnAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—'}
+                      </p>
                     </div>
-                    <p style={{fontWeight:900,color:'#ffcb52'}}>Prize Pool: ₹{s.prizePool?.toLocaleString()}</p>
+                    <p style={{fontWeight:900,color:'#ffcb52',fontSize:15}}>₹{s.prizePool?.toLocaleString()}</p>
                   </div>
                   <div style={{padding:'16px 20px'}}>
-                    {s.winners&&s.winners.length>0?(
+                    {s.winners && s.winners.length > 0 ? (
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12}}>
-                        {s.winners.map((w:any,i:number)=>(
-                          <div key={i} style={{padding:'16px 18px',borderRadius:14,background:i===0?'rgba(255,203,82,0.07)':i===1?'rgba(52,152,219,0.07)':'rgba(155,89,182,0.07)',border:`1px solid ${i===0?'rgba(255,203,82,0.3)':i===1?'rgba(52,152,219,0.3)':'rgba(155,89,182,0.3)'}`}}>
-                            <p style={{fontSize:10,fontWeight:700,color:i===0?'#ffcb52':i===1?'#3498DB':'#9B59B6',textTransform:'uppercase',marginBottom:8}}>{w.tier} Prize</p>
+                        {s.winners.map((w:any, i:number) => (
+                          <div key={i} style={{padding:'16px 18px',borderRadius:14,background:i===0?'rgba(255,203,82,0.08)':i===1?'rgba(52,152,219,0.08)':'rgba(155,89,182,0.08)',border:`2px solid ${i===0?'rgba(255,203,82,0.3)':i===1?'rgba(52,152,219,0.3)':'rgba(155,89,182,0.3)'}`}}>
+                            <p style={{fontSize:10,fontWeight:700,color:i===0?'#ffcb52':i===1?'#3498DB':'#9B59B6',textTransform:'uppercase',marginBottom:8,letterSpacing:1}}>{w.tier} Prize</p>
                             <p style={{fontFamily:'monospace',fontWeight:900,fontSize:22,color:'var(--White)',marginBottom:6}}>{w.ticket}</p>
-                            <p style={{fontWeight:700,fontSize:14,marginBottom:2,color:w.isCurrentUser?'#2ECC71':'var(--White)'}}>{w.isCurrentUser?'🎉 You won!':w.userName??'Winner'}</p>
-                            <p style={{fontWeight:900,color:'#2ECC71',fontSize:16}}>₹{w.prize?.toLocaleString()}</p>
+                            <p style={{fontWeight:700,fontSize:14,marginBottom:4,color:w.isCurrentUser?'#2ECC71':'var(--White)'}}>
+                              {w.isCurrentUser ? '🎉 You!' : (w.userName ?? 'Winner')}
+                            </p>
+                            <p style={{fontWeight:900,color:'#2ECC71',fontSize:18}}>₹{w.prize?.toLocaleString()}</p>
                           </div>
                         ))}
                       </div>
-                    ):(
-                      <p style={{color:'var(--Secondary)',fontSize:13}}>Result not yet declared or no winners found</p>
+                    ) : (
+                      <p style={{color:'var(--Secondary)',fontSize:13}}>No winner data available for this draw</p>
                     )}
                   </div>
                 </div>
