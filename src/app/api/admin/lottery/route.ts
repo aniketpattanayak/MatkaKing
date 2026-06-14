@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     if (!p) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json();
-    const { action, seriesId, name, prefix, ticketPrice, prizePool, totalTickets, drawAt, status } = body;
+    const { action, seriesId, name, prefix, ticketPrice, prizePool, totalTickets, drawAt, status, firstPrize, secondPrize, thirdPrize } = body;
 
     // ── Create series ────────────────────────────────────────────────────────
     if (action === 'create_series') {
@@ -48,6 +48,9 @@ export async function POST(req: NextRequest) {
           endNumber:   endNum,        // ✅ correct field
           ticketPrice: Number(ticketPrice),
           prizePool:   Number(prizePool),
+          firstPrize:  Number(firstPrize ?? prizePool * 0.6),
+          secondPrize: Number(secondPrize ?? prizePool * 0.3),
+          thirdPrize:  Number(thirdPrize ?? prizePool * 0.1),
           drawAt:      new Date(drawAt),
           status:      'OPEN',
           isActive:    true,
@@ -85,7 +88,6 @@ export async function POST(req: NextRequest) {
     // ── Delete series ────────────────────────────────────────────────────────
     if (action === 'delete_series') {
       if (!seriesId) return NextResponse.json({ error: 'seriesId required' }, { status: 400 });
-      await prisma.lotteryBet.deleteMany({ where: { seriesId } });
       await prisma.lotteryTicket.deleteMany({ where: { seriesId } });
       await prisma.lotterySeries.delete({ where: { id: seriesId } });
       return NextResponse.json({ ok: true });

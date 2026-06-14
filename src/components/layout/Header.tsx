@@ -7,7 +7,7 @@ import {
   Gamepad2, Ticket, LayoutDashboard, Wallet, Settings,
   LogOut, User, ChevronDown, X, Menu, Coins
 } from 'lucide-react';
-import { getToken, setToken, clearToken, getCachedUser, setCachedUser, fetchCurrentUser, refreshBalance, type SessionUser } from '@/lib/auth-client';
+import { getToken, setToken, clearToken, getCachedUser, setCachedUser, fetchCurrentUser, type SessionUser } from '@/lib/auth-client';
 
 export default function Header() {
   const router      = useRouter();
@@ -15,24 +15,15 @@ export default function Header() {
   const [user,    setUser]    = useState<SessionUser | null>(null);
   const [modal,   setModal]   = useState<'login'|'register'|null>(null);
   const [loading, setLoading] = useState(false);
-  const [form,    setForm]    = useState({ name:'', email:'', password:'', confirm:'' });
+  const [form,    setForm]    = useState({ name:'', email:'', password:'', confirm:'', referralCode:'' });
   const [dropdown,setDropdown]= useState(false);
   const [mobileNav,setMobileNav]=useState(false);
   const [topBar,setTopBar]=useState(true);
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Show cached user instantly (for name/avatar), then fetch fresh balance
     const c = getCachedUser(); if (c) setUser(c);
-    if (getToken()) refreshBalance().then(u => { if (u) setUser(u); });
-
-    // Listen for balance updates from any page (wallet, matka, spin, etc.)
-    const onBalanceUpdate = (e: Event) => {
-      const u = (e as CustomEvent<SessionUser>).detail;
-      if (u) setUser({ ...u });
-    };
-    window.addEventListener('kh-balance-update', onBalanceUpdate);
-    return () => window.removeEventListener('kh-balance-update', onBalanceUpdate);
+    if (getToken()) fetchCurrentUser().then(u => { if (u) setUser(u); });
   }, []);
 
   useEffect(() => {
@@ -50,12 +41,12 @@ export default function Header() {
     try {
       const res = await fetch(`/api/auth/${modal}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
+        body: JSON.stringify({ name: form.name, email: form.email, password: form.password, referralCode: form.referralCode || undefined }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error);
       setToken(d.token); setCachedUser(d.user); setUser(d.user); setModal(null);
-      setForm({ name:'', email:'', password:'', confirm:'' });
+      setForm({ name:'', email:'', password:'', confirm:'', referralCode:'' });
       toast.success(modal === 'login' ? `Welcome back, ${d.user.name}!` : `Welcome ${d.user.name}! +50 free coins!`);
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
   };
@@ -335,8 +326,14 @@ export default function Header() {
                 <input type="password" placeholder="Password" required value={form.password}
                   onChange={e=>setForm({...form,password:e.target.value})} style={inp}/>
                 {modal==='register' && (
-                  <input type="password" placeholder="Confirm password" required value={form.confirm}
-                    onChange={e=>setForm({...form,confirm:e.target.value})} style={inp}/>
+                  <>
+                    <input type="password" placeholder="Confirm password" required value={form.confirm}
+                      onChange={e=>setForm({...form,confirm:e.target.value})} style={inp}/>
+                    <input placeholder="Referral Code (optional)" value={form.referralCode}
+                      onChange={e=>setForm({...form,referralCode:e.target.value.toUpperCase()})}
+                      style={{...inp, fontFamily:'monospace', letterSpacing:1, textTransform:'uppercase'}}/>
+                    <p style={{fontSize:11,color:'var(--Secondary)',marginTop:-8}}>Enter a friend's referral code to get +10 bonus coins</p>
+                  </>
                 )}
                 <button type="submit" disabled={loading} className="tf-btn" style={{
                   width:'100%', justifyContent:'center', height:50, fontSize:15, marginTop:4, opacity:loading?0.6:1

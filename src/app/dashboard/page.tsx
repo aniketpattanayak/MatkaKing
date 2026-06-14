@@ -1,13 +1,12 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Ticket, Dices, RotateCcw, Trophy, Wallet, TrendingUp } from 'lucide-react';
+import { Ticket, Dices, RotateCcw, Trophy, Star, Wallet, TrendingUp } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { authFetch, getCachedUser, fetchCurrentUser, getToken } from '@/lib/auth-client';
 
-type Tab = 'overview' | 'tickets' | 'matka' | 'results';
+type Tab = 'overview' | 'tickets' | 'matka' | 'results' | 'winners';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -104,69 +103,6 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Referral Code Card */}
-          {user?.referralCode && (
-            <div style={{
-              background: 'var(--Bg-2)',
-              border: '1px solid rgba(255,203,82,0.3)',
-              borderRadius: 16,
-              padding: '18px 22px',
-              marginBottom: 20,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 14,
-            }}>
-              <div>
-                <p style={{ fontWeight: 900, fontSize: 15, color: '#ffcb52', marginBottom: 4 }}>
-                  🎁 Your Referral Code — Earn 20 coins per invite
-                </p>
-                <p style={{ fontSize: 12, color: 'var(--Secondary)' }}>
-                  Share this code with friends. They get 10 extra coins on signup, you get 20 coins.
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{
-                  background: 'var(--Bg-3)',
-                  border: '1px solid rgba(255,203,82,0.4)',
-                  borderRadius: 10,
-                  padding: '10px 18px',
-                  fontFamily: 'monospace',
-                  fontWeight: 900,
-                  fontSize: 18,
-                  color: '#ffcb52',
-                  letterSpacing: 2,
-                  userSelect: 'all',
-                }}>
-                  {user.referralCode.slice(0, 10).toUpperCase()}
-                </div>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(user.referralCode).then(() => {
-                      toast.success('Referral code copied!');
-                    }).catch(() => {
-                      toast.info(`Your code: ${user.referralCode.slice(0, 10).toUpperCase()}`);
-                    });
-                  }}
-                  style={{
-                    height: 44,
-                    padding: '0 20px',
-                    borderRadius: 10,
-                    border: 'none',
-                    background: 'linear-gradient(270deg, #fe8c45, #ca2826)',
-                    color: '#fff',
-                    fontWeight: 800,
-                    fontSize: 14,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Copy Code
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Tabs */}
           <div className='dash-tabs' style={{ background:'var(--Bg-2)', borderRadius:14, padding:4, marginBottom:20, border:'1px solid var(--Border)' }}>
             {([
@@ -174,6 +110,7 @@ export default function DashboardPage() {
               ['tickets','My Lottery Tickets',Ticket],
               ['matka','My Matka Bets',Dices],
               ['results','Win History',Trophy],
+              ['winners','🏆 Lottery Winners',Star],
             ] as const).map(([k,l,Icon]) => (
               <button key={k} onClick={()=>setTab(k as Tab)} style={{
                 display:'flex', alignItems:'center', gap:6, flex:1,
@@ -384,6 +321,55 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+
+          {tab==='winners' && (
+            <div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:12}}>
+                <div>
+                  <h3 style={{fontWeight:900,fontSize:22}}>Lottery Winners</h3>
+                  <p style={{color:'var(--Secondary)',fontSize:13,marginTop:4}}>See who won each lottery draw</p>
+                </div>
+                <button onClick={()=>{
+                  setWinnersLoading(true);
+                  fetch('/api/lottery/winners').then(r=>r.json()).then(d=>{ if(d.series) setLotteryWinners(d.series); }).finally(()=>setWinnersLoading(false));
+                }} disabled={winnersLoading} style={{padding:'8px 18px',borderRadius:999,border:'1px solid var(--Border)',background:'var(--Bg-2)',color:'var(--Secondary)',fontSize:13,cursor:'pointer',fontWeight:600}}>
+                  {winnersLoading?'Loading...':'↻ Load Winners'}
+                </button>
+              </div>
+              {lotteryWinners.length===0?(
+                <div style={{background:'var(--Bg-2)',borderRadius:16,border:'1px solid var(--Border)',padding:40,textAlign:'center',color:'var(--Secondary)'}}>
+                  <p style={{fontSize:15,marginBottom:8}}>Click "Load Winners" to see lottery results</p>
+                </div>
+              ):lotteryWinners.map((s:any)=>(
+                <div key={s.id} style={{background:'var(--Bg-2)',borderRadius:16,border:'1px solid var(--Border)',overflow:'hidden',marginBottom:16}}>
+                  <div style={{padding:'16px 20px',borderBottom:'1px solid var(--Border)',background:'rgba(0,0,0,0.08)',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
+                    <div>
+                      <h4 style={{fontWeight:900,fontSize:17}}>{s.name}</h4>
+                      <p style={{fontSize:12,color:'var(--Secondary)',marginTop:3}}>Prefix: {s.prefix} · Drawn: {s.drawnAt?new Date(s.drawnAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—'}</p>
+                    </div>
+                    <p style={{fontWeight:900,color:'#ffcb52'}}>Prize Pool: ₹{s.prizePool?.toLocaleString()}</p>
+                  </div>
+                  <div style={{padding:'16px 20px'}}>
+                    {s.winners&&s.winners.length>0?(
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12}}>
+                        {s.winners.map((w:any,i:number)=>(
+                          <div key={i} style={{padding:'16px 18px',borderRadius:14,background:i===0?'rgba(255,203,82,0.07)':i===1?'rgba(52,152,219,0.07)':'rgba(155,89,182,0.07)',border:`1px solid ${i===0?'rgba(255,203,82,0.3)':i===1?'rgba(52,152,219,0.3)':'rgba(155,89,182,0.3)'}`}}>
+                            <p style={{fontSize:10,fontWeight:700,color:i===0?'#ffcb52':i===1?'#3498DB':'#9B59B6',textTransform:'uppercase',marginBottom:8}}>{w.tier} Prize</p>
+                            <p style={{fontFamily:'monospace',fontWeight:900,fontSize:22,color:'var(--White)',marginBottom:6}}>{w.ticket}</p>
+                            <p style={{fontWeight:700,fontSize:14,marginBottom:2,color:w.isCurrentUser?'#2ECC71':'var(--White)'}}>{w.isCurrentUser?'🎉 You won!':w.userName??'Winner'}</p>
+                            <p style={{fontWeight:900,color:'#2ECC71',fontSize:16}}>₹{w.prize?.toLocaleString()}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ):(
+                      <p style={{color:'var(--Secondary)',fontSize:13}}>Result not yet declared or no winners found</p>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
 

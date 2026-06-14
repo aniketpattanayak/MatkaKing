@@ -139,17 +139,17 @@ enum TxnStatus {
 // LOTTERY SYSTEM
 // ─────────────────────────────────────────────
 model LotterySeries {
-  id          String        @id @default(cuid())
-  name        String                            // "Dream Car Lottery I"
-  prefix      String                            // "AH" / "LI"
-  startNumber Int                               // 1
-  endNumber   Int                               // 9999
-  ticketPrice Int                               // in Coins
-  drawAt      DateTime
-  prizePool   Int                               // sum of all 3 prizes (Coins)
-  firstPrize  Int           @default(0)
-  secondPrize Int           @default(0)
-  thirdPrize  Int           @default(0)
+  id            String        @id @default(cuid())
+  name          String
+  prefix        String
+  startNumber   Int
+  endNumber     Int
+  ticketPrice   Int
+  drawAt        DateTime
+  prizePool     Int
+  firstPrize    Int           @default(0)
+  secondPrize   Int           @default(0)
+  thirdPrize    Int           @default(0)
   firstWinnerId   String?
   firstTicket     String?
   secondWinnerId  String?
@@ -157,10 +157,10 @@ model LotterySeries {
   thirdWinnerId   String?
   thirdTicket     String?
   drawnAt         DateTime?
-  status      LotteryStatus @default(OPEN)
-  isActive    Boolean       @default(true)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  status        LotteryStatus @default(OPEN)
+  isActive      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   tickets     LotteryTicket[]
   bets        LotteryBet[]
