@@ -1,11 +1,11 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Ticket, Dices, RotateCcw, Trophy, Wallet, TrendingUp } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { authFetch, getCachedUser, fetchCurrentUser, getToken } from '@/lib/auth-client';
-import { toast } from 'sonner';
 
 type Tab = 'overview' | 'tickets' | 'matka' | 'results';
 
@@ -104,36 +104,65 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Referral code card */}
+          {/* Referral Code Card */}
           {user?.referralCode && (
             <div style={{
-              background: 'linear-gradient(135deg, rgba(254,140,69,0.08), rgba(255,203,82,0.04))',
-              border: '1px solid rgba(255,203,82,0.25)', borderRadius: 14, padding: '18px 22px',
-              marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              flexWrap: 'wrap', gap: 14,
+              background: 'var(--Bg-2)',
+              border: '1px solid rgba(255,203,82,0.3)',
+              borderRadius: 16,
+              padding: '18px 22px',
+              marginBottom: 20,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 14,
             }}>
               <div>
                 <p style={{ fontWeight: 900, fontSize: 15, color: '#ffcb52', marginBottom: 4 }}>
-                  Invite friends — earn 20 coins each
+                  🎁 Your Referral Code — Earn 20 coins per invite
                 </p>
                 <p style={{ fontSize: 12, color: 'var(--Secondary)' }}>
-                  Share your code. When a friend signs up using it, you get 20 coins and they get 10 extra coins.
+                  Share this code with friends. They get 10 extra coins on signup, you get 20 coins.
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{
-                  background: 'var(--Bg-3)', border: '1px solid var(--Border-2)', borderRadius: 10,
-                  padding: '10px 16px', fontFamily: 'monospace', fontWeight: 900, fontSize: 17,
-                  color: '#ffcb52', letterSpacing: 1,
-                }}>{user.referralCode.slice(0, 10).toUpperCase()}</div>
+                  background: 'var(--Bg-3)',
+                  border: '1px solid rgba(255,203,82,0.4)',
+                  borderRadius: 10,
+                  padding: '10px 18px',
+                  fontFamily: 'monospace',
+                  fontWeight: 900,
+                  fontSize: 18,
+                  color: '#ffcb52',
+                  letterSpacing: 2,
+                  userSelect: 'all',
+                }}>
+                  {user.referralCode.slice(0, 10).toUpperCase()}
+                </div>
                 <button
-                  onClick={() => { navigator.clipboard.writeText(user.referralCode); toast.success('Code copied!'); }}
-                  style={{
-                    padding: '10px 16px', borderRadius: 10, border: 'none',
-                    background: 'linear-gradient(270deg, #fe8c45, #ca2826)', color: '#fff',
-                    fontWeight: 800, fontSize: 13, cursor: 'pointer',
+                  onClick={() => {
+                    navigator.clipboard.writeText(user.referralCode).then(() => {
+                      toast.success('Referral code copied!');
+                    }).catch(() => {
+                      toast.info(`Your code: ${user.referralCode.slice(0, 10).toUpperCase()}`);
+                    });
                   }}
-                >Copy</button>
+                  style={{
+                    height: 44,
+                    padding: '0 20px',
+                    borderRadius: 10,
+                    border: 'none',
+                    background: 'linear-gradient(270deg, #fe8c45, #ca2826)',
+                    color: '#fff',
+                    fontWeight: 800,
+                    fontSize: 14,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Copy Code
+                </button>
               </div>
             </div>
           )}
