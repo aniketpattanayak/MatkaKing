@@ -28,8 +28,8 @@ export default function ThemeToggle() {
 
   return (
     <button onClick={toggle} className="kh-theme-toggle"
-      title={theme==='dark'?'Light mode':'Dark mode'}>
-      {theme==='dark' ? <Sun size={22}/> : <Moon size={22}/>}
+      title={theme === 'dark' ? 'Light mode' : 'Dark mode'}>
+      {theme === 'dark' ? <Sun size={22}/> : <Moon size={22}/>}
     </button>
   );
 }

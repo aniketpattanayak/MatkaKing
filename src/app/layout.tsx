@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
-import ThemeToggle from '@/components/ThemeToggle';
 
 export const metadata: Metadata = {
   title: 'KismatHub',
@@ -21,7 +20,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="body popup-loader counter-scroll">
         <div id="wrapper">{children}</div>
-        <ThemeToggle />
         <Toaster richColors position="top-right" />
       </body>
     </html>
