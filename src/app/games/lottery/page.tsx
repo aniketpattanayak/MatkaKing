@@ -163,7 +163,7 @@ export default function LotteryPage() {
     <>
       <Header />
 
-      <div style={{ background: 'linear-gradient(180deg,#0d0b2a,var(--Bg))', paddingTop: 130, paddingBottom: 40, textAlign: 'center' }}>
+      <div style={{ background: 'var(--Bg)', paddingTop: 130, paddingBottom: 40, textAlign: 'center' }}>
         <div className="tf-container">
           <h1 style={{ fontWeight: 900, fontSize: 44, marginBottom: 8 }}>🎟️ Lottery</h1>
           <p style={{ color: 'var(--Secondary)', fontSize: 15 }}>Search · Bulk Buy · Alphanumeric series tickets</p>
@@ -203,7 +203,7 @@ export default function LotteryPage() {
           {series && (
             <>
               {/* Series info */}
-              <div style={{ background: 'linear-gradient(135deg,#1a0f00,var(--Bg-10))', borderRadius: 16, padding: '20px 28px', marginBottom: 24, border: '1px solid rgba(254,140,69,0.2)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+              <div style={{ background: 'var(--Bg-2)', borderRadius: 16, padding: '20px 28px', marginBottom: 24, border: '1px solid rgba(254,140,69,0.25)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
                 <div>
                   <h3 style={{ fontWeight: 900, fontSize: 22, marginBottom: 4 }}>{series.name}</h3>
                   <p style={{ color: 'var(--Secondary)', fontSize: 13 }}>Series: {series.prefix}0001 – {series.prefix}{String(series.totalTickets || 9999).padStart(4, '0')}</p>
@@ -211,8 +211,8 @@ export default function LotteryPage() {
                 <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
                   {[
                     { label: 'Prize Pool', value: `₹${(series.prizePool).toLocaleString('en-IN')}`, color: '#ffcb52' },
-                    { label: 'Per Ticket',  value: `₹${series.ticketPrice}`,                           color: '#fff' },
-                    { label: 'Draw Date',   value: new Date(series.drawAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }), color: '#fff' },
+                    { label: 'Per Ticket',  value: `₹${series.ticketPrice}`,                           color: 'var(--White)' },
+                    { label: 'Draw Date',   value: new Date(series.drawAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }), color: 'var(--White)' },
                   ].map(({ label, value, color }) => (
                     <div key={label} style={{ textAlign: 'right' }}>
                       <p style={{ color: 'var(--Secondary)', fontSize: 11, marginBottom: 2, textTransform: 'uppercase' }}>{label}</p>
@@ -279,38 +279,22 @@ export default function LotteryPage() {
 
       {/* Cart bar */}
       {selected.size > 0 && series && (
-        <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-          background: 'var(--Bg-2)',
-          borderTop: '2px solid rgba(254,140,69,0.5)',
-          padding: '14px 24px',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 -4px 24px rgba(0,0,0,0.15)',
-        }}>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, background: 'var(--Bg-2)', borderTop: '2px solid rgba(254,140,69,0.5)', padding: '14px 24px', backdropFilter: 'blur(20px)', boxShadow: '0 -4px 24px rgba(0,0,0,.15)' }}>
           <div className="tf-container">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <div>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--Secondary)' }}>{selected.size} tickets selected</span>
-                  <span style={{ marginLeft: 12, color: '#ffcb52', fontWeight: 900, fontSize: 24 }}>₹{cost.toLocaleString()}</span>
-                </div>
+              <div>
+                <span style={{ fontWeight: 900, fontSize: 18 }}>{selected.size} tickets selected</span>
+                <span style={{ marginLeft: 16, color: '#ffcb52', fontWeight: 800, fontSize: 22 }}>₹{cost.toLocaleString()}</span>
                 {loggedIn && balance < cost && (
-                  <Link href="/dashboard/wallet" style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '7px 14px', borderRadius: 999,
-                    background: 'rgba(239,68,68,0.12)',
-                    border: '1px solid rgba(239,68,68,0.4)',
-                    color: '#ef4444', fontWeight: 700, fontSize: 13,
-                    textDecoration: 'none',
-                  }}>
-                    ⚠️ Insufficient coins — Add funds →
-                  </Link>
+                  <span style={{ marginLeft: 12, color: '#ef4444', fontSize: 13 }}>
+                    ⚠️ Insufficient — <Link href="/dashboard/wallet" style={{ color: '#ef4444', textDecoration: 'underline' }}>Add funds</Link>
+                  </span>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => setSelected(new Set())} style={{ padding: '10px 20px', borderRadius: 999, border: '1px solid var(--Border)', background: 'transparent', color: 'var(--Secondary)', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>Clear</button>
-                <button onClick={buySelected} disabled={buying || !loggedIn || balance < cost} className="tf-btn" style={{ height: 46, fontSize: 15, padding: '0 32px', opacity: (buying || balance < cost) ? 0.5 : 1, cursor: balance < cost ? 'not-allowed' : 'pointer' }}>
-                  {!loggedIn ? '🔒 Login to Buy' : buying ? 'Processing...' : `🎟 Buy Now — ₹${cost.toLocaleString()}`}
+                <button onClick={() => setSelected(new Set())} style={{ padding: '10px 20px', borderRadius: 999, border: '1px solid var(--Border)', background: 'transparent', color: 'var(--Secondary)', cursor: 'pointer', fontSize: 14 }}>Clear</button>
+                <button onClick={buySelected} disabled={buying || !loggedIn} className="tf-btn" style={{ height: 46, fontSize: 15, padding: '0 32px', opacity: buying ? 0.6 : 1 }}>
+                  {!loggedIn ? '🔒 Login to Buy' : buying ? 'Processing...' : `🎟️ Buy Now — ₹${cost.toLocaleString()}`}
                 </button>
               </div>
             </div>
