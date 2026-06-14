@@ -286,9 +286,7 @@ export default function LotteryPage() {
                 <span style={{ fontWeight: 900, fontSize: 18 }}>{selected.size} tickets selected</span>
                 <span style={{ marginLeft: 16, color: '#ffcb52', fontWeight: 800, fontSize: 22 }}>₹{cost.toLocaleString()}</span>
                 {loggedIn && balance < cost && (
-                  <span style={{ marginLeft: 12, color: '#ef4444', fontSize: 13 }}>
-                    ⚠️ Insufficient — <Link href="/dashboard/wallet" style={{ color: '#ef4444', textDecoration: 'underline' }}>Add funds</Link>
-                  </span>
+                  <Link href="/dashboard/wallet" style={{ display:'inline-flex', alignItems:'center', gap:6, marginLeft:12, padding:'6px 14px', borderRadius:999, background:'rgba(239,68,68,0.15)', border:'1.5px solid #ef4444', color:'#ef4444', fontWeight:700, fontSize:13, textDecoration:'none' }}>⚠️ Insufficient — Add funds</Link>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
