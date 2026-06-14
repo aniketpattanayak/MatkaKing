@@ -39,7 +39,7 @@ export default function AdminPage() {
   const [data,        setData]        = useState<any>({ upis:[], markets:[], series:[], users:[], spinConfig:null });
 
   // ── Lottery form ────────────────────────────────────────────────────────────
-  const [lForm, setLForm] = useState({ name:'', prefix:'', ticketPrice:'25', firstPrize:'100000', secondPrize:'50000', thirdPrize:'25000', totalTickets:'9999', drawAt:'' });
+  const [lForm, setLForm] = useState({ name:'', prefix:'', ticketPrice:'25', firstPrize:'100000', secondPrize:'50000', thirdPrize:'25000', totalTickets:'100', drawAt:'' });
   const [lLoading,   setLLoading]   = useState(false);
   const [drawSeries, setDrawSeries] = useState<any>(null);  // series being drawn
   const [drawInfo,   setDrawInfo]   = useState<any>(null);  // eligibility info from API
