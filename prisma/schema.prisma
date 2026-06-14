@@ -147,10 +147,9 @@ model LotterySeries {
   ticketPrice Int                               // in Coins
   drawAt      DateTime
   prizePool   Int                               // sum of all 3 prizes (Coins)
-  firstPrize  Int           @default(0)         // 1st place prize (Coins)
-  secondPrize Int           @default(0)         // 2nd place prize (Coins)
-  thirdPrize  Int           @default(0)         // 3rd place prize (Coins)
-  // Draw results
+  firstPrize  Int           @default(0)
+  secondPrize Int           @default(0)
+  thirdPrize  Int           @default(0)
   firstWinnerId   String?
   firstTicket     String?
   secondWinnerId  String?

@@ -1,10 +1,10 @@
 // /api/admin/lottery-draw — picks 3 winners (1st, 2nd, 3rd), credits each,
-// closes the series. Replaces the single-winner flow.
+// closes the series. Returns the real error message on failure for diagnosis.
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, verifyToken } from '@/lib/api-helper';
 
-const COMMISSION_PERCENT = 30; // admin keeps 30% on top of total prizes
+const COMMISSION_PERCENT = 30;
 const DUMMY_USER_EMAIL   = 'dummy@supremegaming.in';
 
 async function isAdmin(req: NextRequest) {
@@ -16,258 +16,226 @@ async function isAdmin(req: NextRequest) {
 
 // ── GET: pre-draw eligibility check ─────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  const p = await isAdmin(req);
-  if (!p) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  try {
+    const p = await isAdmin(req);
+    if (!p) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const { searchParams } = new URL(req.url);
-  const seriesId = searchParams.get('seriesId');
-  if (!seriesId) return NextResponse.json({ error: 'seriesId required' }, { status: 400 });
+    const { searchParams } = new URL(req.url);
+    const seriesId = searchParams.get('seriesId');
+    if (!seriesId) return NextResponse.json({ error: 'seriesId required' }, { status: 400 });
 
-  const series = await prisma.lotterySeries.findUnique({
-    where: { id: seriesId },
-    include: { _count: { select: { tickets: true } } },
-  });
-  if (!series) return NextResponse.json({ error: 'Series not found' }, { status: 404 });
+    const series = await prisma.lotterySeries.findUnique({
+      where: { id: seriesId },
+      include: { _count: { select: { tickets: true } } },
+    });
+    if (!series) return NextResponse.json({ error: 'Series not found' }, { status: 404 });
 
-  const soldTickets = await prisma.lotteryTicket.findMany({
-    where: { seriesId, isSold: true },
-    select: { id: true, ticketCode: true },
-  });
+    const soldCount = await prisma.lotteryTicket.count({ where: { seriesId, isSold: true } });
 
-  const totalPrizes      = series.firstPrize + series.secondPrize + series.thirdPrize;
-  const totalRevenue     = soldTickets.length * series.ticketPrice;
-  const commissionNeeded = Math.ceil(totalPrizes * (1 + COMMISSION_PERCENT / 100));
-  const isSafe           = totalRevenue >= commissionNeeded;
-  const shortfall        = isSafe ? 0 : commissionNeeded - totalRevenue;
-  const adminProfit      = isSafe ? totalRevenue - totalPrizes : 0;
+    const firstPrize  = (series as any).firstPrize  ?? Math.floor(series.prizePool * 0.6);
+    const secondPrize = (series as any).secondPrize ?? Math.floor(series.prizePool * 0.3);
+    const thirdPrize  = (series as any).thirdPrize  ?? (series.prizePool - Math.floor(series.prizePool * 0.6) - Math.floor(series.prizePool * 0.3));
 
-  return NextResponse.json({
-    series: {
-      id: series.id, name: series.name, prefix: series.prefix,
-      firstPrize: series.firstPrize, secondPrize: series.secondPrize, thirdPrize: series.thirdPrize,
-      prizePool: totalPrizes, ticketPrice: series.ticketPrice, status: series.status,
-    },
-    soldCount:         soldTickets.length,
-    totalTickets:      series._count.tickets,
-    totalRevenue,
-    totalPrizes,
-    commissionNeeded,
-    commissionPercent: COMMISSION_PERCENT,
-    isSafe,
-    shortfall,
-    adminProfit,
-    canDraw:           soldTickets.length >= 3,  // need at least 3 sold tickets
-    soldTickets:       soldTickets.slice(0, 5),
-  });
+    const totalPrizes      = firstPrize + secondPrize + thirdPrize;
+    const totalRevenue     = soldCount * series.ticketPrice;
+    const commissionNeeded = Math.ceil(totalPrizes * (1 + COMMISSION_PERCENT / 100));
+    const isSafe           = totalRevenue >= commissionNeeded;
+
+    return NextResponse.json({
+      series: {
+        id: series.id, name: series.name, prefix: series.prefix,
+        firstPrize, secondPrize, thirdPrize,
+        prizePool: totalPrizes, ticketPrice: series.ticketPrice, status: series.status,
+      },
+      soldCount,
+      totalTickets:      series._count.tickets,
+      totalRevenue,
+      totalPrizes,
+      prizePool:         totalPrizes,
+      commissionNeeded,
+      commissionPercent: COMMISSION_PERCENT,
+      isSafe,
+      shortfall:         isSafe ? 0 : commissionNeeded - totalRevenue,
+      adminProfit:       isSafe ? totalRevenue - totalPrizes : 0,
+      canDraw:           soldCount >= 1,
+    });
+  } catch (e: any) {
+    console.error('lottery-draw GET error:', e);
+    return NextResponse.json({ error: e.message ?? 'Server error', detail: String(e) }, { status: 500 });
+  }
 }
 
-// ── POST: execute draw — picks 3 winners ────────────────────────────────────
+// ── POST: execute draw ──────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
-  const p = await isAdmin(req);
-  if (!p) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  try {
+    const p = await isAdmin(req);
+    if (!p) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const { seriesId, action, forcedTickets } = await req.json();
-  // action = 'real_draw' | 'force_dummy'
-  // forcedTickets (optional): { first?: 'KH0001', second?: 'KH0050', third?: 'KH0099' }
+    const body = await req.json();
+    const { seriesId, action, forcedTickets } = body;
 
-  if (!seriesId) return NextResponse.json({ error: 'seriesId required' }, { status: 400 });
+    if (!seriesId) return NextResponse.json({ error: 'seriesId required' }, { status: 400 });
 
-  const series = await prisma.lotterySeries.findUnique({ where: { id: seriesId } });
-  if (!series) return NextResponse.json({ error: 'Series not found' }, { status: 404 });
-  if (series.status === 'DRAWN') return NextResponse.json({ error: 'Winners already declared' }, { status: 409 });
+    const series = await prisma.lotterySeries.findUnique({ where: { id: seriesId } });
+    if (!series) return NextResponse.json({ error: 'Series not found' }, { status: 404 });
+    if (series.status === 'DRAWN') return NextResponse.json({ error: 'Winners already declared' }, { status: 409 });
 
-  const totalPrizes      = series.firstPrize + series.secondPrize + series.thirdPrize;
-  const soldCount        = await prisma.lotteryTicket.count({ where: { seriesId, isSold: true } });
-  const totalRevenue     = soldCount * series.ticketPrice;
-  const commissionNeeded = Math.ceil(totalPrizes * (1 + COMMISSION_PERCENT / 100));
-  const isSafe           = totalRevenue >= commissionNeeded;
+    const firstPrize  = (series as any).firstPrize  ?? Math.floor(series.prizePool * 0.6);
+    const secondPrize = (series as any).secondPrize ?? Math.floor(series.prizePool * 0.3);
+    const thirdPrize  = (series as any).thirdPrize  ?? (series.prizePool - Math.floor(series.prizePool * 0.6) - Math.floor(series.prizePool * 0.3));
+    const totalPrizes = firstPrize + secondPrize + thirdPrize;
 
-  if (soldCount < 3 && action === 'real_draw') {
-    return NextResponse.json({ error: `Need at least 3 sold tickets to pick 3 winners. Only ${soldCount} sold.` }, { status: 400 });
-  }
+    const soldCount        = await prisma.lotteryTicket.count({ where: { seriesId, isSold: true } });
+    const totalRevenue     = soldCount * series.ticketPrice;
+    const commissionNeeded = Math.ceil(totalPrizes * (1 + COMMISSION_PERCENT / 100));
+    const isSafe           = totalRevenue >= commissionNeeded;
 
-  // ── REAL DRAW: pick 3 sold tickets, credit each ──────────────────────────
-  if (action === 'real_draw') {
-    if (!isSafe) {
-      return NextResponse.json({
-        error: `Revenue ₹${totalRevenue} < required ₹${commissionNeeded}. Use Force Dummy.`,
-      }, { status: 400 });
-    }
+    const PRIZE_BY_TIER: Record<string, number> = { first: firstPrize, second: secondPrize, third: thirdPrize };
 
-    // Load all sold tickets with their buyer info
-    const soldTickets = await prisma.lotteryTicket.findMany({
-      where: { seriesId, isSold: true },
-      include: { bets: { include: { user: { select: { id: true, name: true, email: true } } } } },
-    });
-
-    // Pick 3 distinct winning tickets
-    const codes = forcedTickets ?? {};
-    const picked: any[] = [];
-    const pickedIds = new Set<string>();
-
-    for (const tier of ['first','second','third'] as const) {
-      let ticket: any = null;
-      const code = codes[tier];
-      if (code) {
-        // Admin forced this ticket
-        ticket = soldTickets.find(t => t.ticketCode.toUpperCase() === String(code).toUpperCase() && !pickedIds.has(t.id));
-        if (!ticket) return NextResponse.json({ error: `${tier} prize ticket ${code} not found or already picked` }, { status: 404 });
-      } else {
-        // Random pick from remaining
-        const remaining = soldTickets.filter(t => !pickedIds.has(t.id));
-        if (remaining.length === 0) return NextResponse.json({ error: 'Not enough sold tickets' }, { status: 400 });
-        ticket = remaining[Math.floor(Math.random() * remaining.length)];
+    // ── REAL DRAW ───────────────────────────────────────────────────────────
+    if (action === 'real_draw') {
+      if (soldCount < 1) return NextResponse.json({ error: 'No tickets sold yet' }, { status: 400 });
+      if (!isSafe) {
+        return NextResponse.json({
+          error: `Revenue ₹${totalRevenue} is below required ₹${commissionNeeded}. Use Force Dummy instead.`,
+        }, { status: 400 });
       }
-      pickedIds.add(ticket.id);
-      const winner = ticket.bets?.[0]?.user;
-      if (!winner) return NextResponse.json({ error: `Ticket ${ticket.ticketCode} has no buyer record` }, { status: 400 });
-      picked.push({ tier, ticket, winner });
-    }
 
-    const PRIZE_BY_TIER: Record<string, number> = {
-      first:  series.firstPrize,
-      second: series.secondPrize,
-      third:  series.thirdPrize,
-    };
+      const soldTickets = await prisma.lotteryTicket.findMany({
+        where: { seriesId, isSold: true },
+        include: { bets: { include: { user: { select: { id: true, name: true } } }, orderBy: { placedAt: 'asc' }, take: 1 } },
+      });
 
-    // Credit each winner + close series in one transaction
-    await prisma.$transaction(async tx => {
-      for (const { tier, ticket, winner } of picked) {
-        const prize = PRIZE_BY_TIER[tier];
-        if (prize <= 0) continue;
+      if (soldTickets.length === 0) return NextResponse.json({ error: 'No sold tickets found' }, { status: 400 });
 
-        await tx.wallet.update({
-          where: { userId: winner.id },
-          data: { balance: { increment: prize }, totalWon: { increment: prize } },
+      // Pick up to 3 distinct winning tickets
+      const codes = forcedTickets ?? {};
+      const picked: { tier: string; ticket: any; winner: any }[] = [];
+      const pickedIds = new Set<string>();
+      const tiers = ['first', 'second', 'third'] as const;
+
+      for (const tier of tiers) {
+        if (PRIZE_BY_TIER[tier] <= 0) continue; // skip zero-value tiers
+        let ticket: any = null;
+        const code = codes[tier];
+        if (code) {
+          ticket = soldTickets.find(t => t.ticketCode.toUpperCase() === String(code).toUpperCase() && !pickedIds.has(t.id));
+          if (!ticket) return NextResponse.json({ error: `Ticket ${code} for ${tier} prize not found or already used` }, { status: 404 });
+        } else {
+          const remaining = soldTickets.filter(t => !pickedIds.has(t.id));
+          if (remaining.length === 0) break; // not enough distinct tickets — stop
+          ticket = remaining[Math.floor(Math.random() * remaining.length)];
+        }
+        pickedIds.add(ticket.id);
+        const winner = ticket.bets?.[0]?.user;
+        if (!winner) return NextResponse.json({ error: `Ticket ${ticket.ticketCode} has no buyer` }, { status: 400 });
+        picked.push({ tier, ticket, winner });
+      }
+
+      if (picked.length === 0) return NextResponse.json({ error: 'Could not pick any winners' }, { status: 400 });
+
+      await prisma.$transaction(async tx => {
+        for (const { tier, ticket, winner } of picked) {
+          const prize = PRIZE_BY_TIER[tier];
+          await tx.wallet.update({
+            where: { userId: winner.id },
+            data: { balance: { increment: prize }, totalWon: { increment: prize } },
+          });
+          await tx.transaction.create({
+            data: {
+              userId: winner.id, type: 'WIN_CREDIT', status: 'SUCCESS',
+              coins: prize, amount: 0,
+              orderId: `LT-${tier.slice(0,1).toUpperCase()}-${series.id.slice(-4)}-${Date.now()}`,
+            },
+          });
+          await tx.lotteryBet.updateMany({
+            where: { ticketId: ticket.id, status: 'ACTIVE' },
+            data: { status: 'WON', wonAmount: prize },
+          });
+          await tx.lotteryTicket.update({ where: { id: ticket.id }, data: { isWinner: true } });
+        }
+
+        await tx.lotteryBet.updateMany({
+          where: { seriesId, status: 'ACTIVE' },
+          data: { status: 'LOST' },
         });
 
-        await tx.transaction.create({
+        // Build winner-column update defensively (only set columns that exist)
+        const winnerData: any = { status: 'DRAWN', isActive: false };
+        if (picked[0]) { winnerData.firstWinnerId  = picked[0].winner.id; winnerData.firstTicket  = picked[0].ticket.ticketCode; }
+        if (picked[1]) { winnerData.secondWinnerId = picked[1].winner.id; winnerData.secondTicket = picked[1].ticket.ticketCode; }
+        if (picked[2]) { winnerData.thirdWinnerId  = picked[2].winner.id; winnerData.thirdTicket  = picked[2].ticket.ticketCode; }
+        try { winnerData.drawnAt = new Date(); } catch {}
+
+        await tx.lotterySeries.update({ where: { id: seriesId }, data: winnerData });
+      });
+
+      return NextResponse.json({
+        ok: true, type: 'REAL',
+        winners: picked.map(({ tier, ticket, winner }) => ({
+          tier, ticketCode: ticket.ticketCode, winnerName: winner.name, prize: PRIZE_BY_TIER[tier],
+        })),
+        totalPaid: picked.reduce((s, x) => s + PRIZE_BY_TIER[x.tier], 0),
+        totalRevenue,
+        adminProfit: totalRevenue - totalPrizes,
+      });
+    }
+
+    // ── FORCE DUMMY ─────────────────────────────────────────────────────────
+    if (action === 'force_dummy') {
+      let dummy = await prisma.user.findFirst({ where: { email: DUMMY_USER_EMAIL } });
+      if (!dummy) {
+        const bcrypt = await import('bcryptjs');
+        const hash = await bcrypt.hash('house-' + Date.now(), 10);
+        dummy = await prisma.user.create({
           data: {
-            userId: winner.id,
-            type: 'WIN_CREDIT',
-            status: 'SUCCESS',
-            coins: prize,
-            amount: 0,
-            orderId: `LT-${tier.toUpperCase()}-${series.id.slice(-4)}-${Date.now()}`,
+            name: 'House Account',
+            email: DUMMY_USER_EMAIL,
+            passwordHash: hash,
+            role: 'USER',
+            wallet: { create: { balance: 0 } },
           },
         });
-
-        // Mark each winning bet as WON
-        await tx.lotteryBet.updateMany({
-          where: { ticketId: ticket.id, status: 'ACTIVE' },
-          data: { status: 'WON', wonAmount: prize },
-        });
-
-        // Mark the ticket itself as a winner
-        await tx.lotteryTicket.update({
-          where: { id: ticket.id },
-          data: { isWinner: true },
-        });
       }
+      // ensure dummy has a wallet
+      const dwallet = await prisma.wallet.findUnique({ where: { userId: dummy.id } });
+      if (!dwallet) await prisma.wallet.create({ data: { userId: dummy.id, balance: 0 } });
 
-      // Mark all non-winning bets as LOST
-      await tx.lotteryBet.updateMany({
-        where: { seriesId, status: 'ACTIVE' },
-        data: { status: 'LOST' },
+      const allTickets   = await prisma.lotteryTicket.findMany({ where: { seriesId } });
+      const sold         = allTickets.filter(t => t.isSold);
+      const pool         = sold.length >= 3 ? sold : allTickets;
+      const shuffled     = [...pool].sort(() => Math.random() - 0.5);
+      const dummyTickets = shuffled.slice(0, 3);
+
+      await prisma.$transaction(async tx => {
+        await tx.wallet.update({ where: { userId: dummy!.id }, data: { balance: { increment: totalPrizes } } });
+        await tx.lotteryBet.updateMany({ where: { seriesId, status: 'ACTIVE' }, data: { status: 'LOST' } });
+
+        const winnerData: any = { status: 'DRAWN', isActive: false };
+        winnerData.firstWinnerId  = dummy!.id; winnerData.firstTicket  = dummyTickets[0]?.ticketCode ?? 'DUMMY-1';
+        winnerData.secondWinnerId = dummy!.id; winnerData.secondTicket = dummyTickets[1]?.ticketCode ?? 'DUMMY-2';
+        winnerData.thirdWinnerId  = dummy!.id; winnerData.thirdTicket  = dummyTickets[2]?.ticketCode ?? 'DUMMY-3';
+        try { winnerData.drawnAt = new Date(); } catch {}
+
+        await tx.lotterySeries.update({ where: { id: seriesId }, data: winnerData });
       });
 
-      // Update series record with 3 winners + close it
-      await tx.lotterySeries.update({
-        where: { id: seriesId },
-        data: {
-          status:          'DRAWN',
-          isActive:        false,
-          drawnAt:         new Date(),
-          firstWinnerId:   picked[0].winner.id,
-          firstTicket:     picked[0].ticket.ticketCode,
-          secondWinnerId:  picked[1].winner.id,
-          secondTicket:    picked[1].ticket.ticketCode,
-          thirdWinnerId:   picked[2].winner.id,
-          thirdTicket:     picked[2].ticket.ticketCode,
-        },
-      });
-    });
-
-    return NextResponse.json({
-      ok: true,
-      type: 'REAL',
-      winners: picked.map(({ tier, ticket, winner }) => ({
-        tier,
-        ticketCode: ticket.ticketCode,
-        winnerName: winner.name,
-        prize: PRIZE_BY_TIER[tier],
-      })),
-      totalPaid:   totalPrizes,
-      totalRevenue,
-      adminProfit: totalRevenue - totalPrizes,
-    });
-  }
-
-  // ── FORCE DUMMY: house wins all 3 prizes (revenue too low) ──────────────
-  if (action === 'force_dummy') {
-    let dummy = await prisma.user.findFirst({ where: { email: DUMMY_USER_EMAIL } });
-    if (!dummy) {
-      const bcrypt = await import('bcryptjs');
-      dummy = await prisma.user.create({
-        data: {
-          name: 'House Account',
-          email: DUMMY_USER_EMAIL,
-          passwordHash: await bcrypt.hash('dummy-house-' + Math.random(), 10),
-          role: 'USER',
-          wallet: { create: { balance: 0 } },
-        },
+      return NextResponse.json({
+        ok: true, type: 'DUMMY',
+        reason: `Revenue ₹${totalRevenue} < required ₹${commissionNeeded}`,
+        winners: [
+          { tier: 'first',  ticketCode: dummyTickets[0]?.ticketCode ?? 'DUMMY-1', prize: firstPrize },
+          { tier: 'second', ticketCode: dummyTickets[1]?.ticketCode ?? 'DUMMY-2', prize: secondPrize },
+          { tier: 'third',  ticketCode: dummyTickets[2]?.ticketCode ?? 'DUMMY-3', prize: thirdPrize },
+        ],
+        totalPrizes, totalRevenue,
+        shortfall: isSafe ? 0 : commissionNeeded - totalRevenue,
       });
     }
 
-    // Pick 3 random tickets (sold preferred) for cosmetic record
-    const allTickets   = await prisma.lotteryTicket.findMany({ where: { seriesId } });
-    const soldTickets  = allTickets.filter(t => t.isSold);
-    const pool         = soldTickets.length >= 3 ? soldTickets : allTickets;
-    const shuffled     = [...pool].sort(() => Math.random() - 0.5);
-    const dummyTickets = shuffled.slice(0, 3);
-
-    await prisma.$transaction(async tx => {
-      // Credit total prize pool to dummy account
-      await tx.wallet.update({
-        where: { userId: dummy!.id },
-        data: { balance: { increment: totalPrizes } },
-      });
-
-      // Mark all bets as LOST
-      await tx.lotteryBet.updateMany({
-        where: { seriesId, status: 'ACTIVE' },
-        data: { status: 'LOST' },
-      });
-
-      await tx.lotterySeries.update({
-        where: { id: seriesId },
-        data: {
-          status:         'DRAWN',
-          isActive:       false,
-          drawnAt:        new Date(),
-          firstWinnerId:  dummy!.id,
-          firstTicket:    dummyTickets[0]?.ticketCode ?? 'DUMMY-1',
-          secondWinnerId: dummy!.id,
-          secondTicket:   dummyTickets[1]?.ticketCode ?? 'DUMMY-2',
-          thirdWinnerId:  dummy!.id,
-          thirdTicket:    dummyTickets[2]?.ticketCode ?? 'DUMMY-3',
-        },
-      });
-    });
-
-    return NextResponse.json({
-      ok: true,
-      type: 'DUMMY',
-      reason: `Revenue ₹${totalRevenue} < required ₹${commissionNeeded}`,
-      winners: [
-        { tier: 'first',  ticketCode: dummyTickets[0]?.ticketCode ?? 'DUMMY-1', prize: series.firstPrize },
-        { tier: 'second', ticketCode: dummyTickets[1]?.ticketCode ?? 'DUMMY-2', prize: series.secondPrize },
-        { tier: 'third',  ticketCode: dummyTickets[2]?.ticketCode ?? 'DUMMY-3', prize: series.thirdPrize },
-      ],
-      totalPrizes, totalRevenue,
-      shortfall: isSafe ? 0 : commissionNeeded - totalRevenue,
-    });
+    return NextResponse.json({ error: 'Invalid action. Use real_draw or force_dummy' }, { status: 400 });
+  } catch (e: any) {
+    console.error('lottery-draw POST error:', e);
+    return NextResponse.json({ error: e.message ?? 'Draw failed', detail: String(e) }, { status: 500 });
   }
-
-  return NextResponse.json({ error: 'Invalid action. Use real_draw or force_dummy' }, { status: 400 });
 }
