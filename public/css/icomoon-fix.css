@@ -1,277 +1,233 @@
 /*
- * icomoon-fix.css
- * Replaces broken icomoon □ boxes with Unicode equivalents
- * since the /media/icomoon.*.ttf font files are missing
+ * icomoon-fix.css — KismatHub
+ * 1. Fixes broken icomoon font (renders as □ squares)
+ * 2. Full light mode theme via [data-theme="light"]
  */
 
-/* Override the broken font-face — use system fonts as fallback */
+/* ── Fix broken icomoon @font-face ─────────────────────────────────────────── */
 @font-face {
   font-family: icomoon;
-  src: local('Arial');
+  src: url('data:application/octet-stream;base64,') format('woff');
   font-weight: normal;
   font-style: normal;
+  font-display: block;
 }
 
-/* Hide all icon pseudo-elements by default, then show specific ones */
+/* ── Neutralize icomoon on all icon elements ────────────────────────────────── */
 [class^="icon-"]::before,
-[class*=" icon-"]::before {
+[class*=" icon-"]::before,
+[class^="icon-"]::after,
+[class*=" icon-"]::after {
   font-family: inherit !important;
-  font-size: 0.9em;
+  content: '' !important;
 }
 
-/* Navigation dropdown arrow */
-.main-menu .navigation li.has-child > a::after {
-  font-family: inherit !important;
-  content: " ▾" !important;
-  font-size: 12px !important;
-  position: relative !important;
-  right: auto !important;
-}
-
-/* Right arrow icon */
-.icon-right::before,
-.icon-arrow-right::before,
-.icon-arrow-right1::before { content: "→" !important; font-family: inherit !important; }
-
-/* Close icon */
-.icon-close::before { content: "✕" !important; font-family: inherit !important; }
-
-/* Ticket icon */
-.icon-tickets::before { content: "🎟" !important; font-family: inherit !important; font-style: normal !important; }
-
-/* Search icon */
-.icon-search::before { content: "🔍" !important; font-family: inherit !important; }
-
-/* Info icon */
-.icon-infor::before,
-.icon-infor-1::before { content: "ℹ" !important; font-family: inherit !important; }
-
-/* Check icons */
-.icon-check::before,
-.icon-check-1::before { content: "✓" !important; font-family: inherit !important; }
-
-/* Plus / minus */
-.icon-plus::before  { content: "+" !important; font-family: inherit !important; }
-.icon-minus::before { content: "−" !important; font-family: inherit !important; }
-
-/* Arrow icons */
-.icon-arrow-up::before    { content: "↑" !important; font-family: inherit !important; }
-.icon-arrow-down::before  { content: "↓" !important; font-family: inherit !important; }
-.icon-arrow-left::before  { content: "←" !important; font-family: inherit !important; }
-.icon-arrow-bottom::before { content: "↓" !important; font-family: inherit !important; }
-.icon-back::before        { content: "←" !important; font-family: inherit !important; }
-.icon-next::before        { content: "→" !important; font-family: inherit !important; }
-
-/* Wallet / Finance icons */
-.icon-wallet::before      { content: "💳" !important; font-family: inherit !important; }
-.icon-wallets::before     { content: "💰" !important; font-family: inherit !important; }
-.icon-deposit::before     { content: "↓" !important; font-family: inherit !important; }
-.icon-withdrawal::before  { content: "↑" !important; font-family: inherit !important; }
-
-/* Game icons */
-.icon-game::before        { content: "🎮" !important; font-family: inherit !important; }
-.icon-casino::before      { content: "🎰" !important; font-family: inherit !important; }
-.icon-ticket::before      { content: "🎟" !important; font-family: inherit !important; }
-.icon-scratch-offs::before { content: "🎫" !important; font-family: inherit !important; }
-
-/* User / Account icons */
-.icon-log-out::before     { content: "→" !important; font-family: inherit !important; }
-.icon-setting::before     { content: "⚙" !important; font-family: inherit !important; }
-.icon-affiliate::before   { content: "🔗" !important; font-family: inherit !important; }
-.icon-statistics::before  { content: "📊" !important; font-family: inherit !important; }
-.icon-level::before       { content: "⭐" !important; font-family: inherit !important; }
-.icon-star::before        { content: "★" !important; font-family: inherit !important; }
-.icon-my-favorite::before { content: "♥" !important; font-family: inherit !important; }
-
-/* Social icons */
-.icon-facebook::before    { content: "f" !important; font-family: inherit !important; font-weight: 700 !important; }
-.icon-twitter::before,
-.icon-x::before           { content: "𝕏" !important; font-family: inherit !important; }
-.icon-youtube::before     { content: "▶" !important; font-family: inherit !important; }
-.icon-instagram::before   { content: "◉" !important; font-family: inherit !important; }
-.icon-tiktok::before      { content: "♪" !important; font-family: inherit !important; }
-
-/* Misc icons */
-.icon-send::before         { content: "→" !important; font-family: inherit !important; }
-.icon-copy::before,
-.icon-coppy::before        { content: "⧉" !important; font-family: inherit !important; }
-.icon-view::before         { content: "👁" !important; font-family: inherit !important; }
-.icon-hide::before         { content: "⊘" !important; font-family: inherit !important; }
-.icon-play::before         { content: "▶" !important; font-family: inherit !important; }
-.icon-home::before         { content: "⌂" !important; font-family: inherit !important; }
-.icon-file::before         { content: "📄" !important; font-family: inherit !important; }
-.icon-clock::before        { content: "🕐" !important; font-family: inherit !important; }
-.icon-delete::before       { content: "✕" !important; font-family: inherit !important; }
-.icon-menu::before         { content: "☰" !important; font-family: inherit !important; }
-.icon-question::before     { content: "?" !important; font-family: inherit !important; }
-.icon-send-message::before { content: "✉" !important; font-family: inherit !important; }
-.icon-write::before        { content: "✎" !important; font-family: inherit !important; }
-.icon-collapse::before     { content: "◀" !important; font-family: inherit !important; }
-.icon-faq::before          { content: "?" !important; font-family: inherit !important; }
-
-/* Progress / scroll-to-top button */
-.progress-wrap::after {
-  content: "↑" !important;
+/* ── Replace broken dropdown carets with real CSS triangles ─────────────────── */
+.main-menu .navigation li.has-child > a::after,
+#header-main .navigation li.has-child > a::after {
+  content: '' !important;
+  display: inline-block !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-left: 4px solid transparent !important;
+  border-right: 4px solid transparent !important;
+  border-top: 5px solid currentColor !important;
+  margin-left: 6px !important;
+  vertical-align: middle !important;
+  opacity: 0.7 !important;
   font-family: inherit !important;
 }
 
-/* Mobile menu has-children arrow */
-.inner-mobile-nav #menu-mobile-menu div.menu-item-has-children-mobile > a::after {
-  content: " ▾" !important;
-  font-family: inherit !important;
-  font-size: 14px !important;
+/* ── Kill 404 background-images from theme bundle ────────────────────────────── */
+.section-dowload-app::after,
+.section-scratchcards,
+.wrap-section-home-2,
+.section-testimonial-home-2,
+.section-guide,
+.section-testimonials,
+.s-how-it-work,
+.page-title,
+.page-title-dashboard .content,
+.wg-our-jackpot,
+.page-title-home.style-2 {
+  background-image: none !important;
 }
 
-/* Sidebar has-children arrow */
-.section-menu-left .menu-list .menu-item.has-children::after {
-  content: "▾" !important;
-  font-family: inherit !important;
-  font-size: 16px !important;
-}
+/* ════════════════════════════════════════════════════════════════════════════
+   LIGHT MODE
+   Applied when <html data-theme="light">
+   ════════════════════════════════════════════════════════════════════════════ */
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   LIGHT MODE — activated by <html data-theme="light">
-   Remaps all theme color variables to light equivalents.
-   ═══════════════════════════════════════════════════════════════════════════ */
 html[data-theme="light"] {
-  --White: #1a1a2e;            /* text that was white becomes dark */
-  --Black: #ffffff;
-  --Bg: #f4f6fb;              /* page background — light grey-blue */
-  --Bg-2: #ffffff;           /* cards — white */
-  --Bg-3: rgba(20,30,60,0.04);
-  --Bg-4: #eef1f8;
-  --Bg-5: #e8ecf6;
-  --Bg-6: #f0f2f9;
-  --Bg-7: #d8c4d8;
-  --Bg-8: #5b9c30;
-  --Bg-9: #bb5636;
-  --Bg-10: #eceefa;
-  --Bg-11: #e9ecfb;
-  --Bg-12: #ede9f6;
-  --Secondary: #5a6b8c;       /* muted blue-grey text */
-  --Sub-color: #ca2826;
-  --Sub-color-2: #954cdf;
-  --Sub-color-3: #f75808;
-  --Sub-color-4: rgba(90,107,140,0.08);
-  --Sub-color-5: #b9bfcf;
-  --Main-color: #fe8c45;      /* brand orange stays */
-  --Text: #1a1a2e;
-  --Text-2: #6b7280;
-  --Text-3: rgba(90,107,140,0.5);
-  --Text-4: #c5c5c7;
-  --Text-5: #6ba539;
-  --Text-6: #4a5a78;
-  --Text-7: #8593aa;
-  --Text-8: #5a6b8c;
-  --Text-9: rgba(26,26,46,0.85);
-  --Border-1: rgba(20,30,60,0.12);
-  --Border-2: rgba(90,107,140,0.18);
-  --Border: rgba(20,30,60,0.12);
-  --backdrop: #e4e8f3;
+  /* Core backgrounds */
+  --Bg:       #f0f2f8;
+  --Bg-2:     #ffffff;
+  --Bg-3:     rgba(20, 30, 70, 0.05);
+  --Bg-4:     #e8ecf6;
+  --Bg-5:     #dfe4f2;
+  --Bg-6:     #f4f5fb;
+  --Bg-10:    #eceefa;
+  --Bg-11:    #e9ecfb;
+  --Bg-12:    #ede9f6;
+
+  /* Text */
+  --White:    #1a1a2e;
+  --Black:    #ffffff;
+  --Text:     #1a1a2e;
+  --Text-2:   #6b7280;
+  --Text-3:   rgba(90, 107, 140, 0.5);
+  --Text-6:   #4a5a78;
+  --Text-7:   #8593aa;
+  --Text-8:   #5a6b8c;
+  --Text-9:   rgba(26, 26, 46, 0.85);
+
+  /* Secondary / muted */
+  --Secondary:    #5a6b8c;
+  --Sub-color-4:  rgba(90, 107, 140, 0.08);
+  --Sub-color-5:  #b9bfcf;
+
+  /* Brand orange stays — reads fine on both light and dark */
+  --Main-color: #fe8c45;
+
+  /* Borders */
+  --Border:   rgba(20, 30, 70, 0.13);
+  --Border-1: rgba(20, 30, 70, 0.12);
+  --Border-2: rgba(90, 107, 140, 0.2);
   --Border-3: #dfe3ec;
-  --Border-4: rgba(90,107,140,0.15);
-  --Border-5: rgba(210,215,225,1);
-  --Border-6: rgba(20,30,60,0.2);
+  --Border-4: rgba(90, 107, 140, 0.15);
+  --Border-5: rgba(210, 215, 225, 1);
+  --Border-6: rgba(20, 30, 70, 0.2);
+
+  --backdrop: #e4e8f3;
 }
 
-/* Header / body background in light mode */
+/* ── Body & page background ──────────────────────────────────────────────── */
 html[data-theme="light"] body {
-  background: var(--Bg) !important;
-  color: var(--Text) !important;
-}
-
-/* Make the fixed header readable on light bg */
-html[data-theme="light"] #header-main {
-  background: rgba(255,255,255,0.9) !important;
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--Border);
-}
-html[data-theme="light"] .main-menu .navigation > li > a {
+  background-color: #f0f2f8 !important;
   color: #1a1a2e !important;
 }
 
-/* Section backgrounds that were dark gradients → soft light */
-html[data-theme="light"] .main-content,
-html[data-theme="light"] #footer {
-  background: var(--Bg) !important;
-}
-html[data-theme="light"] #footer {
-  border-top: 1px solid var(--Border);
+html[data-theme="light"] #wrapper,
+html[data-theme="light"] .main-content {
+  background-color: #f0f2f8 !important;
 }
 
-/* Inputs in light mode */
+/* ── Header ──────────────────────────────────────────────────────────────── */
+html[data-theme="light"] #header-main {
+  background: rgba(255, 255, 255, 0.96) !important;
+  backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(20, 30, 70, 0.1) !important;
+  box-shadow: 0 1px 8px rgba(20, 30, 70, 0.06) !important;
+}
+
+html[data-theme="light"] .main-menu .navigation > li > a,
+html[data-theme="light"] .header-right a,
+html[data-theme="light"] .navigation li a {
+  color: #1a1a2e !important;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+html[data-theme="light"] #footer {
+  background: #e8ecf6 !important;
+  border-top: 1px solid rgba(20, 30, 70, 0.1) !important;
+}
+
+/* ── Cards / panels with dark hardcoded backgrounds ─────────────────────── */
+/* --Bg-2 literal (#131037) → white */
+html[data-theme="light"] [style*="background: var(--Bg-2)"],
+html[data-theme="light"] [style*="background:var(--Bg-2)"] {
+  box-shadow: 0 2px 8px rgba(20, 30, 70, 0.07) !important;
+}
+
+/* Hardcoded dark hex values → light equivalents */
+html[data-theme="light"] [style*="background: #131037"],
+html[data-theme="light"] [style*="background:#131037"],
+html[data-theme="light"] [style*="background-color: #131037"] {
+  background: #ffffff !important;
+}
+
+html[data-theme="light"] [style*="background: #01011e"],
+html[data-theme="light"] [style*="background:#01011e"],
+html[data-theme="light"] [style*="background: #06062c"],
+html[data-theme="light"] [style*="background:#06062c"],
+html[data-theme="light"] [style*="background: #1b1742"],
+html[data-theme="light"] [style*="background:#1b1742"],
+html[data-theme="light"] [style*="background: #0b0b1e"],
+html[data-theme="light"] [style*="background:#0b0b1e"],
+html[data-theme="light"] [style*="background: #10102a"],
+html[data-theme="light"] [style*="background:#10102a"] {
+  background: #f0f2f8 !important;
+}
+
+/* Transparent dark overlays → light equivalent */
+html[data-theme="light"] [style*="rgba(0,0,0,0.15)"],
+html[data-theme="light"] [style*="rgba(0, 0, 0, 0.15)"],
+html[data-theme="light"] [style*="rgba(0,0,0,0.2)"],
+html[data-theme="light"] [style*="rgba(0, 0, 0, 0.2)"] {
+  background: rgba(20, 30, 70, 0.04) !important;
+}
+
+/* ── Text: hardcoded white → dark in light mode ──────────────────────────── */
+html[data-theme="light"] [style*="color: #fff"]:not(button):not(a),
+html[data-theme="light"] [style*="color:#fff"]:not(button):not(a),
+html[data-theme="light"] [style*="color: #ffffff"]:not(button):not(a),
+html[data-theme="light"] [style*="color: white"]:not(button):not(a) {
+  color: #1a1a2e !important;
+}
+
+/* ── Inputs ──────────────────────────────────────────────────────────────── */
 html[data-theme="light"] input,
 html[data-theme="light"] select,
 html[data-theme="light"] textarea {
   color: #1a1a2e !important;
+  background-color: #ffffff !important;
+  border-color: rgba(20, 30, 70, 0.18) !important;
 }
-html[data-theme="light"] input::placeholder {
+
+html[data-theme="light"] input::placeholder,
+html[data-theme="light"] textarea::placeholder {
   color: #9aa3b5 !important;
 }
 
-/* The dark hero gradients soften */
-html[data-theme="light"] .tf-top-bar {
-  /* keep the purple top bar — it looks fine on light too */
-}
-
-/* Cards and tables get subtle shadows instead of relying on dark contrast */
-html[data-theme="light"] [style*="var(--Bg-2)"] {
-  box-shadow: 0 1px 3px rgba(20,30,60,0.06);
-}
-
-/* Theme toggle button styling */
-.kh-theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 999px;
-  border: 1px solid var(--Border);
-  background: var(--Bg-3);
-  color: var(--Main-color);
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-.kh-theme-toggle:hover {
-  background: var(--Bg-5);
-  transform: scale(1.05);
-}
-
-/* ── Light mode: catch common hardcoded dark inline styles ──────────────────
-   Many components use literal hex colors instead of CSS vars. These rules
-   remap the most common dark literals to light equivalents when in light mode.
-   ─────────────────────────────────────────────────────────────────────────── */
-
-/* Pure white text on hardcoded elements → dark text in light mode */
-html[data-theme="light"] [style*="color: #fff"],
-html[data-theme="light"] [style*="color:#fff"],
-html[data-theme="light"] [style*="color: #ffffff"],
-html[data-theme="light"] [style*="color: rgb(255, 255, 255)"] {
+/* ── Tables ──────────────────────────────────────────────────────────────── */
+html[data-theme="light"] table th {
+  background: #eef1f8 !important;
   color: #1a1a2e !important;
 }
 
-/* Dark card backgrounds (#131037 = --Bg-2 literal) → white */
-html[data-theme="light"] [style*="#131037"],
-html[data-theme="light"] [style*="#06062c"],
-html[data-theme="light"] [style*="#01011e"],
-html[data-theme="light"] [style*="#1b1742"] {
-  background-color: #ffffff !important;
+html[data-theme="light"] table td {
+  border-color: rgba(20, 30, 70, 0.08) !important;
+  color: #1a1a2e !important;
 }
 
-/* Keep brand-colored text (gold #ffcb52, orange) visible — these are accents,
-   leave them as-is since they read fine on white too. */
+/* ── The purple top bar stays — it looks fine on light backgrounds ───────── */
 
-/* Drum / number picker dark panels → light grey in light mode */
-html[data-theme="light"] [style*="background: rgba(0,0,0,0.15)"],
-html[data-theme="light"] [style*="background:rgba(0,0,0,0.15)"],
-html[data-theme="light"] [style*="rgba(0, 0, 0, 0.15)"] {
-  background: rgba(20,30,60,0.04) !important;
+/* ── Admin tab bar ───────────────────────────────────────────────────────── */
+html[data-theme="light"] [style*="background: var(--Bg-3)"],
+html[data-theme="light"] [style*="background:var(--Bg-3)"] {
+  background: rgba(20, 30, 70, 0.05) !important;
 }
 
-/* Tables / rows with dark backgrounds */
-html[data-theme="light"] [style*="rgba(147,172,211,0.05)"],
-html[data-theme="light"] [style*="rgba(147,172,211,0.07)"] {
-  background: rgba(20,30,60,0.03) !important;
+/* ── Floating theme toggle button ────────────────────────────────────────── */
+.kh-theme-toggle {
+  position: fixed;
+  bottom: 24px;
+  left: 24px;
+  z-index: 9998;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--Border);
+  background: var(--Bg-2);
+  color: var(--Main-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s;
+}
+
+.kh-theme-toggle:hover {
+  transform: scale(1.1);
 }

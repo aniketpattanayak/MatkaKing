@@ -4,7 +4,7 @@ import ThemeToggle from '@/components/ThemeToggle';
 
 export const metadata: Metadata = {
   title: 'KismatHub — Lottery · Matka King · Spin Wheel',
-  description: 'High-Density Multi-Game Platform',
+  description: 'KismatHub Gaming Platform',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -16,8 +16,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="stylesheet" href="/css/dc1072aeb342c984.css" />
         <link rel="stylesheet" href="/css/4b0b69904f7263ad.css" />
         <link rel="stylesheet" href="/css/responsive.css" />
+        {/* Must load AFTER theme CSS so overrides win */}
         <link rel="stylesheet" href="/css/icomoon-fix.css" />
-        {/* Apply saved theme before first paint — prevents flash */}
+        {/* Apply saved theme before first paint — no flash */}
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('kh-theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,

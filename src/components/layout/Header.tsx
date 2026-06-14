@@ -25,17 +25,15 @@ export default function Header() {
     const t = (document.documentElement.getAttribute('data-theme') as 'dark'|'light') || 'dark';
     setTheme(t);
     const obs = new MutationObserver(() => {
-      const t2 = (document.documentElement.getAttribute('data-theme') as 'dark'|'light') || 'dark';
-      setTheme(t2);
+      setTheme((document.documentElement.getAttribute('data-theme') as 'dark'|'light') || 'dark');
     });
     obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
     return () => obs.disconnect();
   }, []);
 
   const toggleTheme = () => {
-    const current = document.documentElement.getAttribute('data-theme') || 'dark';
-    const next = current === 'dark' ? 'light' : 'dark';
-    setTheme(next as 'dark'|'light');
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
     document.documentElement.setAttribute('data-theme', next);
     try { localStorage.setItem('kh-theme', next); } catch {}
   };
@@ -192,7 +190,9 @@ export default function Header() {
                 {/* Right section */}
                 <div className="header-right" style={{ display:'flex', alignItems:'center', gap:10 }}>
                   <button onClick={toggleTheme} title={theme==='dark'?'Light mode':'Dark mode'}
-                    style={{ width:38, height:38, borderRadius:'50%', border:'1px solid var(--Border)', background:'var(--Bg-3)', color:'var(--Main-color)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                    style={{ width:38, height:38, borderRadius:'50%', border:'1px solid var(--Border)', background:'var(--Bg-3)', color:'var(--Main-color)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'transform 0.15s' }}
+                    onMouseEnter={e=>e.currentTarget.style.transform='scale(1.1)'}
+                    onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}>
                     {theme==='dark' ? <Sun size={17}/> : <Moon size={17}/>}
                   </button>
                   {user ? (
