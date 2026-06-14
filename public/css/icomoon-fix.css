@@ -180,17 +180,3 @@ html[data-theme="light"] input, html[data-theme="light"] select, html[data-theme
 html[data-theme="light"] table th { background:#eef1f8 !important; color:#1a1a2e !important; }
 .kh-theme-toggle { position:fixed; bottom:24px; left:24px; z-index:9998; width:48px; height:48px; border-radius:50%; border:1px solid var(--Border); background:var(--Bg-2); color:var(--Main-color); cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 20px rgba(0,0,0,.2); transition:transform .15s; }
 .kh-theme-toggle:hover { transform:scale(1.1); }
-
-html[data-theme="light"]{--Bg:#f0f2f8;--Bg-2:#fff;--Bg-3:rgba(20,30,70,.05);--White:#1a1a2e;--Secondary:#5a6b8c;--Main-color:#fe8c45;--Border:rgba(20,30,70,.13);color-scheme:light}
-html[data-theme="light"] body,html[data-theme="light"] #wrapper,html[data-theme="light"] .main-content{background-color:#f0f2f8!important;color:#1a1a2e!important}
-html[data-theme="light"] #header-main{background:rgba(255,255,255,.97)!important;border-bottom:1px solid rgba(20,30,70,.1)!important}
-html[data-theme="light"] .main-menu .navigation>li>a,html[data-theme="light"] .navigation li a{color:#1a1a2e!important}
-html[data-theme="light"] #footer{background:#e8ecf6!important}
-html[data-theme="light"] [style*="background: var(--Bg-2)"],[data-theme="light"] [style*="background:var(--Bg-2)"]{background:#fff!important}
-html[data-theme="light"] [style*="background: #131037"],html[data-theme="light"] [style*="background:#131037"],html[data-theme="light"] [style*="background: #01011e"],html[data-theme="light"] [style*="background:#01011e"],html[data-theme="light"] [style*="background: #06062c"],html[data-theme="light"] [style*="background:#06062c"],html[data-theme="light"] [style*="background: #1b1742"],html[data-theme="light"] [style*="background:#1b1742"]{background:#f0f2f8!important}
-html[data-theme="light"] [style*="linear-gradient(135deg, #1a"],html[data-theme="light"] [style*="linear-gradient(135deg,#1a"],html[data-theme="light"] [style*="linear-gradient(180deg,#0d"],html[data-theme="light"] [style*="rgba(0,0,0,0.15)"]{background:#f0f2f8!important}
-html[data-theme="light"] [style*="color: #fff"]:not(button):not(a),html[data-theme="light"] [style*="color:#fff"]:not(button):not(a){color:#1a1a2e!important}
-html[data-theme="light"] input,html[data-theme="light"] select{color:#1a1a2e!important;background-color:#fff!important}
-html[data-theme="light"] table th{background:#eef1f8!important;color:#1a1a2e!important}
-.kh-theme-toggle{position:fixed;bottom:24px;left:24px;z-index:9998;width:48px;height:48px;border-radius:50%;border:1px solid var(--Border);background:var(--Bg-2);color:var(--Main-color);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.2);transition:transform .15s}
-.kh-theme-toggle:hover{transform:scale(1.1)}
