@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Ticket, Dices, RotateCcw, Trophy, Star, Wallet, TrendingUp } from 'lucide-react';
+import { Ticket, Dices, RotateCcw, Trophy, Wallet, TrendingUp, Star, Copy } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { authFetch, getCachedUser, fetchCurrentUser, getToken } from '@/lib/auth-client';
 
@@ -104,6 +104,31 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+
+          {/* Referral Code Card */}
+          {user?.referralCode && (
+            <div style={{
+              background:'var(--Bg-2)', border:'1px solid rgba(255,203,82,0.3)',
+              borderRadius:16, padding:'18px 22px', marginBottom:20,
+              display:'flex', alignItems:'center', justifyContent:'space-between',
+              flexWrap:'wrap', gap:14,
+            }}>
+              <div>
+                <p style={{fontWeight:900,fontSize:15,color:'#ffcb52',marginBottom:4}}>🎁 Your Referral Code — Earn 20 coins per invite</p>
+                <p style={{fontSize:12,color:'var(--Secondary)'}}>Share with friends. They get +10 coins on signup, you get +20 coins.</p>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:10}}>
+                <div style={{background:'var(--Bg-3)',border:'1px solid rgba(255,203,82,0.4)',borderRadius:10,padding:'10px 18px',fontFamily:'monospace',fontWeight:900,fontSize:18,color:'#ffcb52',letterSpacing:2,userSelect:'all'}}>
+                  {user.referralCode.slice(0,10).toUpperCase()}
+                </div>
+                <button onClick={()=>{
+                  navigator.clipboard.writeText(user.referralCode).then(()=>toast.success('Referral code copied!')).catch(()=>toast.info(`Your code: ${user.referralCode.slice(0,10).toUpperCase()}`));
+                }} style={{height:44,padding:'0 18px',borderRadius:10,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontWeight:800,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+                  <Copy size={14}/> Copy
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Tabs */}
           <div className='dash-tabs' style={{ background:'var(--Bg-2)', borderRadius:14, padding:4, marginBottom:20, border:'1px solid var(--Border)' }}>
@@ -345,35 +370,31 @@ export default function DashboardPage() {
                 <div style={{background:'var(--Bg-2)',borderRadius:16,border:'1px solid var(--Border)',padding:40,textAlign:'center',color:'var(--Secondary)'}}>
                   <div style={{fontSize:48,marginBottom:12}}>🎟️</div>
                   <p style={{fontSize:15,marginBottom:8,fontWeight:700}}>Click "Load Winners" to see results</p>
-                  <p style={{fontSize:12}}>All drawn lotteries with their 1st, 2nd and 3rd prize winners</p>
+                  <p style={{fontSize:12}}>All drawn lotteries with 1st, 2nd and 3rd prize winners</p>
                 </div>
               ) : lotteryWinners.map((s:any) => (
                 <div key={s.id} style={{background:'var(--Bg-2)',borderRadius:16,border:'1px solid var(--Border)',overflow:'hidden',marginBottom:16}}>
                   <div style={{padding:'16px 20px',borderBottom:'1px solid var(--Border)',background:'rgba(0,0,0,0.08)',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10}}>
                     <div>
                       <h4 style={{fontWeight:900,fontSize:17}}>{s.name}</h4>
-                      <p style={{fontSize:12,color:'var(--Secondary)',marginTop:3}}>
-                        {s.prefix}0001 – {s.prefix}{String(s.endNumber??9999).padStart(4,'0')} · Drawn: {s.drawnAt?new Date(s.drawnAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—'}
-                      </p>
+                      <p style={{fontSize:12,color:'var(--Secondary)',marginTop:3}}>{s.prefix}0001 – {s.prefix}{String(s.endNumber??9999).padStart(4,'0')} · Drawn: {s.drawnAt?new Date(s.drawnAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}):'—'}</p>
                     </div>
                     <p style={{fontWeight:900,color:'#ffcb52',fontSize:15}}>₹{s.prizePool?.toLocaleString()}</p>
                   </div>
                   <div style={{padding:'16px 20px'}}>
-                    {s.winners && s.winners.length > 0 ? (
+                    {s.winners&&s.winners.length>0 ? (
                       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12}}>
-                        {s.winners.map((w:any, i:number) => (
+                        {s.winners.map((w:any,i:number)=>(
                           <div key={i} style={{padding:'16px 18px',borderRadius:14,background:i===0?'rgba(255,203,82,0.08)':i===1?'rgba(52,152,219,0.08)':'rgba(155,89,182,0.08)',border:`2px solid ${i===0?'rgba(255,203,82,0.3)':i===1?'rgba(52,152,219,0.3)':'rgba(155,89,182,0.3)'}`}}>
                             <p style={{fontSize:10,fontWeight:700,color:i===0?'#ffcb52':i===1?'#3498DB':'#9B59B6',textTransform:'uppercase',marginBottom:8,letterSpacing:1}}>{w.tier} Prize</p>
                             <p style={{fontFamily:'monospace',fontWeight:900,fontSize:22,color:'var(--White)',marginBottom:6}}>{w.ticket}</p>
-                            <p style={{fontWeight:700,fontSize:14,marginBottom:4,color:w.isCurrentUser?'#2ECC71':'var(--White)'}}>
-                              {w.isCurrentUser ? '🎉 You!' : (w.userName ?? 'Winner')}
-                            </p>
+                            <p style={{fontWeight:700,fontSize:14,marginBottom:4,color:w.isCurrentUser?'#2ECC71':'var(--White)'}}>{w.isCurrentUser?'🎉 You!':w.userName??'Winner'}</p>
                             <p style={{fontWeight:900,color:'#2ECC71',fontSize:18}}>₹{w.prize?.toLocaleString()}</p>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p style={{color:'var(--Secondary)',fontSize:13}}>No winner data available for this draw</p>
+                      <p style={{color:'var(--Secondary)',fontSize:13}}>No winner data for this draw</p>
                     )}
                   </div>
                 </div>
