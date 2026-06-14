@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Gamepad2, Ticket, LayoutDashboard, Wallet, Settings,
-  LogOut, User, ChevronDown, X, Menu, Coins
+  LogOut, User, ChevronDown, X, Menu, Coins, Sun, Moon
 } from 'lucide-react';
 import { getToken, setToken, clearToken, getCachedUser, setCachedUser, fetchCurrentUser, type SessionUser } from '@/lib/auth-client';
 
@@ -15,10 +15,26 @@ export default function Header() {
   const [user,    setUser]    = useState<SessionUser | null>(null);
   const [modal,   setModal]   = useState<'login'|'register'|null>(null);
   const [loading, setLoading] = useState(false);
-  const [form,    setForm]    = useState({ name:'', email:'', password:'', confirm:'', referral:'' });
+  const [form,    setForm]    = useState({ name:'', email:'', password:'', confirm:'' });
   const [dropdown,setDropdown]= useState(false);
   const [mobileNav,setMobileNav]=useState(false);
   const [topBar,setTopBar]=useState(true);
+  const [theme, setTheme] = useState<'dark'|'light'>('dark');
+
+  // Load saved theme on mount
+  useEffect(() => {
+    const saved = (typeof window !== 'undefined' && localStorage.getItem('kh-theme')) as 'dark'|'light'|null;
+    const initial = saved ?? 'dark';
+    setTheme(initial);
+    document.documentElement.setAttribute('data-theme', initial);
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('kh-theme', next); } catch {}
+  };
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,20 +57,13 @@ export default function Header() {
     try {
       const res = await fetch(`/api/auth/${modal}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name, email: form.email, password: form.password, referralCode: form.referral?.trim() || undefined }),
+        body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error);
       setToken(d.token); setCachedUser(d.user); setUser(d.user); setModal(null);
-      setForm({ name:'', email:'', password:'', confirm:'', referral:'' });
-      if (modal === 'login') {
-        toast.success(`Welcome back, ${d.user.name}!`);
-      } else {
-        const msg = d.referralApplied
-          ? `Welcome ${d.user.name}! +60 free coins (50 signup + 10 referral)!`
-          : `Welcome ${d.user.name}! +50 free coins!`;
-        toast.success(msg);
-      }
+      setForm({ name:'', email:'', password:'', confirm:'' });
+      toast.success(modal === 'login' ? `Welcome back, ${d.user.name}!` : `Welcome ${d.user.name}! +50 free coins!`);
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
   };
 
@@ -178,6 +187,15 @@ export default function Header() {
 
                 {/* Right section */}
                 <div className="header-right" style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  {/* Light/Dark theme toggle */}
+                  <button
+                    onClick={toggleTheme}
+                    className="kh-theme-toggle"
+                    title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                    aria-label="Toggle theme"
+                  >
+                    {theme === 'dark' ? <Sun size={18}/> : <Moon size={18}/>}
+                  </button>
                   {user ? (
                     <>
                       {/* Balance pill */}
@@ -335,15 +353,6 @@ export default function Header() {
                 {modal==='register' && (
                   <input type="password" placeholder="Confirm password" required value={form.confirm}
                     onChange={e=>setForm({...form,confirm:e.target.value})} style={inp}/>
-                )}
-                {modal==='register' && (
-                  <div>
-                    <input placeholder="Referral code (optional)" value={form.referral}
-                      onChange={e=>setForm({...form,referral:e.target.value})} style={inp}/>
-                    <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:6, paddingLeft:4 }}>
-                      Have a friend's code? Get an extra 10 coins, your friend gets 20 coins!
-                    </p>
-                  </div>
                 )}
                 <button type="submit" disabled={loading} className="tf-btn" style={{
                   width:'100%', justifyContent:'center', height:50, fontSize:15, marginTop:4, opacity:loading?0.6:1

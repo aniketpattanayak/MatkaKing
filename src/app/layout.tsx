@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
+import ThemeToggle from '@/components/ThemeToggle';
 
 export const metadata: Metadata = {
   title: 'Supreme Gaming Engine',
@@ -15,29 +16,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="stylesheet" href="/css/dc1072aeb342c984.css" />
         <link rel="stylesheet" href="/css/4b0b69904f7263ad.css" />
         <link rel="stylesheet" href="/css/responsive.css" />
+        <link rel="stylesheet" href="/css/icomoon-fix.css" />
+        {/* No-flash theme init: set data-theme before paint */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('kh-theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`,
+          }}
+        />
       </head>
       <body className="body popup-loader counter-scroll">
         <div id="wrapper">{children}</div>
-        <Toaster
-          position="top-right"
-          theme="dark"
-          toastOptions={{
-            style: {
-              background: 'linear-gradient(135deg, #1a0d2e 0%, #2d1b4e 100%)',
-              border: '1px solid rgba(254,140,69,0.3)',
-              color: '#fff',
-              fontWeight: 600,
-              borderRadius: '12px',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
-            },
-            classNames: {
-              error:   'kh-toast-error',
-              success: 'kh-toast-success',
-              warning: 'kh-toast-warning',
-              info:    'kh-toast-info',
-            },
-          }}
-        />
+        <ThemeToggle />
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

@@ -129,79 +129,149 @@
   font-size: 16px !important;
 }
 
-
-/* ── KismatHub branded toasts (sonner) ─────────────────────────────────────── */
-.kh-toast-error {
-  background: linear-gradient(135deg, #2a0a0a 0%, #4a0e0e 100%) !important;
-  border: 1px solid rgba(231,76,60,0.4) !important;
-  color: #ff7a6e !important;
-}
-.kh-toast-success {
-  background: linear-gradient(135deg, #0a2a17 0%, #0e4a26 100%) !important;
-  border: 1px solid rgba(46,204,113,0.4) !important;
-  color: #4ade80 !important;
-}
-.kh-toast-warning {
-  background: linear-gradient(135deg, #2a1f0a 0%, #4a380e 100%) !important;
-  border: 1px solid rgba(254,140,69,0.4) !important;
-  color: #ffcb52 !important;
-}
-.kh-toast-info {
-  background: linear-gradient(135deg, #0a1f2a 0%, #0e384a 100%) !important;
-  border: 1px solid rgba(52,152,219,0.4) !important;
-  color: #5eb3f0 !important;
-}
-[data-sonner-toast] {
-  padding: 14px 18px !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-}
-[data-sonner-toast] [data-icon] {
-  display: none !important;   /* hide sonner's default icon (was showing as square too) */
-}
-
-/* ── Replace broken icomoon dropdown caret with pure-CSS triangle ────────── */
-/* Kill the original icomoon ::after that renders as a square */
-.main-menu .navigation li.has-child > a::after,
-.main-menu .navigation li.has-child > a::before,
-#header-main .navigation li.has-child > a::after,
-#header-main .navigation li.has-child > a::before {
-  content: none !important;
-  display: none !important;
-  font-family: inherit !important;
-}
-
-/* Now draw a real triangle caret using border tricks */
-.main-menu .navigation li.has-child > a,
-#header-main .navigation li.has-child > a {
-  position: relative;
-  padding-right: 16px !important;
-}
-.main-menu .navigation li.has-child > a::after,
-#header-main .navigation li.has-child > a::after {
-  content: '' !important;
-  display: inline-block !important;
-  width: 0 !important;
-  height: 0 !important;
-  border-left: 4px solid transparent !important;
-  border-right: 4px solid transparent !important;
-  border-top: 5px solid currentColor !important;
-  margin-left: 6px !important;
-  vertical-align: middle !important;
-  opacity: 0.7 !important;
-  position: static !important;
-  right: auto !important;
-  font-family: inherit !important;
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIGHT MODE — activated by <html data-theme="light">
+   Remaps all theme color variables to light equivalents.
+   ═══════════════════════════════════════════════════════════════════════════ */
+html[data-theme="light"] {
+  --White: #1a1a2e;            /* text that was white becomes dark */
+  --Black: #ffffff;
+  --Bg: #f4f6fb;              /* page background — light grey-blue */
+  --Bg-2: #ffffff;           /* cards — white */
+  --Bg-3: rgba(20,30,60,0.04);
+  --Bg-4: #eef1f8;
+  --Bg-5: #e8ecf6;
+  --Bg-6: #f0f2f9;
+  --Bg-7: #d8c4d8;
+  --Bg-8: #5b9c30;
+  --Bg-9: #bb5636;
+  --Bg-10: #eceefa;
+  --Bg-11: #e9ecfb;
+  --Bg-12: #ede9f6;
+  --Secondary: #5a6b8c;       /* muted blue-grey text */
+  --Sub-color: #ca2826;
+  --Sub-color-2: #954cdf;
+  --Sub-color-3: #f75808;
+  --Sub-color-4: rgba(90,107,140,0.08);
+  --Sub-color-5: #b9bfcf;
+  --Main-color: #fe8c45;      /* brand orange stays */
+  --Text: #1a1a2e;
+  --Text-2: #6b7280;
+  --Text-3: rgba(90,107,140,0.5);
+  --Text-4: #c5c5c7;
+  --Text-5: #6ba539;
+  --Text-6: #4a5a78;
+  --Text-7: #8593aa;
+  --Text-8: #5a6b8c;
+  --Text-9: rgba(26,26,46,0.85);
+  --Border-1: rgba(20,30,60,0.12);
+  --Border-2: rgba(90,107,140,0.18);
+  --Border: rgba(20,30,60,0.12);
+  --backdrop: #e4e8f3;
+  --Border-3: #dfe3ec;
+  --Border-4: rgba(90,107,140,0.15);
+  --Border-5: rgba(210,215,225,1);
+  --Border-6: rgba(20,30,60,0.2);
 }
 
-/* Catch-all: any leftover icomoon font in any element renders text not square */
-*[class*="icon-"]::before,
-*[class*="icon-"]::after {
-  font-family: inherit !important;
+/* Header / body background in light mode */
+html[data-theme="light"] body {
+  background: var(--Bg) !important;
+  color: var(--Text) !important;
 }
 
-/* If any element still uses font-family: icomoon directly, neutralize it */
-[style*="font-family: icomoon"],
-[style*="font-family:icomoon"] {
-  font-family: inherit !important;
+/* Make the fixed header readable on light bg */
+html[data-theme="light"] #header-main {
+  background: rgba(255,255,255,0.9) !important;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--Border);
+}
+html[data-theme="light"] .main-menu .navigation > li > a {
+  color: #1a1a2e !important;
+}
+
+/* Section backgrounds that were dark gradients → soft light */
+html[data-theme="light"] .main-content,
+html[data-theme="light"] #footer {
+  background: var(--Bg) !important;
+}
+html[data-theme="light"] #footer {
+  border-top: 1px solid var(--Border);
+}
+
+/* Inputs in light mode */
+html[data-theme="light"] input,
+html[data-theme="light"] select,
+html[data-theme="light"] textarea {
+  color: #1a1a2e !important;
+}
+html[data-theme="light"] input::placeholder {
+  color: #9aa3b5 !important;
+}
+
+/* The dark hero gradients soften */
+html[data-theme="light"] .tf-top-bar {
+  /* keep the purple top bar — it looks fine on light too */
+}
+
+/* Cards and tables get subtle shadows instead of relying on dark contrast */
+html[data-theme="light"] [style*="var(--Bg-2)"] {
+  box-shadow: 0 1px 3px rgba(20,30,60,0.06);
+}
+
+/* Theme toggle button styling */
+.kh-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--Border);
+  background: var(--Bg-3);
+  color: var(--Main-color);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.kh-theme-toggle:hover {
+  background: var(--Bg-5);
+  transform: scale(1.05);
+}
+
+/* ── Light mode: catch common hardcoded dark inline styles ──────────────────
+   Many components use literal hex colors instead of CSS vars. These rules
+   remap the most common dark literals to light equivalents when in light mode.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* Pure white text on hardcoded elements → dark text in light mode */
+html[data-theme="light"] [style*="color: #fff"],
+html[data-theme="light"] [style*="color:#fff"],
+html[data-theme="light"] [style*="color: #ffffff"],
+html[data-theme="light"] [style*="color: rgb(255, 255, 255)"] {
+  color: #1a1a2e !important;
+}
+
+/* Dark card backgrounds (#131037 = --Bg-2 literal) → white */
+html[data-theme="light"] [style*="#131037"],
+html[data-theme="light"] [style*="#06062c"],
+html[data-theme="light"] [style*="#01011e"],
+html[data-theme="light"] [style*="#1b1742"] {
+  background-color: #ffffff !important;
+}
+
+/* Keep brand-colored text (gold #ffcb52, orange) visible — these are accents,
+   leave them as-is since they read fine on white too. */
+
+/* Drum / number picker dark panels → light grey in light mode */
+html[data-theme="light"] [style*="background: rgba(0,0,0,0.15)"],
+html[data-theme="light"] [style*="background:rgba(0,0,0,0.15)"],
+html[data-theme="light"] [style*="rgba(0, 0, 0, 0.15)"] {
+  background: rgba(20,30,60,0.04) !important;
+}
+
+/* Tables / rows with dark backgrounds */
+html[data-theme="light"] [style*="rgba(147,172,211,0.05)"],
+html[data-theme="light"] [style*="rgba(147,172,211,0.07)"] {
+  background: rgba(20,30,60,0.03) !important;
 }
