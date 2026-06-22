@@ -23,17 +23,12 @@ export async function POST(req: NextRequest) {
     if (!p) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json();
-    const { action, seriesId, name, prefix, ticketPrice, prizePool, firstPrize, secondPrize, thirdPrize, totalTickets, drawAt, status } = body;
+    const { action, seriesId, name, prefix, ticketPrice, prizePool, totalTickets, drawAt, status } = body;
 
     // ── Create series ────────────────────────────────────────────────────────
     if (action === 'create_series') {
-      if (!name || !prefix || !ticketPrice || !totalTickets || !drawAt)
+      if (!name || !prefix || !ticketPrice || !prizePool || !totalTickets || !drawAt)
         return NextResponse.json({ error: 'All fields required' }, { status: 400 });
-      // Compute total prize pool from tiers if provided
-      const fp = Number(firstPrize  || 0);
-      const sp = Number(secondPrize || 0);
-      const tp = Number(thirdPrize  || 0);
-      const totalPrizePool = (fp + sp + tp) || Number(prizePool || 0);
 
       const cleanPrefix = prefix.toUpperCase();
       const total       = Number(totalTickets);
@@ -52,10 +47,7 @@ export async function POST(req: NextRequest) {
           startNumber: startNum,      // ✅ correct field
           endNumber:   endNum,        // ✅ correct field
           ticketPrice: Number(ticketPrice),
-          prizePool:   totalPrizePool,
-          firstPrize:  fp,
-          secondPrize: sp,
-          thirdPrize:  tp,
+          prizePool:   Number(prizePool),
           drawAt:      new Date(drawAt),
           status:      'OPEN',
           isActive:    true,
@@ -93,6 +85,7 @@ export async function POST(req: NextRequest) {
     // ── Delete series ────────────────────────────────────────────────────────
     if (action === 'delete_series') {
       if (!seriesId) return NextResponse.json({ error: 'seriesId required' }, { status: 400 });
+      await prisma.lotteryBet.deleteMany({ where: { seriesId } });
       await prisma.lotteryTicket.deleteMany({ where: { seriesId } });
       await prisma.lotterySeries.delete({ where: { id: seriesId } });
       return NextResponse.json({ ok: true });

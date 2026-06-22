@@ -50,13 +50,16 @@ export default function LotteryPage() {
 
   // Load series from DB (what admin created)
   useEffect(() => {
-    fetch('/api/lottery/series')
+    fetch('/api/lottery/series', { cache: 'no-store' })
       .then(r => r.json())
       .then(d => {
         if (d.series?.length > 0) {
           setAllSeries(d.series);
           setSeries(d.series[0]);
         }
+        // Silently trigger auto-draw for any overdue lotteries
+        // This means the moment any user visits after draw time, it auto-draws
+        fetch('/api/cron/lottery-autodraw', { cache: 'no-store' }).catch(() => {});
       })
       .catch(() => {})
       .finally(() => setLoadingSeries(false));
@@ -65,7 +68,7 @@ export default function LotteryPage() {
   // Search tickets
   const searchTickets = useCallback((q: string) => {
     if (!series) return;
-    authFetch(`/api/lottery/search?seriesId=${series.id}&q=${q}&limit=80`)
+    authFetch(`/api/lottery/search?seriesId=${series.id}&q=${q}&limit=${series.endNumber ?? 50000}`)
       .then(r => r.json())
       .then(d => {
         if (d.tickets?.length > 0) setTickets(d.tickets);
@@ -91,11 +94,13 @@ export default function LotteryPage() {
   const applyFilter = () => {
     if (!series) return;
     const q = lucky ? lucky : query;
-    authFetch(`/api/lottery/search?seriesId=${series.id}&q=${q}&limit=200`)
+    authFetch(`/api/lottery/search?seriesId=${series.id}&q=${q}&limit=${series.endNumber ?? 50000}`)
       .then(r => r.json())
       .then(d => {
-        if (d.tickets) { setTickets(d.tickets); toast.info(`${d.tickets.filter((t:any) => !t.isSold).length} tickets found`); }
-        else setTickets([]);
+        if (d.tickets) {
+          setTickets(d.tickets);
+          toast.info(`${d.tickets.filter((t:any) => !t.isSold).length} available tickets found`);
+        } else setTickets([]);
       })
       .catch(() => setTickets([]));
   };
