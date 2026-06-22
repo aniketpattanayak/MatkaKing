@@ -1,3 +1,5 @@
+export const maxDuration = 60; // 60s timeout for ticket generation
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, verifyToken, isAdminToken, json } from '@/lib/api-helper';
 
@@ -54,16 +56,17 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Generate tickets in batches of 500
-      // LotteryTicket has: seriesId, ticketCode, isSold, isWinner — NO price field
-      const BATCH = 500;
+      // Generate ALL tickets in one batch for speed
+      // Vercel hobby has 10s timeout — build array in memory then single DB call
+      const BATCH = 1000;
       let created = 0;
+      const padLen = String(endNum).length; // dynamic padding based on total tickets
       for (let i = startNum; i <= endNum; i += BATCH) {
         const batch = [];
         for (let j = i; j <= Math.min(i + BATCH - 1, endNum); j++) {
           batch.push({
             seriesId:   series.id,
-            ticketCode: `${cleanPrefix}${String(j).padStart(4, '0')}`,
+            ticketCode: `${cleanPrefix}${String(j).padStart(Math.max(4, padLen), '0')}`,
             isSold:     false,
             isWinner:   false,
           });
