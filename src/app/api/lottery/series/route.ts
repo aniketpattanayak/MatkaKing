@@ -1,6 +1,8 @@
-
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/api-helper';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
@@ -14,7 +16,9 @@ export async function GET() {
         _count: { select: { tickets: true } },
       },
     });
-    return NextResponse.json({ series });
+    const res = NextResponse.json({ series });
+    res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    return res;
   } catch (e: any) {
     return NextResponse.json({ series: [], error: e.message });
   }
