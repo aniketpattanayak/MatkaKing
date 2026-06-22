@@ -69,14 +69,14 @@ export default function LotteryPage() {
       .then(r => r.json())
       .then(d => {
         if (d.tickets?.length > 0) setTickets(d.tickets);
-        else setTickets(mockTickets(series.prefix, q));
+        else setTickets([]);
       })
-      .catch(() => setTickets(mockTickets(series.prefix, q)));
+      .catch(() => setTickets([]));
   }, [series]);
 
   useEffect(() => {
     if (!series) return;
-    setTickets(mockTickets(series.prefix, ''));
+    setTickets([]);
     clearTimeout(debounce.current);
     debounce.current = setTimeout(() => searchTickets(query), 300);
   }, [query, series, searchTickets]);
@@ -85,14 +85,19 @@ export default function LotteryPage() {
     if (!series) return;
     setSelected(new Set());
     setQuery('');
-    setTickets(mockTickets(series.prefix, ''));
+    setTickets([]);
   }, [series]);
 
   const applyFilter = () => {
     if (!series) return;
-    const filtered = mockTickets(series.prefix, query).filter(t => !lucky || t.ticketCode.includes(lucky));
-    setTickets(filtered);
-    toast.info(`${filtered.filter(t => !t.isSold).length} tickets found`);
+    const q = lucky ? lucky : query;
+    authFetch(`/api/lottery/search?seriesId=${series.id}&q=${q}&limit=200`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.tickets) { setTickets(d.tickets); toast.info(`${d.tickets.filter((t:any) => !t.isSold).length} tickets found`); }
+        else setTickets([]);
+      })
+      .catch(() => setTickets([]));
   };
 
   const quickBuy = async (qty: number) => {
@@ -279,38 +284,22 @@ export default function LotteryPage() {
 
       {/* Cart bar */}
       {selected.size > 0 && series && (
-        <div style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
-          background: 'var(--Bg-2)',
-          borderTop: '2px solid rgba(254,140,69,0.5)',
-          padding: '14px 24px',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 -4px 24px rgba(0,0,0,0.15)',
-        }}>
+        <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, background: 'rgba(6,6,35,0.97)', borderTop: '1px solid rgba(254,140,69,0.4)', padding: '16px 24px', backdropFilter: 'blur(16px)' }}>
           <div className="tf-container">
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-                <div>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--Secondary)' }}>{selected.size} tickets selected</span>
-                  <span style={{ marginLeft: 12, color: '#ffcb52', fontWeight: 900, fontSize: 24 }}>₹{cost.toLocaleString()}</span>
-                </div>
+              <div>
+                <span style={{ fontWeight: 900, fontSize: 18 }}>{selected.size} tickets selected</span>
+                <span style={{ marginLeft: 16, color: '#ffcb52', fontWeight: 800, fontSize: 22 }}>₹{cost.toLocaleString()}</span>
                 {loggedIn && balance < cost && (
-                  <Link href="/dashboard/wallet" style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '7px 14px', borderRadius: 999,
-                    background: 'rgba(239,68,68,0.12)',
-                    border: '1px solid rgba(239,68,68,0.4)',
-                    color: '#ef4444', fontWeight: 700, fontSize: 13,
-                    textDecoration: 'none',
-                  }}>
-                    ⚠️ Insufficient coins — Add funds →
-                  </Link>
+                  <span style={{ marginLeft: 12, color: '#ef4444', fontSize: 13 }}>
+                    ⚠️ Insufficient — <Link href="/dashboard/wallet" style={{ color: '#ef4444', textDecoration: 'underline' }}>Add funds</Link>
+                  </span>
                 )}
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => setSelected(new Set())} style={{ padding: '10px 20px', borderRadius: 999, border: '1px solid var(--Border)', background: 'transparent', color: 'var(--Secondary)', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>Clear</button>
-                <button onClick={buySelected} disabled={buying || !loggedIn || balance < cost} className="tf-btn" style={{ height: 46, fontSize: 15, padding: '0 32px', opacity: (buying || balance < cost) ? 0.5 : 1, cursor: balance < cost ? 'not-allowed' : 'pointer' }}>
-                  {!loggedIn ? '🔒 Login to Buy' : buying ? 'Processing...' : `🎟 Buy Now — ₹${cost.toLocaleString()}`}
+                <button onClick={() => setSelected(new Set())} style={{ padding: '10px 20px', borderRadius: 999, border: '1px solid var(--Border)', background: 'transparent', color: 'var(--Secondary)', cursor: 'pointer', fontSize: 14 }}>Clear</button>
+                <button onClick={buySelected} disabled={buying || !loggedIn} className="tf-btn" style={{ height: 46, fontSize: 15, padding: '0 32px', opacity: buying ? 0.6 : 1 }}>
+                  {!loggedIn ? '🔒 Login to Buy' : buying ? 'Processing...' : `🎟️ Buy Now — ₹${cost.toLocaleString()}`}
                 </button>
               </div>
             </div>
