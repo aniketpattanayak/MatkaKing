@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/api-helper';
 
@@ -5,10 +6,10 @@ export async function GET() {
   try {
     const series = await prisma.lotterySeries.findMany({
       where: {
-        status: { in: ['OPEN', 'CLOSED'] }, // show both open and closed (not yet drawn)
+        status: { in: ['OPEN', 'CLOSED'] },
         isActive: true,
       },
-      orderBy: { drawAt: 'asc' }, // nearest draw date first
+      orderBy: { drawAt: 'asc' },
       include: {
         _count: { select: { tickets: true } },
       },
