@@ -25,6 +25,7 @@ const TABS: { key: Tab; icon: string; label: string }[] = [
   { key: 'notifications', icon: '', label: 'Notifications' },
   { key: 'results',      icon: '', label: 'Results'      },
   { key: 'transactions', icon: '', label: 'Transactions' },
+  { key: 'festivals',    icon: '', label: 'Festivals'    },
 ];
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
@@ -553,9 +554,7 @@ export default function AdminPage() {
               <h1 style={{ fontWeight:900, fontSize:30, marginBottom:2 }}>Admin Panel</h1>
               <p style={{ color:'var(--Secondary)', fontSize:13 }}>Supreme Gaming Engine </p>
             </div>
-            <button onClick={load} style={{ padding:'8px 18px', borderRadius:999, border:'1px solid var(--Border)', background:'var(--Bg-2)', color:'var(--Secondary)', fontSize:13, cursor:'pointer', fontWeight:600 }}>
-              Refresh
-            </button>
+            <button onClick={load} style={{ padding:'8px 20px', borderRadius:999, border:'none', background:'linear-gradient(270deg,#fe8c45,#ca2826)', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer' }}>↻ Refresh</button>
           </div>
 
           {/* Tab Nav */}
@@ -842,7 +841,7 @@ export default function AdminPage() {
 
                         {/* Force Dummy — always available */}
                         <button onClick={()=>executeDraw('force_dummy')} disabled={drawLoading} style={{width:'100%',height:52,borderRadius:13,border:`2px solid rgba(148,163,184,0.3)`,cursor:'pointer',fontWeight:900,fontSize:15,background:'rgba(148,163,184,0.08)',color:'var(--Secondary)',opacity:drawLoading?0.6:1}}>
-                          {drawLoading?' Processing...':'Force Dummy — Assign Prize to House Account'}
+                          {drawLoading?' Processing...':'🏠 Force House Win — House Gets Prize (Dummy Draw)'}
                         </button>
 
                         {/* Auto info when not safe */}
@@ -922,6 +921,7 @@ export default function AdminPage() {
                         <button onClick={()=>toggleMarket(m.id)} style={{ padding:'5px 12px', borderRadius:8, border:'1px solid var(--Border)', background:'var(--Bg-3)', color:'var(--Secondary)', fontSize:12, cursor:'pointer', fontWeight:600 }}>
                           {m.isOpen?'Close':'Open'}
                         </button>
+                        <button onClick={()=>setEditRates({...m})} style={{ padding:'5px 12px', borderRadius:8, border:'1px solid rgba(255,203,82,0.3)', background:'rgba(255,203,82,0.1)', color:'#ffcb52', fontSize:12, cursor:'pointer', fontWeight:600 }}>⚙️ Rates</button>
                         <button onClick={()=>deleteMarket(m.id,m.name)} style={{ padding:'5px 10px', borderRadius:8, border:'1px solid rgba(239,68,68,0.3)', background:'rgba(239,68,68,0.1)', color:'#ef4444', fontSize:12, cursor:'pointer' }}>Del</button>
                       </div>
                     </div>
@@ -1419,9 +1419,7 @@ export default function AdminPage() {
                     <h3 style={{ fontWeight:900, fontSize:19 }}>Pending Deposits</h3>
                     <p style={{ color:'var(--Secondary)', fontSize:12, marginTop:4 }}>Review UTR numbers and approve/reject manually</p>
                   </div>
-                  <button onClick={()=>authFetch('/api/payment/verify').then(r=>r.json()).then(d=>setPendingTxns(d.pending??[]))} style={{ padding:'8px 16px', borderRadius:999, border:'1px solid var(--Border)', background:'var(--Bg-3)', color:'var(--Secondary)', fontSize:13, cursor:'pointer' }}>
-                    Refresh
-                  </button>
+                  <button onClick={()=>authFetch('/api/payment/verify').then(r=>r.json()).then(d=>setPendingTxns(d.pending??[]))} style={{ padding:'8px 20px', borderRadius:999, border:'none', background:'linear-gradient(270deg,#fe8c45,#ca2826)', color:'#fff', fontWeight:700, fontSize:14, cursor:'pointer' }}>↻ Refresh</button>
                 </div>
 
                 {pendingTxns.length===0 ? (
@@ -1530,6 +1528,52 @@ export default function AdminPage() {
                     ))}
                   </div>
               }
+            </div>
+          )}
+
+
+          {/* Edit Rates Modal */}
+          {editRates && (
+            <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,0.85)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={()=>setEditRates(null)}>
+              <div style={{background:'var(--Bg-2)',borderRadius:20,width:'100%',maxWidth:520,border:'1px solid var(--Border)',overflow:'auto',maxHeight:'90vh'}} onClick={e=>e.stopPropagation()}>
+                <div style={{padding:'20px 24px',borderBottom:'1px solid var(--Border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <div><h3 style={{fontWeight:900,fontSize:19}}>⚙️ Edit Payout Rates</h3><p style={{color:'var(--Secondary)',fontSize:13}}>{editRates.name}</p></div>
+                  <button onClick={()=>setEditRates(null)} style={{background:'none',border:'none',color:'var(--Secondary)',fontSize:24,cursor:'pointer'}}>×</button>
+                </div>
+                <div style={{padding:24,display:'flex',flexDirection:'column',gap:14}}>
+                  {[
+                    {key:'payoutSingle',label:'Single Ank',default:90,desc:'User bets on a single digit (0-9)'},
+                    {key:'payoutJodi',  label:'Jodi',      default:900, desc:'User bets on 2-digit jodi (00-99)'},
+                    {key:'payoutSP',    label:'Single Patti (SP)', default:140, desc:'3-digit sum patti'},
+                    {key:'payoutDP',    label:'Double Patti (DP)', default:280, desc:'3-digit with 2 same digits'},
+                    {key:'payoutTP',    label:'Triple Patti (TP)', default:450, desc:'3 same digits (111,222...)'},
+                    {key:'payoutHalfSangam', label:'Half Sangam', default:1500, desc:'Open patti + close ank'},
+                    {key:'payoutFullSangam', label:'Full Sangam', default:11000, desc:'Open patti + close patti'},
+                  ].map(({key,label,default:def,desc})=>(
+                    <div key={key}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                        <div>
+                          <label style={{fontSize:13,fontWeight:700,color:'var(--White)'}}>{label}</label>
+                          <p style={{fontSize:11,color:'var(--Secondary)'}}>{desc}</p>
+                        </div>
+                        <span style={{fontSize:11,color:'#ffcb52',fontWeight:700,background:'rgba(255,203,82,0.1)',padding:'2px 8px',borderRadius:6}}>Default: ×{def}</span>
+                      </div>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <input type="number" min={1} value={editRates[key]??def}
+                          onChange={e=>setEditRates((p:any)=>({...p,[key]:e.target.value}))}
+                          style={{flex:1,padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:16,fontFamily:'monospace',fontWeight:700,outline:'none'}}/>
+                        <span style={{fontSize:14,color:'var(--Secondary)',minWidth:30}}>×{editRates[key]??def}</span>
+                      </div>
+                    </div>
+                  ))}
+                  <div style={{display:'flex',gap:10,marginTop:8}}>
+                    <button onClick={()=>setEditRates(null)} style={{flex:1,height:46,borderRadius:12,border:'1px solid var(--Border)',background:'transparent',color:'var(--Secondary)',fontWeight:700,cursor:'pointer'}}>Cancel</button>
+                    <button onClick={saveRates} disabled={uLoading} style={{flex:2,height:46,borderRadius:12,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontWeight:900,fontSize:15,cursor:'pointer',opacity:uLoading?0.6:1}}>
+                      {uLoading?'Saving...':'Save Payout Rates'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
