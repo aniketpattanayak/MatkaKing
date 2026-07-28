@@ -1,4 +1,5 @@
 'use client';
+import WithdrawSection from './WithdrawSection';
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -32,6 +33,8 @@ export default function WalletPage() {
     const u = getCachedUser();
     if (u) { setUser(u); setBalance(u.balance); }
     refreshBalance().then(u => { if (u) { setUser(u); setBalance(u.balance); } });
+    // Fetch withdrawal settings
+    fetch('/api/admin/settings?key=minWithdraw').then(r=>r.json()).then(d=>{ if(d.value) setMinWithdraw(Number(d.value)); }).catch(()=>{});
     loadHistory();
   }, []);
 
@@ -161,7 +164,7 @@ export default function WalletPage() {
 
           {/* Tabs */}
           <div style={{ display:'flex', gap:4, background:'var(--Bg-2)', borderRadius:14, padding:4, marginBottom:24, border:'1px solid var(--Border)' }}>
-            {([['deposit','Add Money'],['history','History']] as const).map(([k,l])=>(
+            {([['deposit','Add Money'],['withdraw','Withdraw'],['history','History']] as const).map(([k,l])=>(
               <button key={k} onClick={()=>setTab(k)} style={{ flex:1, padding:'12px 0', borderRadius:11, border:'none', cursor:'pointer', fontWeight:700, fontSize:14, background:tab===k?'linear-gradient(270deg,#fe8c45,#ca2826)':'transparent', color:tab===k?'#fff':'var(--Secondary)' }}>
                 {l}
               </button>
@@ -375,6 +378,12 @@ export default function WalletPage() {
           )}
 
           {/* Transaction History */}
+          {tab==='withdraw' && (
+            <WithdrawSection balance={balance} minWithdraw={minWithdraw} onSuccess={()=>{
+              refreshBalance().then(u=>{ if(u){ setUser(u); setBalance(u.balance); } });
+            }}/>
+          )}
+
           {tab==='history' && (
             <div style={{ background:'var(--Bg-2)', borderRadius:20, border:'1px solid var(--Border)', overflow:'hidden' }}>
               <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--Border)', background:'rgba(0,0,0,0.15)' }}>

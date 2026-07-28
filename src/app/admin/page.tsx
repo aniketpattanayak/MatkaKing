@@ -82,6 +82,8 @@ export default function AdminPage() {
   const [showFLottery, setShowFLottery] = useState<string|null>(null); // festivalId for lottery creation
   const [nLoading,     setNLoading]     = useState(false);
   const [festLoading,  setFestLoading]  = useState(false);
+  const [wdSettings,   setWdSettings]   = useState({ minWithdraw:'100', maxWithdraw:'50000', withdrawPerDay:'1' });
+  const [wdSaving,     setWdSaving]     = useState(false);
   const [results,        setResults]        = useState<any>({ lottery:[], matka:[], spin:[], spinStats:{} });
   const [resultsTab,     setResultsTab]     = useState<'lottery'|'matka'|'spin'>('lottery');
   const [resultsLoading, setResultsLoading] = useState(false);
@@ -631,6 +633,45 @@ export default function AdminPage() {
           )}
 
           {/* ── LOTTERY ── */}
+
+          {/* Withdrawal Settings */}
+          {tab==='overview' && (
+            <div style={{marginTop:24}}>
+              <div style={{background:'var(--Bg-2)',borderRadius:16,border:'1px solid var(--Border)',padding:24,marginTop:16}}>
+                <h4 style={{fontWeight:900,fontSize:16,marginBottom:4}}>💸 Withdrawal Settings</h4>
+                <p style={{color:'var(--Secondary)',fontSize:12,marginBottom:20}}>Control minimum/maximum withdrawal and daily limit</p>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:16}}>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Min Withdrawal (₹)</label>
+                    <input type="number" min={1} value={wdSettings.minWithdraw} onChange={e=>setWdSettings(p=>({...p,minWithdraw:e.target.value}))} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:15,fontWeight:700,outline:'none'}}/>
+                  </div>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Max Withdrawal (₹)</label>
+                    <input type="number" min={1} value={wdSettings.maxWithdraw} onChange={e=>setWdSettings(p=>({...p,maxWithdraw:e.target.value}))} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:15,fontWeight:700,outline:'none'}}/>
+                  </div>
+                  <div>
+                    <label style={{fontSize:11,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Max Per Day</label>
+                    <input type="number" min={1} value={wdSettings.withdrawPerDay} onChange={e=>setWdSettings(p=>({...p,withdrawPerDay:e.target.value}))} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:15,fontWeight:700,outline:'none'}}/>
+                  </div>
+                </div>
+                <button onClick={async()=>{
+                  setWdSaving(true);
+                  try {
+                    await Promise.all([
+                      authFetch('/api/admin/settings',{method:'POST',body:JSON.stringify({key:'minWithdraw',value:wdSettings.minWithdraw})}),
+                      authFetch('/api/admin/settings',{method:'POST',body:JSON.stringify({key:'maxWithdraw',value:wdSettings.maxWithdraw})}),
+                      authFetch('/api/admin/settings',{method:'POST',body:JSON.stringify({key:'withdrawPerDay',value:wdSettings.withdrawPerDay})}),
+                    ]);
+                    toast.success('Withdrawal settings saved!');
+                  } catch { toast.error('Failed to save'); }
+                  setWdSaving(false);
+                }} disabled={wdSaving} style={{padding:'10px 24px',borderRadius:10,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontWeight:700,cursor:'pointer',opacity:wdSaving?0.6:1}}>
+                  {wdSaving?'Saving...':'💾 Save Settings'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {tab==='lottery' && (
             <div style={{ display:'grid', gridTemplateColumns:'1fr 380px', gap:20, alignItems:'start' }}>
               {/* Existing series */}
