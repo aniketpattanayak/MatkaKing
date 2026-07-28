@@ -81,7 +81,6 @@ export default function AdminPage() {
   const [flForm,       setFlForm]       = useState({ name:'', prefix:'', ticketPrice:'10', prizePool:'100000', totalTickets:'1000', drawAt:'' });
   const [showFLottery, setShowFLottery] = useState<string|null>(null); // festivalId for lottery creation
   const [nLoading,     setNLoading]     = useState(false);
-  const [festivals,    setFestivals]    = useState<any[]>([]);
   const [festLoading,  setFestLoading]  = useState(false);
   const [results,        setResults]        = useState<any>({ lottery:[], matka:[], spin:[], spinStats:{} });
   const [resultsTab,     setResultsTab]     = useState<'lottery'|'matka'|'spin'>('lottery');
