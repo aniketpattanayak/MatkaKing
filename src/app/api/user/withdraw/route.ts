@@ -8,8 +8,8 @@ export async function POST(req: NextRequest) {
   const { amount, method, upiId, phoneNumber, bankAccount, bankIfsc, bankName } = await req.json();
 
   if (!amount || amount < 100)
-    return NextResponse.json({ error: 'Minimum withdrawal is 100 coins' }, { status: 400 });
-  if (!method || !['UPI', 'PHONEPE', 'BANK'].includes(method))
+    return NextResponse.json({ error: 'Minimum withdrawal is ₹100' }, { status: 400 });
+  if (!method || !['UPI','PHONEPE','BANK'].includes(method))
     return NextResponse.json({ error: 'Invalid method' }, { status: 400 });
   if (method === 'UPI'     && !upiId)       return NextResponse.json({ error: 'UPI ID required' }, { status: 400 });
   if (method === 'PHONEPE' && !phoneNumber) return NextResponse.json({ error: 'PhonePe number required' }, { status: 400 });
@@ -20,7 +20,12 @@ export async function POST(req: NextRequest) {
     if (!wallet || wallet.balance < amount)
       return NextResponse.json({ error: `Insufficient balance. Available: ${wallet?.balance ?? 0} coins` }, { status: 400 });
 
-    // Deduct balance + create pending withdrawal transaction
+    // Build payout details string for orderId
+    const details = method === 'UPI'     ? `UPI:${upiId}`
+                  : method === 'PHONEPE' ? `PHONEPE:${phoneNumber}`
+                  : `BANK:${bankAccount}:${bankIfsc}`;
+
+    // Deduct balance + create withdrawal transaction in one atomic operation
     await prisma.$transaction([
       prisma.wallet.update({
         where: { userId: p.sub },
@@ -28,36 +33,22 @@ export async function POST(req: NextRequest) {
       }),
       prisma.transaction.create({
         data: {
-          userId: p.sub,
-          type: 'WITHDRAWAL',
-          status: 'PENDING',
-          coins: amount,
-          amount: 0,
-          orderId: `WD-${method}-${Date.now()}`,
-          // Store payout details in orderId for admin reference
+          userId:  p.sub,
+          type:    'WITHDRAWAL',
+          status:  'PENDING',
+          coins:   amount,
+          amount:  0,
+          orderId: `WD-${method}-${details}-${Date.now()}`,
         },
       }),
     ]);
 
-    // Store withdrawal details for admin to process
-    await prisma.withdrawalRequest.create({
-      data: {
-        userId:      p.sub,
-        amount,
-        method,
-        upiId:       upiId ?? null,
-        phoneNumber: phoneNumber ?? null,
-        bankAccount: bankAccount ?? null,
-        bankIfsc:    bankIfsc ?? null,
-        bankName:    bankName ?? null,
-        status:      'PENDING',
-      },
-    }).catch(() => {
-      // If WithdrawalRequest model doesn't exist yet, skip — transaction already created
+    return NextResponse.json({
+      ok: true,
+      message: `Withdrawal of ₹${amount} submitted successfully! Admin will process within 24 hours.`,
     });
-
-    return NextResponse.json({ ok: true, message: `Withdrawal of ₹${amount} submitted. Admin will process within 24 hours.` });
   } catch (e: any) {
+    console.error('withdraw error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
