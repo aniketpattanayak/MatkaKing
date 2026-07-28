@@ -17,7 +17,8 @@ export default function WalletPage() {
   const [user,         setUser]         = useState<any>(null);
   const [amount,       setAmount]       = useState(500);
   const [transactions, setTransactions] = useState<any[]>([]);
-  const [tab,          setTab]          = useState<'deposit'|'history'>('deposit');
+  const [tab,          setTab]          = useState<'deposit'|'history'|'withdraw'>('deposit');
+  const [minWithdraw,  setMinWithdraw]  = useState(100);
   const [loading,      setLoading]      = useState(false);
   const [payment,      setPayment]      = useState<any>(null);
   const [utr,          setUtr]          = useState('');
