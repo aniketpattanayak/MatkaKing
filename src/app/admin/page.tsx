@@ -239,7 +239,12 @@ export default function AdminPage() {
       const d = await r.json();
       if (r.ok) {
         setDrawResult(d);
-        toast.success(d.type === 'REAL' ? ` Winner: ${d.winner?.name} with ticket ${d.winnerTicket}!` : ` Dummy draw completed. Ticket: ${d.winnerTicket}`);
+        if (d.type === 'REAL') {
+          const ws = d.winners ?? [];
+          toast.success(`🏆 Draw complete! Winners: ${ws.map((w:any)=>`${w.tier}: ${w.ticketCode} (${w.winnerName})`).join(' · ')}`);
+        } else {
+          toast.success(`🏠 Dummy draw complete! House wins all prizes.`);
+        }
         load(); // refresh series list
       } else { toast.error(d.error); }
     } catch { toast.error('Draw failed'); }
@@ -793,16 +798,23 @@ export default function AdminPage() {
                       <div style={{background:'var(--Bg-3)',borderRadius:14,padding:'16px 20px',marginBottom:16,textAlign:'left'}}>
                         <div style={{display:'flex',justifyContent:'space-between',marginBottom:8,fontSize:14}}>
                           <span style={{color:'var(--Secondary)'}}>Winning Ticket</span>
-                          <span style={{fontFamily:'monospace',fontWeight:900,fontSize:18,color:'#ffcb52'}}>{drawResult.winnerTicket}</span>
+                          {(drawResult.winners??[]).map((w:any,i:number)=>(
+                            <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 14px',background:'var(--Bg-3)',borderRadius:10,marginBottom:6}}>
+                              <span style={{fontSize:11,fontWeight:700,color:i===0?'#ffcb52':i===1?'#3498DB':'#9B59B6',textTransform:'uppercase'}}>{w.tier} Prize</span>
+                              <span style={{fontFamily:'monospace',fontWeight:900,fontSize:16,color:'#ffcb52'}}>{w.ticketCode}</span>
+                              <span style={{fontWeight:700,fontSize:13}}>{w.winnerName}</span>
+                              <span style={{fontWeight:900,color:'#2ECC71'}}>₹{w.prize?.toLocaleString()}</span>
+                            </div>
+                          ))}
                         </div>
-                        {drawResult.type==='REAL' && <>
+                        {drawResult.type==='REAL' && drawResult.winners?.length>0 && <>
                           <div style={{display:'flex',justifyContent:'space-between',marginBottom:8,fontSize:14}}>
                             <span style={{color:'var(--Secondary)'}}>Winner Name</span>
-                            <span style={{fontWeight:700}}>{drawResult.winner?.name}</span>
+                            <span style={{fontWeight:700}}>{drawResult.winners?.[0]?.winnerName}</span>
                           </div>
                           <div style={{display:'flex',justifyContent:'space-between',marginBottom:8,fontSize:14}}>
                             <span style={{color:'var(--Secondary)'}}>Winner Email</span>
-                            <span style={{fontWeight:600,fontSize:13}}>{drawResult.winner?.email}</span>
+                            <span style={{fontWeight:600,fontSize:13}}>{drawResult.winners?.[0]?.ticketCode}</span>
                           </div>
                           <div style={{display:'flex',justifyContent:'space-between',marginBottom:8,fontSize:14}}>
                             <span style={{color:'var(--Secondary)'}}>Prize Awarded</span>
@@ -813,7 +825,7 @@ export default function AdminPage() {
                             <span style={{fontWeight:900,color:'#ffcb52'}}>₹{drawResult.adminProfit?.toLocaleString()} Coins </span>
                           </div>
                         </>}
-                        {drawResult.type==='DUMMY' && <>
+                        {drawResult.type==='DUMMY' && drawResult.winners?.length>0 && <>
                           <div style={{display:'flex',justifyContent:'space-between',marginBottom:8,fontSize:14}}>
                             <span style={{color:'var(--Secondary)'}}>Reason</span>
                             <span style={{fontWeight:600,fontSize:12,maxWidth:200,textAlign:'right'}}>{drawResult.reason}</span>

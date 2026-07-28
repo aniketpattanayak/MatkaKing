@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/lottery-autodraw",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/matka-autoopen",
+      "schedule": "0 8 * * *"
     }
   ]
 }
