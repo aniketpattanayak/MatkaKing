@@ -162,7 +162,7 @@ export default function DashboardPage() {
                 </div>
                 {transactions.length === 0 ? (
                   <div style={{ padding:'40px', textAlign:'center', color:'var(--Secondary)', fontSize:13 }}>No transactions yet</div>
-                ) : transactions.slice(0,8).map((t,i) => (
+                ) : transactions.slice(0,3).map((t,i) => (
                   <div key={i} style={{ padding:'12px 18px', borderBottom:'1px solid rgba(255,255,255,0.03)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                     <div>
                       <p style={{ fontWeight:600, fontSize:13 }}>{t.type.replace(/_/g,' ')}</p>

@@ -1,42 +1,42 @@
-// /api/cron/matka-autoopen
-// Runs every 30 min. Opens matka markets when their openTime has arrived.
-
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/api-helper';
 
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get('authorization');
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`)
-    return NextResponse.json({ error:'Unauthorized' },{ status:401 });
+  try {
+    const now = new Date();
+    const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const cur = ist.getHours() * 60 + ist.getMinutes();
+    const hm  = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
 
-  // Current IST time as HH:MM string
-  const now = new Date();
-  const istNow = new Date(now.getTime() + 5.5*60*60*1000);
-  const hhmm = istNow.toISOString().slice(11,16); // "HH:MM"
+    const markets = await prisma.matkaMarket.findMany({ where: { isActive: true } });
+    const results = [];
 
-  const markets = await prisma.matkaMarket.findMany({
-    where: { isActive:true, isOpen:false, isResultDeclared:false },
-  });
+    for (const m of markets) {
+      const open  = hm(m.openTime);
+      const close = hm(m.closeTime);
+      const isInWindow = cur >= open && cur < close;
 
-  const opened:string[] = [];
-  const closed:string[] = [];
+      // Find today's result
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      const todayResult = await prisma.matkaResult.findFirst({
+        where: { marketId: m.id, createdAt: { gte: today } },
+        orderBy: { createdAt: 'desc' },
+      });
 
-  for (const m of markets) {
-    const todayIST = istNow.toISOString().slice(0,10);
-    if ((m as any).pausedDates?.includes(todayIST)) continue;
-
-    // Open the market at its openTime
-    if (m.openTime && hhmm >= m.openTime && !m.isOpen) {
-      await prisma.matkaMarket.update({ where:{id:m.id}, data:{isOpen:true} });
-      opened.push(m.name);
+      if (isInWindow && !todayResult) {
+        // Create open result record for today
+        await prisma.matkaResult.create({
+          data: { marketId: m.id, openPatti: null, closePatti: null, jodi: null },
+        }).catch(() => {}); // skip if already exists
+        results.push({ market: m.name, action: 'OPENED' });
+      } else if (!isInWindow && cur >= close && todayResult && !todayResult.declaredAt) {
+        results.push({ market: m.name, action: 'AWAITING_DECLARE' });
+      }
     }
 
-    // Close betting at closeTime (don't declare result — admin does that)
-    if (m.closeTime && hhmm >= m.closeTime && m.isOpen) {
-      await prisma.matkaMarket.update({ where:{id:m.id}, data:{isOpen:false} });
-      closed.push(m.name);
-    }
+    return NextResponse.json({ ok: true, time: ist.toTimeString(), results });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
-
-  return NextResponse.json({ ok:true, opened, closed, checkedAt: hhmm });
 }

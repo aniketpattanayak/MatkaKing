@@ -12,7 +12,7 @@ import {
   TrendingUp, Activity, Settings, Eye, Bell, Calendar, Star, Gift, Send, Pin, Trophy, ArrowDownUp
 } from 'lucide-react';
 
-type Tab = 'overview'|'lottery'|'matka'|'spin'|'upi'|'users'|'payments'|'notifications'|'results'|'transactions';
+type Tab = 'overview'|'lottery'|'matka'|'spin'|'upi'|'users'|'payments'|'notifications'|'results'|'transactions'|'festivals';
 
 const TABS: { key: Tab; icon: string; label: string }[] = [
   { key: 'overview', icon: '', label: 'Overview'   },
@@ -80,6 +80,8 @@ export default function AdminPage() {
   const [flForm,       setFlForm]       = useState({ name:'', prefix:'', ticketPrice:'10', prizePool:'100000', totalTickets:'1000', drawAt:'' });
   const [showFLottery, setShowFLottery] = useState<string|null>(null); // festivalId for lottery creation
   const [nLoading,     setNLoading]     = useState(false);
+  const [festivals,    setFestivals]    = useState<any[]>([]);
+  const [festLoading,  setFestLoading]  = useState(false);
   const [results,        setResults]        = useState<any>({ lottery:[], matka:[], spin:[], spinStats:{} });
   const [resultsTab,     setResultsTab]     = useState<'lottery'|'matka'|'spin'>('lottery');
   const [resultsLoading, setResultsLoading] = useState(false);
@@ -911,7 +913,7 @@ export default function AdminPage() {
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
                       <div>
                         <h4 style={{ fontWeight:700, fontSize:16 }}>{m.name}</h4>
-                        <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:2 }}>● {m.openTime} → ● {m.closeTime} →  {m.resultTime}</p>
+                        <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:2 }}>🟢 Open {m.openTime}  🔴 Close {m.closeTime}  🏁 Result {m.resultTime}</p>
                       </div>
                       <div style={{ display:'flex', gap:8, alignItems:'center' }}>
                         <span style={{ fontSize:11, fontWeight:700, padding:'2px 10px', borderRadius:999,
@@ -938,7 +940,7 @@ export default function AdminPage() {
                 <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
                   <div>
                     <label style={label}>Select Market</label>
-                    <select value={mResult.marketId} onChange={e=>setMResult({...mResult,marketId:e.target.value})} style={{...inp,appearance:'none'}}>
+                    <select value={mResult.marketId} onChange={e=>setMResult({...mResult,marketId:e.target.value})} style={{...inp,appearance:'none',color:'var(--White)',background:'var(--Bg-3)'}}>
                       <option value="">— Select market —</option>
                       {data.markets.map((m:any)=><option key={m.id} value={m.id}>{m.name}</option>)}
                     </select>
@@ -1488,6 +1490,46 @@ export default function AdminPage() {
                    <strong style={{ color:'#ffcb52' }}>Auto-verification tip:</strong> To fully automate payment verification (no manual approval), integrate a payment gateway like <strong style={{ color:'#fff' }}>Razorpay</strong> or <strong style={{ color:'#fff' }}>Cashfree</strong> — they send automatic webhooks when payment succeeds.
                 </div>
               </div>
+            </div>
+          )}
+
+
+          {/* FESTIVALS TAB */}
+          {tab==='festivals' && (
+            <div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:12}}>
+                <div><h3 style={{fontWeight:900,fontSize:22}}>🎉 Upcoming Festivals</h3><p style={{color:'var(--Secondary)',fontSize:13}}>Create special lotteries for upcoming festivals</p></div>
+                <button onClick={()=>{setFestLoading(true);authFetch('/api/admin/festivals').then(r=>r.json()).then(d=>{if(d.festivals)setFestivals(d.festivals);}).finally(()=>setFestLoading(false));}} disabled={festLoading} style={{padding:'8px 18px',borderRadius:999,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontSize:13,cursor:'pointer',fontWeight:700}}>{festLoading?'Loading...':'↻ Load Festivals'}</button>
+              </div>
+              {festivals.length===0
+                ? <div style={{...card,padding:40,textAlign:'center',color:'var(--Secondary)'}}>Click "Load Festivals" to see upcoming Indian festivals</div>
+                : <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:16}}>
+                    {festivals.map((f:any)=>(
+                      <div key={f.name} style={{...card,padding:20,display:'flex',flexDirection:'column',gap:12}}>
+                        <div style={{display:'flex',alignItems:'center',gap:10}}>
+                          <span style={{fontSize:32}}>{f.emoji}</span>
+                          <div>
+                            <p style={{fontWeight:900,fontSize:16}}>{f.name}</p>
+                            <p style={{fontSize:12,color:'var(--Secondary)'}}>{new Date(f.date).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}</p>
+                          </div>
+                          <div style={{marginLeft:'auto',textAlign:'center',background:f.daysLeft<=7?'rgba(239,68,68,0.1)':'rgba(255,203,82,0.1)',border:`1px solid ${f.daysLeft<=7?'rgba(239,68,68,0.3)':'rgba(255,203,82,0.3)'}`,borderRadius:10,padding:'6px 12px'}}>
+                            <p style={{fontWeight:900,fontSize:20,color:f.daysLeft<=7?'#ef4444':'#ffcb52'}}>{f.daysLeft}</p>
+                            <p style={{fontSize:10,color:'var(--Secondary)'}}>days left</p>
+                          </div>
+                        </div>
+                        <button onClick={()=>{
+                          setTab('lottery');
+                          setTimeout(()=>{
+                            setLForm((p:any)=>({...p,name:`${f.name} Special Lottery`,drawAt:`${f.date}T20:00`}));
+                            toast.success(`Pre-filled lottery for ${f.name}!`);
+                          }, 300);
+                        }} style={{padding:'9px 0',borderRadius:9,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                          🎟 Create {f.name} Lottery
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+              }
             </div>
           )}
 
