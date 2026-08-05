@@ -21,11 +21,12 @@ export async function GET() {
         results: { orderBy: { createdAt: 'desc' }, take: 1 },
       },
     });
-    const enriched = markets.map((m: any) => ({
-      ...m,
-      isOpen: isMarketOpen(m.openTime, m.closeTime),
-      status: isMarketOpen(m.openTime, m.closeTime) ? 'OPEN' : 'CLOSED',
-    }));
+    const enriched = markets.map((m: any) => {
+      // Market is open if: admin manually opened it OR current time is within window
+      const timeOpen = isMarketOpen(m.openTime, m.closeTime);
+      const open = m.isOpen || timeOpen; // DB flag OR time-based
+      return { ...m, isOpen: open, status: open ? 'OPEN' : 'CLOSED' };
+    });
     const res = NextResponse.json({ markets: enriched });
     res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
     return res;

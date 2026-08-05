@@ -1,4 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+
+function isMarketOpen(openTime: string, closeTime: string): boolean {
+  const ist = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const cur = ist.getHours()*60 + ist.getMinutes();
+  const hm  = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+  return cur >= hm(openTime) && cur < hm(closeTime);
+}
 import { prisma, verifyToken } from '@/lib/api-helper';
 
 export async function GET(req: NextRequest) {
@@ -49,7 +56,8 @@ export async function POST(req: NextRequest) {
       prisma.wallet.findUnique({ where: { userId: p.sub } }),
     ]);
 
-    if (!market || !market.isOpen) return NextResponse.json({ error: 'Market is closed' }, { status: 400 });
+    const marketOpen = market.isOpen || isMarketOpen(market.openTime, market.closeTime);
+    if (!market || !marketOpen) return NextResponse.json({ error: 'Market is closed. Please wait for market to open.' }, { status: 400 });
     if (market.isResultDeclared) return NextResponse.json({ error: 'Result already declared' }, { status: 400 });
     if (!wallet || wallet.balance < amount)
       return NextResponse.json({ error: `Insufficient coins. Need ${amount}, have ${wallet?.balance ?? 0}` }, { status: 402 });
