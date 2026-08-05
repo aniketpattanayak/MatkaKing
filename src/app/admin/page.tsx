@@ -1449,12 +1449,23 @@ export default function AdminPage() {
               </div>
               {allTxns.length===0?<div style={{...card,padding:40,textAlign:'center',color:'var(--Secondary)'}}>Click "Load Transactions" above</div>:(
                 <div style={card}><table style={{width:'100%',borderCollapse:'collapse'}}>
-                  <thead><tr style={{background:'rgba(0,0,0,0.2)'}}>{['User','Type','Amount','UPI Used','Date'].map(h=><th key={h} style={{padding:'10px 14px',textAlign:'left',fontSize:10,fontWeight:700,color:'var(--Secondary)',textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
+                  <thead><tr style={{background:'rgba(0,0,0,0.2)'}}>{['User','Type','Amount','Payment Details','Status','Date','Action'].map(h=><th key={h} style={{padding:'10px 14px',textAlign:'left',fontSize:10,fontWeight:700,color:'var(--Secondary)',textTransform:'uppercase'}}>{h}</th>)}</tr></thead>
                   <tbody>{allTxns.map((t:any)=>(<tr key={t.id} style={{borderBottom:'1px solid rgba(255,255,255,0.03)'}}>
                     <td style={{padding:'12px 14px'}}><p style={{fontWeight:700,fontSize:13}}>{t.user?.name}</p><p style={{fontSize:11,color:'var(--Secondary)'}}>{t.user?.email}</p></td>
                     <td style={{padding:'12px 14px'}}><span style={{padding:'2px 8px',borderRadius:6,fontSize:10,fontWeight:700,background:t.type==='WIN_CREDIT'?'rgba(46,204,113,0.15)':t.type==='DEPOSIT'?'rgba(52,152,219,0.15)':t.type==='WITHDRAWAL'?'rgba(239,68,68,0.15)':'rgba(100,100,100,0.15)',color:t.type==='WIN_CREDIT'?'#2ECC71':t.type==='DEPOSIT'?'#3498DB':t.type==='WITHDRAWAL'?'#ef4444':'var(--Secondary)'}}>{t.type}</span></td>
                     <td style={{padding:'12px 14px',fontWeight:700,color:(t.type==='WIN_CREDIT'||t.type==='DEPOSIT'||t.type==='BONUS')?'#2ECC71':'#ef4444'}}>{(t.type==='WIN_CREDIT'||t.type==='DEPOSIT'||t.type==='BONUS')?'+':'-'}₹{(t.coins||t.amount||0).toLocaleString()}</td>
-                    <td style={{padding:'12px 14px'}}>{t.upiPool?(<div><p style={{fontFamily:'monospace',fontWeight:700,fontSize:12,color:'#ffcb52'}}>{t.upiPool.upiId}</p><p style={{fontSize:11,color:'var(--Secondary)'}}>{t.upiPool.label}</p></div>):<span style={{color:'var(--Secondary)',fontSize:12}}>—</span>}</td>
+                    <td style={{padding:'12px 14px'}}>
+                        {t.type==='WITHDRAWAL' ? (() => {
+                          const oid = t.orderId ?? '';
+                          const upi = oid.match(/UPI:([^-]+@[^-]+)/)?.[1];
+                          const ph  = oid.match(/PHONEPE:(d+)/)?.[1];
+                          const bk  = oid.match(/BANK:([^:]+):([^-]+)/);
+                          return upi ? <div><p style={{fontSize:11,fontWeight:700,color:'#ffcb52'}}>UPI</p><p style={{fontFamily:'monospace',fontSize:12,color:'var(--White)'}}>{upi}</p></div>
+                               : ph  ? <div><p style={{fontSize:11,fontWeight:700,color:'#3498DB'}}>PhonePe</p><p style={{fontFamily:'monospace',fontSize:12,color:'var(--White)'}}>{ph}</p></div>
+                               : bk  ? <div><p style={{fontSize:11,fontWeight:700,color:'#2ECC71'}}>Bank</p><p style={{fontSize:11,color:'var(--White)'}}>{bk[1]}</p><p style={{fontSize:10,color:'var(--Secondary)'}}>{bk[2]}</p></div>
+                               : <span style={{color:'var(--Secondary)',fontSize:12}}>—</span>;
+                        })() : t.upiPool ? <div><p style={{fontFamily:'monospace',fontWeight:700,fontSize:12,color:'#ffcb52'}}>{t.upiPool.upiId}</p><p style={{fontSize:11,color:'var(--Secondary)'}}>{t.upiPool.label}</p></div> : <span style={{color:'var(--Secondary)',fontSize:12}}>—</span>}
+                      </td>
                     <td style={{padding:'12px 14px',fontSize:12,color:'var(--Secondary)'}}>{new Date(t.createdAt).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
                   </tr>))}</tbody>
                 </table></div>
