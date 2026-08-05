@@ -57,6 +57,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // Compute isOpen from IST time
+    const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const curMin = nowIST.getHours() * 60 + nowIST.getMinutes();
+    const hm = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+
     const [markets, stats] = await Promise.all([
       prisma.matkaMarket.findMany({
         include: {
@@ -70,8 +75,12 @@ export async function GET(req: NextRequest) {
         where: { status: 'ACTIVE' },  // ✅ correct enum value
       }),
     ]);
+    const enriched = markets.map((m: any) => ({
+      ...m,
+      isOpen: curMin >= hm(m.openTime) && curMin < hm(m.closeTime),
+    }));
     return NextResponse.json({
-      markets,
+      markets: enriched,
       pendingBets:    stats._sum.amount      ?? 0,
       potentialPayout: stats._sum.potentialWin ?? 0,
     });
@@ -92,7 +101,7 @@ export async function POST(req: NextRequest) {
     if (!name || !openTime || !closeTime || !resultTime)
       return NextResponse.json({ error: 'name, openTime, closeTime, resultTime required' }, { status: 400 });
     const market = await prisma.matkaMarket.create({
-      data: { name, openTime, closeTime, resultTime, isOpen: false },
+      data: { name, openTime, closeTime, resultTime, isActive: true, isOpen: false },
     });
     return NextResponse.json({ ok: true, market });
   }
