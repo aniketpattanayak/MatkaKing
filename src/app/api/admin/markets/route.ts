@@ -75,10 +75,11 @@ export async function GET(req: NextRequest) {
         where: { status: 'ACTIVE' },  // ✅ correct enum value
       }),
     ]);
-    const enriched = markets.map((m: any) => ({
-      ...m,
-      isOpen: curMin >= hm(m.openTime) && curMin < hm(m.closeTime),
-    }));
+    const enriched = markets.map((m: any) => {
+      const timeOpen = curMin >= hm(m.openTime) && curMin < hm(m.closeTime);
+      const open = m.isOpen || timeOpen; // DB flag OR time-based
+      return { ...m, isOpen: open };
+    });
     return NextResponse.json({
       markets: enriched,
       pendingBets:    stats._sum.amount      ?? 0,
