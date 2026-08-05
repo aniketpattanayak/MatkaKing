@@ -487,15 +487,22 @@ export default function MatkaPage() {
                   </div>
                   <p style={{ fontSize: 11, color: 'var(--Secondary)' }}>🟢 {m.open} → 🔴 {m.close}</p>
                 </div>
-                <div style={{ padding: '7px 16px 12px', display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <div>
-                    <p style={{ fontSize: 9, color: 'var(--Secondary)', marginBottom: 2, fontWeight: 700, textTransform: 'uppercase' }}>Patti · Ank</p>
-                    <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 16, color: '#ffcb52' }}>{m.patti}</span>
+                <div style={{ padding: '7px 16px 12px', display: 'flex', gap: 10, alignItems: 'center', flexWrap:'wrap' }}>
+                  <div style={{ textAlign:'center' }}>
+                    <p style={{ fontSize: 9, color: '#2ECC71', marginBottom: 2, fontWeight: 700, textTransform: 'uppercase' }}>Open</p>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 15, color: m.openPatti?'#ffcb52':'var(--Secondary)' }}>{m.openPatti??'???'}</span>
+                    <p style={{ fontSize: 9, color: 'var(--Secondary)' }}>Ank: <strong style={{color:'#ffcb52'}}>{m.openAnk??'?'}</strong></p>
                   </div>
-                  <div style={{ width: 1, height: 24, background: 'var(--Border)' }} />
-                  <div>
+                  <div style={{ width: 1, height: 32, background: 'var(--Border)' }} />
+                  <div style={{ textAlign:'center' }}>
+                    <p style={{ fontSize: 9, color: '#ef4444', marginBottom: 2, fontWeight: 700, textTransform: 'uppercase' }}>Close</p>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 15, color: m.closePatti?'#ffcb52':'var(--Secondary)' }}>{m.closePatti??'???'}</span>
+                    <p style={{ fontSize: 9, color: 'var(--Secondary)' }}>Ank: <strong style={{color:'#ffcb52'}}>{m.closeAnk??'?'}</strong></p>
+                  </div>
+                  <div style={{ width: 1, height: 32, background: 'var(--Border)' }} />
+                  <div style={{ textAlign:'center' }}>
                     <p style={{ fontSize: 9, color: 'var(--Secondary)', marginBottom: 2, fontWeight: 700, textTransform: 'uppercase' }}>Jodi</p>
-                    <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 22, color: '#ffcb52' }}>{m.jodi}</span>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 20, color: m.jodi?'#ffcb52':'var(--Secondary)' }}>{m.jodi??'??'}</span>
                   </div>
                 </div>
               </div>
@@ -506,6 +513,62 @@ export default function MatkaPage() {
 
       <div className="main-content" style={{ paddingTop: 18 }}>
         <div className="tf-container">
+
+          {/* Results panel for CLOSED markets */}
+          {market.status === 'CLOSED' && (market.openPatti || market.jodi) && (
+            <div style={{ background:'var(--Bg-2)', borderRadius:20, border:'1px solid var(--Border)', padding:28, marginBottom:20 }}>
+              <h3 style={{ fontWeight:900, fontSize:20, marginBottom:20 }}>📊 {market.name} — Today's Result</h3>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:16, marginBottom:20 }}>
+                {/* Open Patti */}
+                <div style={{ background:'rgba(46,204,113,0.06)', border:'1px solid rgba(46,204,113,0.25)', borderRadius:14, padding:'18px 20px', textAlign:'center' }}>
+                  <p style={{ fontSize:11, color:'#2ECC71', fontWeight:700, textTransform:'uppercase', marginBottom:10, letterSpacing:1 }}>Open Patti</p>
+                  <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:36, color: market.openPatti?'#ffcb52':'var(--Secondary)', lineHeight:1 }}>
+                    {market.openPatti ?? '???'}
+                  </p>
+                  <p style={{ fontSize:13, color:'var(--Secondary)', marginTop:8 }}>
+                    Open Ank: <strong style={{ color:'#ffcb52', fontSize:18 }}>{market.openAnk ?? '?'}</strong>
+                  </p>
+                </div>
+                {/* Close Patti */}
+                <div style={{ background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:14, padding:'18px 20px', textAlign:'center' }}>
+                  <p style={{ fontSize:11, color:'#ef4444', fontWeight:700, textTransform:'uppercase', marginBottom:10, letterSpacing:1 }}>Close Patti</p>
+                  <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:36, color: market.closePatti?'#ffcb52':'var(--Secondary)', lineHeight:1 }}>
+                    {market.closePatti ?? '???'}
+                  </p>
+                  <p style={{ fontSize:13, color:'var(--Secondary)', marginTop:8 }}>
+                    Close Ank: <strong style={{ color:'#ffcb52', fontSize:18 }}>{market.closeAnk ?? '?'}</strong>
+                  </p>
+                </div>
+                {/* Jodi */}
+                <div style={{ background:'rgba(255,203,82,0.08)', border:'2px solid rgba(255,203,82,0.4)', borderRadius:14, padding:'18px 20px', textAlign:'center' }}>
+                  <p style={{ fontSize:11, color:'#ffcb52', fontWeight:700, textTransform:'uppercase', marginBottom:10, letterSpacing:1 }}>Jodi (Final)</p>
+                  <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:48, color: market.jodi?'#ffcb52':'var(--Secondary)', lineHeight:1 }}>
+                    {market.jodi ?? '??'}
+                  </p>
+                  {market.jodi && <p style={{ fontSize:11, color:'#2ECC71', marginTop:8, fontWeight:700 }}>✓ Result Declared</p>}
+                </div>
+              </div>
+              {/* Partial result notice */}
+              {market.openPatti && !market.closePatti && (
+                <div style={{ background:'rgba(255,203,82,0.08)', border:'1px solid rgba(255,203,82,0.3)', borderRadius:12, padding:'12px 16px', display:'flex', alignItems:'center', gap:10 }}>
+                  <span style={{ fontSize:20 }}>⏳</span>
+                  <div>
+                    <p style={{ fontWeight:700, color:'#ffcb52', fontSize:14 }}>Open Result Declared</p>
+                    <p style={{ fontSize:12, color:'var(--Secondary)' }}>Close result will be declared after {market.close ?? market.closeTime}</p>
+                  </div>
+                </div>
+              )}
+              {!market.openPatti && (
+                <div style={{ background:'rgba(100,100,100,0.08)', border:'1px solid var(--Border)', borderRadius:12, padding:'12px 16px', display:'flex', alignItems:'center', gap:10 }}>
+                  <span style={{ fontSize:20 }}>🕐</span>
+                  <p style={{ fontSize:13, color:'var(--Secondary)' }}>Result not yet declared. Check back after {market.result ?? market.resultTime}</p>
+                </div>
+              )}
+              <button onClick={()=>{setMarket(null);setMarketSelected(false);}} style={{ marginTop:20, padding:'10px 24px', borderRadius:10, border:'1px solid var(--Border)', background:'var(--Bg-3)', color:'var(--Secondary)', fontWeight:700, cursor:'pointer', fontSize:13 }}>
+                ← Back to Markets
+              </button>
+            </div>
+          )}
 
           {/* Game Type + Open/Close */}
           <div style={{ background: 'var(--Bg-2)', borderRadius: 14, padding: '13px 18px', marginBottom: 18, border: '1px solid var(--Border)' }}>
