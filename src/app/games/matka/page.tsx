@@ -208,8 +208,12 @@ export default function MatkaPage() {
           close:  m.closeTime  ?? m.close,
           result: m.resultTime ?? m.result,
           status: m.isOpen ? 'OPEN' : 'CLOSED',
+          openPatti:  m.results?.[0]?.openPatti ?? null,
+          closePatti: m.results?.[0]?.closePatti ?? null,
+          openAnk:    m.results?.[0]?.openAnk ?? null,
+          closeAnk:   m.results?.[0]?.closeAnk ?? null,
+          jodi:       m.results?.[0]?.jodi ?? null,
           patti:  m.results?.[0]?.openPatti ? `${m.results[0].openPatti}-${m.results[0].openAnk}` : '???-?',
-          jodi:   m.results?.[0]?.jodi ?? '??',
         }));
         setAllMarkets(normalized);
         setMarket(normalized[0]); // preselect but don't show game yet
@@ -382,16 +386,49 @@ export default function MatkaPage() {
                     <span style={{ color:'#ef4444', fontWeight:700 }}>● {m.close ?? m.closeTime}</span>
                   </div>
 
-                  {/* Last result */}
-                  <div style={{ display:'flex', gap:20, marginBottom:24 }}>
-                    <div>
-                      <p style={{ fontSize:10, color:'var(--Secondary)', textTransform:'uppercase', fontWeight:700, marginBottom:4 }}>Patti · Ank</p>
-                      <p style={{ fontWeight:900, fontSize:22, color:'#ffcb52' }}>{m.patti ?? '???-?'}</p>
+                  {/* Last result - show open/close/ank/jodi */}
+                  <div style={{ background:'rgba(0,0,0,0.2)', borderRadius:14, padding:'14px 16px', marginBottom:20 }}>
+                    <p style={{ fontSize:10, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', marginBottom:10, letterSpacing:1 }}>Today's Result</p>
+                    <div style={{ display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
+                      {/* Open */}
+                      <div style={{ textAlign:'center' }}>
+                        <p style={{ fontSize:9, color:'#2ECC71', fontWeight:700, textTransform:'uppercase', marginBottom:4 }}>Open</p>
+                        <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color: m.openPatti ? '#ffcb52' : 'var(--Secondary)' }}>
+                          {m.openPatti ?? '???'}
+                        </p>
+                        <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:2 }}>
+                          Ank: <strong style={{ color: m.openAnk!=null ? '#ffcb52' : 'var(--Secondary)' }}>{m.openAnk ?? '?'}</strong>
+                        </p>
+                      </div>
+                      <div style={{ fontSize:20, color:'var(--Secondary)' }}>—</div>
+                      {/* Close */}
+                      <div style={{ textAlign:'center' }}>
+                        <p style={{ fontSize:9, color:'#ef4444', fontWeight:700, textTransform:'uppercase', marginBottom:4 }}>Close</p>
+                        <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color: m.closePatti ? '#ffcb52' : 'var(--Secondary)' }}>
+                          {m.closePatti ?? '???'}
+                        </p>
+                        <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:2 }}>
+                          Ank: <strong style={{ color: m.closeAnk!=null ? '#ffcb52' : 'var(--Secondary)' }}>{m.closeAnk ?? '?'}</strong>
+                        </p>
+                      </div>
+                      {/* Jodi */}
+                      <div style={{ marginLeft:'auto', textAlign:'center', background:'rgba(255,203,82,0.08)', border:'1px solid rgba(255,203,82,0.3)', borderRadius:12, padding:'10px 18px' }}>
+                        <p style={{ fontSize:9, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', marginBottom:4 }}>Jodi</p>
+                        <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:28, color: m.jodi ? '#ffcb52' : 'var(--Secondary)' }}>
+                          {m.jodi ?? '??'}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p style={{ fontSize:10, color:'var(--Secondary)', textTransform:'uppercase', fontWeight:700, marginBottom:4 }}>Jodi</p>
-                      <p style={{ fontWeight:900, fontSize:22, color:'#ffcb52' }}>{m.jodi ?? '??'}</p>
-                    </div>
+                    {/* Partial result hint */}
+                    {m.openPatti && !m.closePatti && (
+                      <p style={{ fontSize:11, color:'#ffcb52', marginTop:8, fontWeight:600 }}>⏳ Open declared · Waiting for Close result...</p>
+                    )}
+                    {!m.openPatti && (
+                      <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:8 }}>Result not declared yet</p>
+                    )}
+                    {m.jodi && (
+                      <p style={{ fontSize:11, color:'#2ECC71', marginTop:8, fontWeight:600 }}>✓ Result declared</p>
+                    )}
                   </div>
 
                   {/* Game rates quick view */}
