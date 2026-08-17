@@ -137,12 +137,12 @@ export default function Header() {
                       <ul className="sub-menu">
                         <li className={act('/games/lottery') ? 'current-item' : ''}>
                           <Link href="/games/lottery" style={{ display:'flex', alignItems:'center', gap:8 }}>
-                            <Ticket size={15}/> Lottery
+                            <Ticket size={15}/> Lucky Winner
                           </Link>
                         </li>
                         <li className={act('/games/matka') ? 'current-item' : ''}>
                           <Link href="/games/matka" style={{ display:'flex', alignItems:'center', gap:8 }}>
-                            <Gamepad2 size={15}/> Matka King
+                            <Gamepad2 size={15}/> Money Bank
                           </Link>
                         </li>
                         <li className={act('/games/spin') ? 'current-item' : ''}>
