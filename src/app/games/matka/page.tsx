@@ -18,13 +18,13 @@ const FALLBACK_MARKETS = [
 
 // maxSelect = max columns user can select at once
 const GAME_TYPES = [
-  { key: 'ANK',          label: 'Ank',        payout: 90,    maxSelect: 1, desc: 'Pick 1 digit from any 1 column' },
-  { key: 'JODI',         label: 'Jodi',        payout: 900,   maxSelect: 2, desc: 'Pick 2 adjacent columns → 2-digit number' },
-  { key: 'SINGLE_PATTI', label: 'SP',          payout: 140,   maxSelect: 3, desc: '3 adjacent columns → 3-digit patti' },
-  { key: 'DOUBLE_PATTI', label: 'DP',          payout: 280,   maxSelect: 3, desc: '3 columns — 2 same + 1 different digit' },
-  { key: 'TRIPLE_PATTI', label: 'TP',          payout: 450,   maxSelect: 3, desc: '3 columns — all same digit' },
-  { key: 'HALF_SANGAM',  label: 'Half Sangam', payout: 1500,  maxSelect: 4, desc: '4 columns — Ank + Patti' },
-  { key: 'FULL_SANGAM',  label: 'Full Sangam', payout: 11000, maxSelect: 6, desc: '6 columns — Open Patti + Close Patti' },
+  { key: 'ANK',          label: 'Ank',        payout: 90,    maxSelect: 1, desc: 'Pick 1 digit (0-9)', disableAfterOpen: false },
+  { key: 'JODI',         label: 'Jodi',        payout: 900,   maxSelect: 2, desc: 'Pick 2-digit jodi (00-99)', disableAfterOpen: true },
+  { key: 'SINGLE_PATTI', label: 'SP',          payout: 140,   maxSelect: 3, desc: 'All 3 digits different (123, 456...)', disableAfterOpen: false },
+  { key: 'DOUBLE_PATTI', label: 'DP',          payout: 280,   maxSelect: 3, desc: '2 same + 1 different (112, 223...)', disableAfterOpen: false },
+  { key: 'TRIPLE_PATTI', label: 'TP',          payout: 450,   maxSelect: 3, desc: 'All 3 same (111, 222, 333...)', disableAfterOpen: false },
+  { key: 'HALF_SANGAM',  label: 'Half Sangam', payout: 1500,  maxSelect: 4, desc: 'Ank + Patti combination', disableAfterOpen: false },
+  { key: 'FULL_SANGAM',  label: 'Full Sangam', payout: 11000, maxSelect: 6, desc: 'Open Patti + Close Patti', disableAfterOpen: true },
 ];
 
 const NUM_COLS = 8;
@@ -283,29 +283,38 @@ export default function MatkaPage() {
   })();
 
   const readyToAdd = selectedStateIndices.length === gameType.maxSelect;
+  // Check if open has been declared for this market
+  const openDeclared = !!(market?.openPatti);
+
+  // Auto-classify SP/DP/TP when 3 digits selected
+  const autoClassifiedType = (() => {
+    if (!['SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key)) return null;
+    const vals = selectedStateIndices.map((x:any) => x.d);
+    if (vals.length !== 3) return null;
+    const allSame = vals[0]===vals[1] && vals[1]===vals[2];
+    const sorted = [...vals].sort();
+    const hasPair = sorted[0]===sorted[1] || sorted[1]===sorted[2];
+    if (allSame) return 'TRIPLE_PATTI';
+    if (hasPair) return 'DOUBLE_PATTI';
+    return 'SINGLE_PATTI';
+  })();
+  const autoLabel = autoClassifiedType === 'TRIPLE_PATTI' ? 'TP (Triple Patti)'
+    : autoClassifiedType === 'DOUBLE_PATTI' ? 'DP (Double Patti)'
+    : autoClassifiedType === 'SINGLE_PATTI' ? 'SP (Single Patti)' : null;
 
   // ── Cart ───────────────────────────────────────────────────────────────────
 
   const addToCart = () => {
     if (!readyToAdd) return toast.warning(`Select ${gameType.maxSelect} digit${gameType.maxSelect > 1 ? 's' : ''} first`);
     if (market.status === 'CLOSED') return toast.error('Market is closed');
-    // Validate Triple Patti — all 3 digits must be same (111,222...999)
-    if (gameType.key === 'TRIPLE_PATTI') {
-      const vals = selectedStateIndices.map((x:any) => x.d);
-      if (!(vals[0]===vals[1] && vals[1]===vals[2])) return toast.error('Triple Patti: all 3 digits must be same (111, 222, 333...)');
-    }
-    // Validate Double Patti — exactly 2 same digits, 1 different (NOT all same)
-    if (gameType.key === 'DOUBLE_PATTI') {
-      const vals = selectedStateIndices.map((x:any) => x.d).sort();
-      const allSame = vals[0]===vals[1] && vals[1]===vals[2];
-      const hasPair = vals[0]===vals[1] || vals[1]===vals[2];
-      if (allSame || !hasPair) return toast.error('Double Patti: exactly 2 same + 1 different digit (112, 223, 334...)');
-    }
-    // Validate Single Patti — all 3 digits must be different
-    if (gameType.key === 'SINGLE_PATTI') {
-      const vals = selectedStateIndices.map((x:any) => x.d);
-      const unique = new Set(vals).size;
-      if (unique < 3) return toast.error('Single Patti: all 3 digits must be different (123, 456...)');
+    // Auto-switch patti type based on digit pattern
+    if (['SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key) && autoClassifiedType && autoClassifiedType !== gameType.key) {
+      const correctType = GAME_TYPES.find(g => g.key === autoClassifiedType);
+      if (correctType) {
+        setGameType(correctType);
+        toast.info(`Auto-switched to ${correctType.label} based on your digits!`);
+        return; // let user re-click add with correct type
+      }
     }
     setCart(p => [...p, {
       market: market.name, label: gameType.label, session,
@@ -737,6 +746,11 @@ export default function MatkaPage() {
                   <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 36, color: '#ffcb52', letterSpacing: 4 }}>
                     {betValue}
                   </span>
+                  {autoLabel && autoClassifiedType !== gameType.key && (
+                    <span style={{fontSize:10,color:'#ffcb52',display:'block',marginTop:2}}>
+                      Will be saved as: {autoLabel}
+                    </span>
+                  )}
                 </div>
                 {/* Progress dots */}
                 <div style={{ display: 'flex', gap: 5 }}>
