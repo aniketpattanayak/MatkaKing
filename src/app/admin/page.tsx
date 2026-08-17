@@ -733,7 +733,7 @@ export default function AdminPage() {
                           <td style={{ padding:'12px 14px', fontSize:13 }}>₹{s.ticketPrice}</td>
                           <td style={{ padding:'12px 14px', fontSize:13 }}>₹{(s.prizePool/100000).toFixed(1)}L</td>
                           <td style={{ padding:'12px 14px', fontSize:13 }}>{s._count?.tickets??0}</td>
-                          <td style={{ padding:'12px 14px', fontSize:12, color:'var(--Secondary)' }}>{new Date(s.drawAt).toLocaleDateString('en-IN')}</td>
+                          <td style={{ padding:'12px 14px', fontSize:12, color:'var(--Secondary)' }}>{new Date(s.drawAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'})}</td>
                           <td style={{ padding:'12px 14px' }}>
                             <span style={{ padding:'2px 10px', borderRadius:999, fontSize:10, fontWeight:700,
                               background:s.status==='OPEN'?'rgba(46,204,113,0.15)':'rgba(100,100,100,0.2)',

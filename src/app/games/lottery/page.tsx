@@ -222,7 +222,7 @@ export default function LotteryPage() {
                   {[
                     { label: 'Prize Pool', value: `₹${(series.prizePool).toLocaleString('en-IN')}`, color: '#ffcb52' },
                     { label: 'Per Ticket',  value: `₹${series.ticketPrice}`,                           color: '#fff' },
-                    { label: 'Draw Date',   value: new Date(series.drawAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }), color: '#fff' },
+                    { label: 'Draw Date & Time', value: new Date(series.drawAt).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Kolkata' })+' IST', color: '#ffcb52' },
                   ].map(({ label, value, color }) => (
                     <div key={label} style={{ textAlign: 'right' }}>
                       <p style={{ color: 'var(--Secondary)', fontSize: 11, marginBottom: 2, textTransform: 'uppercase' }}>{label}</p>

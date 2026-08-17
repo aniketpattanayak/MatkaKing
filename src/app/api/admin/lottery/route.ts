@@ -57,7 +57,10 @@ export async function POST(req: NextRequest) {
           firstPrize:  fp,
           secondPrize: sp,
           thirdPrize:  tp,
-          drawAt:      new Date(drawAt),
+          // drawAt from datetime-local is in local time (IST) - parse correctly
+          drawAt: drawAt.includes('T') && !drawAt.includes('Z') && !drawAt.includes('+')
+            ? new Date(drawAt + '+05:30')  // treat as IST
+            : new Date(drawAt),
           status:      'OPEN',
           isActive:    true,
         },
