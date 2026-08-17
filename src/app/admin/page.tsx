@@ -85,6 +85,10 @@ export default function AdminPage() {
   const [wdSettings,   setWdSettings]   = useState({ minWithdraw:'100', maxWithdraw:'50000', withdrawPerDay:'1' });
   const [wdSaving,     setWdSaving]     = useState(false);
   const [dailyStats,   setDailyStats]   = useState<any>(null);
+  const [msgTo,        setMsgTo]        = useState('');
+  const [msgTitle,     setMsgTitle]     = useState('');
+  const [msgBody,      setMsgBody]      = useState('');
+  const [msgSending,   setMsgSending]   = useState(false);
   const [results,        setResults]        = useState<any>({ lottery:[], matka:[], spin:[], spinStats:{} });
   const [resultsTab,     setResultsTab]     = useState<'lottery'|'matka'|'spin'>('lottery');
   const [resultsLoading, setResultsLoading] = useState(false);
@@ -994,8 +998,8 @@ export default function AdminPage() {
                         <span style={{ fontSize:11, fontWeight:700, padding:'2px 10px', borderRadius:999,
                           background:m.isOpen?'rgba(254,140,69,0.15)':'rgba(100,100,100,0.2)',
                           color:m.isOpen?'#fe8c45':'var(--Secondary)'}}>{m.isOpen?'OPEN':'CLOSED'}</span>
-                        <button onClick={()=>toggleMarket(m.id)} style={{ padding:'5px 12px', borderRadius:8, border:'1px solid var(--Border)', background:'var(--Bg-3)', color:'var(--Secondary)', fontSize:12, cursor:'pointer', fontWeight:600 }}>
-                          {m.isOpen?'Close':'Open'}
+                        <button onClick={()=>toggleMarket(m.id)} disabled={m.isResultDeclared && !m.isOpen} style={{ padding:'5px 12px', borderRadius:8, border:'1px solid var(--Border)', background: m.isResultDeclared&&!m.isOpen?'rgba(100,100,100,0.1)':'var(--Bg-3)', color: m.isResultDeclared&&!m.isOpen?'rgba(100,100,100,0.4)':'var(--Secondary)', fontSize:12, cursor:m.isResultDeclared&&!m.isOpen?'not-allowed':'pointer', fontWeight:600 }} title={m.isResultDeclared&&!m.isOpen?'Result declared - cannot reopen until tomorrow':''}>
+                          {m.isOpen?'Close':m.isResultDeclared?'Declared':'Open'}
                         </button>
                         <button onClick={()=>setEditRates({...m})} style={{ padding:'5px 12px', borderRadius:8, border:'1px solid rgba(255,203,82,0.3)', background:'rgba(255,203,82,0.1)', color:'#ffcb52', fontSize:12, cursor:'pointer', fontWeight:600 }}>⚙️ Rates</button>
                         <button onClick={()=>deleteMarket(m.id,m.name)} style={{ padding:'5px 10px', borderRadius:8, border:'1px solid rgba(239,68,68,0.3)', background:'rgba(239,68,68,0.1)', color:'#ef4444', fontSize:12, cursor:'pointer' }}>Del</button>

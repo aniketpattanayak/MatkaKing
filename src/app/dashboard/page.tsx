@@ -312,7 +312,7 @@ export default function DashboardPage() {
                 {[
                   { label:'Total Winnings', value:`₹${totalWon.toLocaleString()} Coins`, color:'#2ECC71' },
                   { label:'Lottery Wins',   value:wonTickets + ' tickets',               color:'#ffcb52' },
-                  { label:'Matka Wins',     value:matkaBets.filter(b=>b.status==='WON').length + ' bets', color:'#9B59B6' },
+                  { label:'Matka Wins',     value:matkaBets.filter((b:any)=>b.status==='WON').length + ' bets won', color:'#9B59B6' },
                 ].map(s=>(
                   <div key={s.label} style={{ ...card, padding:'20px 22px', textAlign:'center' }}>
                     <div style={{ fontWeight:900, fontSize:28, color:s.color, marginBottom:4 }}>{s.value}</div>

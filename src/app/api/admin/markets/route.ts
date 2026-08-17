@@ -48,9 +48,13 @@ export async function GET(req: NextRequest) {
       let won = false;
       if ((bt==='ANK'||bt==='SINGLE_ANK') && (bet.session==='OPEN'?String(openAnk):String(closeAnk))===bet.betValue) won=true;
       if (bt==='JODI' && bet.betValue===jodi) won=true;
-      if ((bt==='SINGLE_PATTI'||bt==='SP') && (bet.betValue===openPatti||bet.betValue===closePatti)) won=true;
-      if ((bt==='DOUBLE_PATTI'||bt==='DP') && (bet.betValue===openPatti||bet.betValue===closePatti)) won=true;
-      if ((bt==='TRIPLE_PATTI'||bt==='TP') && (bet.betValue===openPatti||bet.betValue===closePatti)) won=true;
+      // SP/DP/TP: match exact patti by session
+      if ((bt==='SINGLE_PATTI'||bt==='SP') && bet.session==='OPEN'  && bet.betValue===openPatti)  won=true;
+      if ((bt==='SINGLE_PATTI'||bt==='SP') && bet.session==='CLOSE' && bet.betValue===closePatti) won=true;
+      if ((bt==='DOUBLE_PATTI'||bt==='DP') && bet.session==='OPEN'  && bet.betValue===openPatti)  won=true;
+      if ((bt==='DOUBLE_PATTI'||bt==='DP') && bet.session==='CLOSE' && bet.betValue===closePatti) won=true;
+      if ((bt==='TRIPLE_PATTI'||bt==='TP') && bet.session==='OPEN'  && bet.betValue===openPatti)  won=true;
+      if ((bt==='TRIPLE_PATTI'||bt==='TP') && bet.session==='CLOSE' && bet.betValue===closePatti) won=true;
       if (won) { totalPayout += bet.amount*(PAYOUT[bet.betType??'']??0); winnerCount++; }
     }
     return json({ winnerCount, totalPayout, totalBets, jodi, openAnk, closeAnk, isSafe: totalPayout <= totalBets * 1.3 });
@@ -111,6 +115,9 @@ export async function POST(req: NextRequest) {
   if (action === 'toggle_market') {
     const market = await prisma.matkaMarket.findUnique({ where: { id: marketId } });
     if (!market) return NextResponse.json({ error: 'Market not found' }, { status: 404 });
+    // Cannot re-open if result already declared
+    if (market.isResultDeclared && !market.isOpen)
+      return NextResponse.json({ error: 'Cannot reopen market after result is declared. Wait for next day.' }, { status: 400 });
     await prisma.matkaMarket.update({ where: { id: marketId }, data: { isOpen: !market.isOpen } });
     return NextResponse.json({ ok: true });
   }
@@ -176,7 +183,7 @@ export async function POST(req: NextRequest) {
         const bt = bet.betType;
 
         if (bt === 'SINGLE_ANK' && bv === String(openAnk)) won = true;
-        if ((bt === 'SINGLE_PATTI' || bt === 'DOUBLE_PATTI' || bt === 'TRIPLE_PATTI') && bv === openPatti) won = true;
+        if ((bt === 'SINGLE_PATTI' || bt === 'DOUBLE_PATTI' || bt === 'TRIPLE_PATTI') && bet.session === 'OPEN' && bv === openPatti) won = true;
 
         const wonAmount = won ? bet.amount * (RATES[bt] ?? 0) : 0;
 
@@ -263,12 +270,15 @@ export async function POST(req: NextRequest) {
 
         // Half Sangam variants: bet value stored as either "openAnk-closePatti" or "openPatti-closeAnk"
         if (bt === 'HALF_SANGAM') {
-          const [a, b] = bv.split('-');
-          if (a && b) {
-            // Variant A: open ank + close patti
+          const parts = bv.split('-');
+          if (parts.length === 2) {
+            const [a, b] = parts;
+            // Variant A: openAnk-closePatti (1 digit - 3 digits)
             if (a === String(openAnk) && b === closePatti) won = true;
-            // Variant B: open patti + close ank
+            // Variant B: openPatti-closeAnk (3 digits - 1 digit)
             if (a === openPatti && b === String(closeAnk)) won = true;
+            // Variant C: openAnk-closePatti reversed
+            if (b === String(openAnk) && a === closePatti) won = true;
           }
         }
 

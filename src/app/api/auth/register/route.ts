@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     let referrer: { id: string } | null = null;
     if (referralCode && String(referralCode).trim() !== '') {
       referrer = await prisma.user.findUnique({
-        where: { referralCode: String(referralCode).trim() },
+        where: { referralCode: String(referralCode).trim().toUpperCase() },
         select: { id: true },
       });
       if (!referrer) {
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
         email: user.email,
         role: user.role,
         balance: user.wallet?.balance ?? initialBalance,
-        referralCode: user.referralCode,
+        referralCode: user.referralCode?.toUpperCase(),
       },
       referralApplied: !!referrer,
       referrerBonusAwarded: referrer ? REFERRER_BONUS_COINS : 0,
