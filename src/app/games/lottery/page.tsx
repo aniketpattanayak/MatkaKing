@@ -262,7 +262,7 @@ export default function LotteryPage() {
               </div>
 
               {/* Ticket grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(86px, 1fr))', gap: 7, marginBottom: selected.size > 0 ? 110 : 48 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: 6, maxHeight:'70vh', overflowY:'auto', marginBottom: selected.size > 0 ? 110 : 48 }}>
                 {tickets.map(t => {
                   const sel = selected.has(t.ticketId);
                   return (
