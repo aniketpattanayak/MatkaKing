@@ -58,6 +58,14 @@ export async function POST(req: NextRequest) {
 
     const marketOpen = market.isOpen || isMarketOpen(market.openTime, market.closeTime);
     if (!market || !marketOpen) return NextResponse.json({ error: 'Market is closed. Please wait for market to open.' }, { status: 400 });
+    // Block Jodi and Full Sangam after open is declared
+    const todayResult = await prisma.matkaResult.findFirst({
+      where: { marketId, openPatti: { not: null } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (todayResult?.openPatti && ['JODI','FULL_SANGAM'].includes(norm.enum)) {
+      return NextResponse.json({ error: 'Jodi and Full Sangam bets are not allowed after Open result is declared.' }, { status: 400 });
+    }
     if (market.isResultDeclared) return NextResponse.json({ error: 'Result already declared' }, { status: 400 });
     if (!wallet || wallet.balance < amount)
       return NextResponse.json({ error: `Insufficient coins. Need ${amount}, have ${wallet?.balance ?? 0}` }, { status: 402 });
