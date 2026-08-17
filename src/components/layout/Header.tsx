@@ -385,6 +385,22 @@ export default function Header() {
                   {modal==='login'?'Sign up free':'Login here'}
                 </a>
               </p>
+              {modal==='login' && (
+                <p style={{ textAlign:'center', fontSize:13, marginTop:8 }}>
+                  <a href="#" onClick={e=>{e.preventDefault();setModal('forgot');setForgotStep('email');setForgotEmail('');}}
+                    style={{ color:'var(--Secondary)', fontWeight:600, textDecoration:'none' }}>
+                    🔐 Forgot password?
+                  </a>
+                </p>
+              )}
+              {modal==='forgot' && (
+                <p style={{ textAlign:'center', fontSize:13, marginTop:8 }}>
+                  <a href="#" onClick={e=>{e.preventDefault();setModal('login');}}
+                    style={{ color:'var(--Secondary)', textDecoration:'none' }}>
+                    ← Back to login
+                  </a>
+                </p>
+              )}
             </div>
           </div>
         </div>
