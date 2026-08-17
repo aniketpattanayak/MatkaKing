@@ -203,7 +203,7 @@ export default function LotteryPage() {
                 }}>
                   {s.name}
                   <span style={{ display: 'block', fontSize: 11, fontWeight: 400, marginTop: 2 }}>
-                    ₹{s.ticketPrice}/ticket · Draw {new Date(s.drawAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' })}
+                    ₹{s.ticketPrice}/ticket · Draw {s.drawAt ? new Date(s.drawAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'})}
                   </span>
                 </button>
               ))}

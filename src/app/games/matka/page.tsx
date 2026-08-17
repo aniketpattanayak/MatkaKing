@@ -271,8 +271,12 @@ export default function MatkaPage() {
   const betValue = (() => {
     const vals = selectedStateIndices.map(x => x.d!);
     if (vals.length === 0) return '—';
-    if (gameType.key === 'HALF_SANGAM' && vals.length === 4)
-      return `${vals[0]}-${vals[1]}${vals[2]}${vals[3]}`;
+    if (gameType.key === 'HALF_SANGAM' && vals.length === 4) {
+      // Format: openAnk-closePatti (1 digit + 3 digits)
+      if (session === 'OPEN') return `${vals[0]}-${vals[1]}${vals[2]}${vals[3]}`;
+      // Format: openPatti-closeAnk (3 digits + 1 digit)  
+      return `${vals[0]}${vals[1]}${vals[2]}-${vals[3]}`;
+    }
     if (gameType.key === 'FULL_SANGAM' && vals.length === 6)
       return `${vals[0]}${vals[1]}${vals[2]}-${vals[3]}${vals[4]}${vals[5]}`;
     return vals.join('');
@@ -285,6 +289,24 @@ export default function MatkaPage() {
   const addToCart = () => {
     if (!readyToAdd) return toast.warning(`Select ${gameType.maxSelect} digit${gameType.maxSelect > 1 ? 's' : ''} first`);
     if (market.status === 'CLOSED') return toast.error('Market is closed');
+    // Validate Triple Patti — all 3 digits must be same (111,222...999)
+    if (gameType.key === 'TRIPLE_PATTI') {
+      const vals = selectedStateIndices.map((x:any) => x.d);
+      if (!(vals[0]===vals[1] && vals[1]===vals[2])) return toast.error('Triple Patti: all 3 digits must be same (111, 222, 333...)');
+    }
+    // Validate Double Patti — exactly 2 same digits, 1 different (NOT all same)
+    if (gameType.key === 'DOUBLE_PATTI') {
+      const vals = selectedStateIndices.map((x:any) => x.d).sort();
+      const allSame = vals[0]===vals[1] && vals[1]===vals[2];
+      const hasPair = vals[0]===vals[1] || vals[1]===vals[2];
+      if (allSame || !hasPair) return toast.error('Double Patti: exactly 2 same + 1 different digit (112, 223, 334...)');
+    }
+    // Validate Single Patti — all 3 digits must be different
+    if (gameType.key === 'SINGLE_PATTI') {
+      const vals = selectedStateIndices.map((x:any) => x.d);
+      const unique = new Set(vals).size;
+      if (unique < 3) return toast.error('Single Patti: all 3 digits must be different (123, 456...)');
+    }
     setCart(p => [...p, {
       market: market.name, label: gameType.label, session,
       value: betValue, amount, potential: amount * gameType.payout,

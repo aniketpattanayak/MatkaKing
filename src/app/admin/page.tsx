@@ -16,8 +16,8 @@ type Tab = 'overview'|'lottery'|'matka'|'spin'|'upi'|'users'|'payments'|'notific
 
 const TABS: { key: Tab; icon: string; label: string }[] = [
   { key: 'overview', icon: '', label: 'Overview'   },
-  { key: 'lottery',  icon: '', label: 'Lottery'    },
-  { key: 'matka',    icon: '', label: 'Matka King' },
+  { key: 'lottery',  icon: '', label: 'Lucky Winner'    },
+  { key: 'matka',    icon: '', label: 'Money Bank' },
   { key: 'spin',     icon: '', label: 'Spin Wheel' },
   { key: 'upi',      icon: '', label: 'UPI Pool'   },
   { key: 'users',    icon: '', label: 'Users'      },
@@ -793,7 +793,7 @@ export default function AdminPage() {
                     <div style={{textAlign:'center'}}>
                       <div style={{fontSize:60,marginBottom:16}}>{drawResult.type==='REAL'?'':''}</div>
                       <h3 style={{fontWeight:900,fontSize:24,marginBottom:8,color:drawResult.type==='REAL'?'#ffcb52':'var(--Secondary)'}}>
-                        {drawResult.type==='REAL'?'Real Winner Declared!':'Dummy Draw Complete'}
+                        {drawResult.type==='REAL'?'🏆 Real Draw Complete!':'🏠 House Win (Dummy)'}
                       </h3>
                       <div style={{background:'var(--Bg-3)',borderRadius:14,padding:'16px 20px',marginBottom:16,textAlign:'left'}}>
                         <div style={{display:'flex',justifyContent:'space-between',marginBottom:8,fontSize:14}}>
@@ -1397,7 +1397,7 @@ export default function AdminPage() {
               <div style={{display:'flex',gap:5,background:'var(--Bg-2)',borderRadius:12,padding:4,marginBottom:20,border:'1px solid var(--Border)',width:'fit-content'}}>
                 {(['lottery','matka','spin'] as const).map(g=>(
                   <button key={g} onClick={()=>setResultsTab(g)} style={{padding:'8px 20px',borderRadius:9,border:'none',cursor:'pointer',fontWeight:700,fontSize:13,background:resultsTab===g?'linear-gradient(270deg,#fe8c45,#ca2826)':'transparent',color:resultsTab===g?'#fff':'var(--Secondary)'}}>
-                    {g==='lottery'?'🎟 Lottery':g==='matka'?'🎲 Matka King':'🎡 Spin Wheel'}
+                    {g==='lottery'?'🎟 Lottery':g==='matka'?'🎲 Money Bank':'🎡 Spin Wheel'}
                   </button>
                 ))}
               </div>
@@ -1650,7 +1650,7 @@ export default function AdminPage() {
               <div className="center"><ul style={{ display:'flex', gap:24 }}>
                 <li><Link href="/">Home</Link></li>
                 <li><Link href="/games/lottery">Lottery</Link></li>
-                <li><Link href="/games/matka">Matka King</Link></li>
+                <li><Link href="/games/matka">Money Bank</Link></li>
               </ul></div>
               <div className="right"><span>© 2025 Supreme Gaming Engine</span></div>
             </div>

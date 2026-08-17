@@ -7,37 +7,38 @@ export async function GET(req: NextRequest) {
     if (!p) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const [matkaBets, lotteryBets, transactions] = await Promise.all([
-
-      // Matka bets — placedAt, wonAmount
       prisma.matkaBet.findMany({
         where:   { userId: p.sub },
-        orderBy: { placedAt: 'desc' },   // ✅ correct field
-        take:    20,
-        include: { market: { select: { name: true } } },
+        orderBy: { placedAt: 'desc' },
+        take:    50,
+        include: {
+          market: { select: { id: true, name: true, openTime: true, closeTime: true } },
+          result: { select: { openPatti: true, closePatti: true, jodi: true, openAnk: true, closeAnk: true } },
+        },
       }),
-
-      // Lottery bets — placedAt, wonAmount
       prisma.lotteryBet.findMany({
         where:   { userId: p.sub },
-        orderBy: { placedAt: 'desc' },   // ✅ correct field
-        take:    20,
+        orderBy: { placedAt: 'desc' },
+        take:    50,
         include: {
-          series: { select: { name: true, status: true, drawAt: true } },
+          series: { select: { id: true, name: true, status: true, drawAt: true, prefix: true, firstPrize: true, secondPrize: true, thirdPrize: true } },
           ticket: { select: { ticketCode: true, isWinner: true } },
         },
       }),
-
-      // Win transactions
       prisma.transaction.findMany({
         where:   { userId: p.sub, type: 'WIN_CREDIT' },
         orderBy: { createdAt: 'desc' },
-        take:    10,
+        take:    20,
       }),
     ]);
 
-    return NextResponse.json({ matkaBets, lotteryBets, transactions });
+    // Compute total stats
+    const totalMatkaWon = matkaBets.filter((b:any) => b.status === 'WON').reduce((s:number, b:any) => s + (b.wonAmount ?? 0), 0);
+    const totalLotteryWon = lotteryBets.filter((b:any) => b.status === 'WON').reduce((s:number, b:any) => s + (b.wonAmount ?? 0), 0);
+
+    return NextResponse.json({ matkaBets, lotteryBets, transactions, totalMatkaWon, totalLotteryWon });
   } catch (e: any) {
     console.error('user results error:', e.message);
-    return NextResponse.json({ error: e.message }, { status: 500 });
+    return NextResponse.json({ matkaBets: [], lotteryBets: [], transactions: [], totalMatkaWon: 0, totalLotteryWon: 0 });
   }
 }

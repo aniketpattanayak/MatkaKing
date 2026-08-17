@@ -233,7 +233,7 @@ export default function DashboardPage() {
                         </td>
                         <td style={{ padding:'13px 16px', fontSize:13 }}>{b.series?.name ?? '—'}</td>
                         <td style={{ padding:'13px 16px', fontSize:12, color:'var(--Secondary)' }}>
-                          {b.series?.drawAt ? new Date(b.series.drawAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—'}
+                          {b.series?.drawAt ? new Date(b.series.drawAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}
                         </td>
                         <td style={{ padding:'13px 16px', fontWeight:700, fontSize:13 }}>₹{b.amountPaid}</td>
                         <td style={{ padding:'13px 16px' }}>
@@ -284,17 +284,17 @@ export default function DashboardPage() {
                         </td>
                         <td style={{ padding:'12px 14px', fontWeight:700 }}>₹{b.amount}</td>
                         <td style={{ padding:'12px 14px', fontWeight:700, color:'#2ECC71' }}>
-                          {b.winAmount > 0 ? `₹${b.winAmount.toLocaleString()}` : '—'}
+                          {(b.wonAmount||b.winAmount||0)>0 ? <strong style={{color:'#2ECC71'}}>+₹{(b.wonAmount||b.winAmount).toLocaleString()}</strong> : <span style={{color:'var(--Secondary)'}}>—</span>}
                         </td>
                         <td style={{ padding:'12px 14px' }}>
                           <span style={{ padding:'2px 10px', borderRadius:999, fontSize:10, fontWeight:700,
                             background: b.status==='WON'?'rgba(46,204,113,0.15)':b.status==='LOST'?'rgba(239,68,68,0.1)':'rgba(255,203,82,0.15)',
                             color: statusColor(b.status) }}>
-                            {b.status}
+                            {b.status==='WON'?'🏆 WON':b.status==='LOST'?'❌ LOST':b.status==='ACTIVE'?'⏳ Active':b.status}
                           </span>
                         </td>
                         <td style={{ padding:'12px 14px', fontSize:11, color:'var(--Secondary)' }}>
-                          {new Date(b.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}
+                          {b.placedAt ? new Date(b.placedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—'}
                         </td>
                       </tr>
                     ))}
