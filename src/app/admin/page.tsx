@@ -1668,6 +1668,43 @@ export default function AdminPage() {
             </div>
           )}
 
+
+          {/* NOTIFICATIONS + MESSAGING */}
+          {tab==='notifications' && (
+            <div>
+              <div style={{background:'var(--Bg-2)',borderRadius:16,border:'1px solid var(--Border)',padding:24,marginBottom:20}}>
+                <h3 style={{fontWeight:900,fontSize:19,marginBottom:6}}>Send Message to User</h3>
+                <p style={{color:'var(--Secondary)',fontSize:13,marginBottom:20}}>Send to a specific user or broadcast to ALL users</p>
+                <div style={{display:'flex',flexDirection:'column',gap:14}}>
+                  <div>
+                    <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>User ID (blank = broadcast to all)</label>
+                    <input placeholder="Leave blank to send to ALL users" value={msgTo} onChange={e=>setMsgTo(e.target.value)} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none'}}/>
+                    {!msgTo && <p style={{fontSize:11,color:'#ffcb52',marginTop:4}}>Warning: empty = sends to ALL users</p>}
+                  </div>
+                  <div>
+                    <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Title</label>
+                    <input placeholder="e.g. Special Offer! New Lottery!" value={msgTitle} onChange={e=>setMsgTitle(e.target.value)} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none'}}/>
+                  </div>
+                  <div>
+                    <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Message</label>
+                    <textarea placeholder="Write your message to users..." value={msgBody} onChange={e=>setMsgBody(e.target.value)} rows={4} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none',resize:'vertical'}}/>
+                  </div>
+                  <button onClick={async()=>{
+                    if(!msgTitle||!msgBody){toast.error('Title and message required');return;}
+                    setMsgSending(true);
+                    const r=await authFetch('/api/admin/messages',{method:'POST',body:JSON.stringify({userId:msgTo||undefined,title:msgTitle,message:msgBody})});
+                    const d=await r.json();
+                    if(d.ok){toast.success(msgTo?'Message sent!':'Broadcast sent to all users!');setMsgTitle('');setMsgBody('');setMsgTo('');}
+                    else toast.error(d.error??'Failed');
+                    setMsgSending(false);
+                  }} disabled={msgSending} style={{height:48,borderRadius:12,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontWeight:900,fontSize:15,cursor:'pointer',opacity:msgSending?0.6:1}}>
+                    {msgSending?'Sending...':(msgTo?'Send Message':'Broadcast to All Users')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
