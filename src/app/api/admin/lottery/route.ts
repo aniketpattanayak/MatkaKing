@@ -93,6 +93,25 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Delete series ────────────────────────────────────────────────────────
+    if (action === 'extend_series') {
+      if (!seriesId) return NextResponse.json({ error:'seriesId required' },{ status:400 });
+      const count = Number(body.count || 100);
+      const series = await prisma.lotterySeries.findUnique({ where:{ id:seriesId } });
+      if (!series) return NextResponse.json({ error:'Series not found' },{ status:404 });
+      // Find last ticket number
+      const last = await prisma.lotteryTicket.findFirst({ where:{ seriesId }, orderBy:{ ticketCode:'desc' } });
+      const lastNum = last ? parseInt(last.ticketCode.replace(series.prefix,'')) : series.endNumber;
+      const newEnd = lastNum + count;
+      const padLen = Math.max(4, String(newEnd).length);
+      const batch = [];
+      for (let i = lastNum+1; i <= newEnd; i++) {
+        batch.push({ seriesId, ticketCode: series.prefix+String(i).padStart(padLen,'0'), isSold:false, isWinner:false });
+      }
+      await prisma.lotteryTicket.createMany({ data:batch, skipDuplicates:true });
+      await prisma.lotterySeries.update({ where:{id:seriesId}, data:{ endNumber:newEnd } });
+      return NextResponse.json({ ok:true, added:count, newEnd });
+    }
+
     if (action === 'delete_series') {
       if (!seriesId) return NextResponse.json({ error: 'seriesId required' }, { status: 400 });
       await prisma.lotteryBet.deleteMany({ where: { seriesId } });
