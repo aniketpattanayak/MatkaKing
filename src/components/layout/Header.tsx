@@ -13,7 +13,11 @@ export default function Header() {
   const router      = useRouter();
   const path        = usePathname();
   const [user,    setUser]    = useState<SessionUser | null>(null);
-  const [modal,   setModal]   = useState<'login'|'register'|null>(null);
+  const [modal,   setModal]   = useState<'login'|'register'|'forgot'|null>(null);
+  const [forgotStep, setForgotStep] = useState<'email'|'reset'>('email');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotNew,   setForgotNew]   = useState('');
+  const [forgotName,  setForgotName]  = useState('');
   const [loading, setLoading] = useState(false);
   const [form,    setForm]    = useState({ name:'', email:'', password:'', confirm:'', referralCode:'' });
   const [dropdown,setDropdown]= useState(false);
@@ -36,6 +40,24 @@ export default function Header() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Forgot password flow
+    if (modal === 'forgot') {
+      setLoading(true);
+      try {
+        if (forgotStep === 'email') {
+          const r = await fetch('/api/auth/forgot-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'check_email', email: forgotEmail }) });
+          const d = await r.json();
+          if (d.ok) { setForgotName(d.name); setForgotStep('reset'); }
+          else toast.error(d.error ?? 'Email not found');
+        } else {
+          const r = await fetch('/api/auth/forgot-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'reset_password', email: forgotEmail, newPassword: forgotNew }) });
+          const d = await r.json();
+          if (d.ok) { toast.success('Password reset! Please login.'); setModal('login'); setForgotStep('email'); setForgotEmail(''); setForgotNew(''); }
+          else toast.error(d.error ?? 'Reset failed');
+        }
+      } finally { setLoading(false); }
+      return;
+    }
     if (modal === 'register' && form.password !== form.confirm) return toast.error('Passwords do not match');
     setLoading(true);
     try {
@@ -75,7 +97,7 @@ export default function Header() {
       {topBar && (
         <div className="tf-top-bar">
           <div className="content">
-            <p>Supreme Gaming Engine — Lottery · Matka King · Spin Wheel</p>
+            <p>Supreme Gaming Engine — Lucky Winner · Money Bank</p>
             {user
               ? <span style={{ color:'#ffcb52', fontWeight:700, display:'flex', alignItems:'center', gap:6 }}>
                   <Coins size={14}/> {user.balance.toLocaleString()} Coins
@@ -310,13 +332,27 @@ export default function Header() {
 
             <div style={{ padding:'28px 32px 32px' }}>
               <h3 style={{ fontWeight:900, fontSize:22, marginBottom:4 }}>
-                {modal==='login'?'Welcome Back':'Create Account'}
+                {modal==='login'?'Welcome Back':modal==='forgot'?'🔐 Reset Password':'Create Account'}
               </h3>
               <p style={{ color:'var(--Secondary)', fontSize:13, marginBottom:24 }}>
-                {modal==='login'?'Access your wallet & games':'Sign up and get 50 FREE coins instantly!'}
+                {modal==='login'?'Access your wallet & games':modal==='forgot'?'Enter your email to reset password':'Sign up and get 50 FREE coins instantly!'}
               </p>
 
               <form onSubmit={submit} style={{ display:'flex', flexDirection:'column', gap:14 }}>
+                {/* Forgot password fields */}
+                {modal==='forgot' && forgotStep==='email' && (
+                  <input placeholder="Enter your registered email" type="email" value={forgotEmail}
+                    onChange={e=>setForgotEmail(e.target.value)}
+                    style={{width:'100%',padding:'13px 16px',borderRadius:12,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:15,outline:'none',marginBottom:12}}/>
+                )}
+                {modal==='forgot' && forgotStep==='reset' && (
+                  <div>
+                    <p style={{color:'#2ECC71',fontSize:13,marginBottom:12,fontWeight:600}}>✓ Account found: {forgotName}</p>
+                    <input placeholder="Enter new password (min 6 chars)" type="password" value={forgotNew}
+                      onChange={e=>setForgotNew(e.target.value)}
+                      style={{width:'100%',padding:'13px 16px',borderRadius:12,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:15,outline:'none',marginBottom:12}}/>
+                  </div>
+                )}
                 {modal==='register' && (
                   <input placeholder="Full Name" value={form.name}
                     onChange={e=>setForm({...form,name:e.target.value})} style={inp}/>
@@ -338,7 +374,7 @@ export default function Header() {
                 <button type="submit" disabled={loading} className="tf-btn" style={{
                   width:'100%', justifyContent:'center', height:50, fontSize:15, marginTop:4, opacity:loading?0.6:1
                 }}>
-                  {loading?'Please wait...':modal==='login'?'Login':'Create Free Account'}
+                  {loading?'Please wait...':modal==='login'?'Login':modal==='forgot'?'Reset Password':'Create Free Account'}
                 </button>
               </form>
 

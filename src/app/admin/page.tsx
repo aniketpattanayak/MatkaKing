@@ -84,6 +84,7 @@ export default function AdminPage() {
   const [festLoading,  setFestLoading]  = useState(false);
   const [wdSettings,   setWdSettings]   = useState({ minWithdraw:'100', maxWithdraw:'50000', withdrawPerDay:'1' });
   const [wdSaving,     setWdSaving]     = useState(false);
+  const [dailyStats,   setDailyStats]   = useState<any>(null);
   const [results,        setResults]        = useState<any>({ lottery:[], matka:[], spin:[], spinStats:{} });
   const [resultsTab,     setResultsTab]     = useState<'lottery'|'matka'|'spin'>('lottery');
   const [resultsLoading, setResultsLoading] = useState(false);
@@ -134,6 +135,8 @@ export default function AdminPage() {
       ]);
 
       setData({ upis: upiD.upis ?? [], markets: mkD.markets ?? [], series: lD.series ?? [], spinConfig: sD.config, users: [] });
+      // Load daily stats
+      authFetch('/api/admin/daily-stats').then(r=>r.json()).then(d=>{ if(!d.error) setDailyStats(d); }).catch(()=>{});
       if (sD.config) setSForm({ costPerSpin: String(sD.config.costPerSpin ?? 10), freeSpinInterval: String(sD.config.freeSpinInterval ?? 6) });
 
       // Auto-seed markets if none exist
@@ -639,6 +642,27 @@ export default function AdminPage() {
 
           {/* ── LOTTERY ── */}
 
+          {tab==='overview' && dailyStats && (
+            <div style={{marginBottom:24}}>
+              <h4 style={{fontWeight:800,fontSize:16,marginBottom:14}}>📊 Today's Stats — {dailyStats.date}</h4>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:12}}>
+                {[
+                  {label:'Lottery Tickets Sold',value:dailyStats.lotteryTicketsSoldToday,color:'#ffcb52',icon:'🎟'},
+                  {label:'Matka Bets Today',value:dailyStats.matkaBetsToday,color:'#9B59B6',icon:'🎲'},
+                  {label:'Active Users Today',value:dailyStats.activeUsersToday,color:'#2ECC71',icon:'👥'},
+                  {label:'Total Deposit Today',value:`₹${(dailyStats.depositToday??0).toLocaleString()}`,color:'#3498DB',icon:'💰'},
+                  {label:'Total Withdraw Today',value:`₹${(dailyStats.withdrawToday??0).toLocaleString()}`,color:'#ef4444',icon:'💸'},
+                  {label:'Total Users',value:dailyStats.totalUsers,color:'var(--Secondary)',icon:'🏦'},
+                ].map(s=>(
+                  <div key={s.label} style={{...card,padding:'16px 18px'}}>
+                    <p style={{fontSize:20,marginBottom:6}}>{s.icon}</p>
+                    <p style={{fontSize:11,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:4}}>{s.label}</p>
+                    <p style={{fontWeight:900,fontSize:20,color:s.color}}>{s.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {/* Withdrawal Settings */}
           {tab==='overview' && (
             <div style={{marginTop:24}}>
