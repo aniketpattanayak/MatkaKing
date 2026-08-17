@@ -24,8 +24,9 @@ export async function POST(req: NextRequest) {
     // Look up referrer if a code was supplied
     let referrer: { id: string } | null = null;
     if (referralCode && String(referralCode).trim() !== '') {
-      referrer = await prisma.user.findUnique({
-        where: { referralCode: String(referralCode).trim().toUpperCase() },
+      const code = String(referralCode).trim();
+      referrer = await prisma.user.findFirst({
+        where: { referralCode: { equals: code, mode: 'insensitive' } },
         select: { id: true },
       });
       if (!referrer) {
@@ -96,7 +97,7 @@ export async function POST(req: NextRequest) {
         email: user.email,
         role: user.role,
         balance: user.wallet?.balance ?? initialBalance,
-        referralCode: user.referralCode?.toUpperCase(),
+        referralCode: user.referralCode,
       },
       referralApplied: !!referrer,
       referrerBonusAwarded: referrer ? REFERRER_BONUS_COINS : 0,
