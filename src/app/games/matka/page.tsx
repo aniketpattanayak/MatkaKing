@@ -361,7 +361,7 @@ export default function MatkaPage() {
       <Header />
       <div style={{ paddingTop:140, textAlign:'center', color:'var(--Secondary)', minHeight:'60vh', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:16 }}>
         <div style={{ width:52, height:52, border:'4px solid rgba(254,140,69,0.15)', borderTop:'4px solid #fe8c45', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}/>
-        <p style={{ fontSize:15, fontWeight:600 }}>Loading Matka King...</p>
+        <p style={{ fontSize:15, fontWeight:600 }}>Loading Money Bank...</p>
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     </>
@@ -389,7 +389,7 @@ export default function MatkaPage() {
       <div style={{ paddingTop:120, minHeight:'100vh' }}>
         <div className="tf-container" style={{ paddingTop:40, paddingBottom:60 }}>
           <div style={{ textAlign:'center', marginBottom:40 }}>
-            <h1 style={{ fontWeight:900, fontSize:36, marginBottom:10 }}>Matka King</h1>
+            <h1 style={{ fontWeight:900, fontSize:36, marginBottom:10 }}>Money Bank</h1>
             <p style={{ color:'var(--Secondary)', fontSize:16 }}>Select a market to start playing</p>
           </div>
 
@@ -897,7 +897,7 @@ export default function MatkaPage() {
             <div className="wrapper">
               <div className="center"><ul style={{ display: 'flex', gap: 24 }}>
                 <li><Link href="/">Home</Link></li>
-                <li><Link href="/games/lottery">Lottery</Link></li>
+                <li><Link href="/games/lottery">Lucky Winner</Link></li>
                 <li><Link href="/games/spin">Spin Wheel</Link></li>
               </ul></div>
               <div className="right"><span>© 2025 Supreme Gaming Engine</span></div>

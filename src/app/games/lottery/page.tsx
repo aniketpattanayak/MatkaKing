@@ -161,9 +161,9 @@ export default function LotteryPage() {
       <div style={{ paddingTop: 140, textAlign: 'center', color: 'var(--Secondary)', minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div>
           <div style={{ fontSize: 64, marginBottom: 16 }}>🎟️</div>
-          <h2 style={{ fontWeight: 900, fontSize: 24, marginBottom: 12, color: 'var(--White)' }}>No Lottery Series Available</h2>
+          <h2 style={{ fontWeight: 900, fontSize: 24, marginBottom: 12, color: 'var(--White)' }}>No Lucky Winner Series Available</h2>
           <p style={{ fontSize: 14, marginBottom: 24 }}>The admin hasn't created any lottery series yet.</p>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Admin → Lottery tab → Create New Series</p>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Admin → Lucky Winner tab → Create New Series</p>
         </div>
       </div>
     </>
@@ -175,7 +175,7 @@ export default function LotteryPage() {
 
       <div style={{ background: 'linear-gradient(180deg,#0d0b2a,var(--Bg))', paddingTop: 130, paddingBottom: 40, textAlign: 'center' }}>
         <div className="tf-container">
-          <h1 style={{ fontWeight: 900, fontSize: 44, marginBottom: 8 }}>🎟️ Lottery</h1>
+          <h1 style={{ fontWeight: 900, fontSize: 44, marginBottom: 8 }}>🎟️ Lucky Winner</h1>
           <p style={{ color: 'var(--Secondary)', fontSize: 15 }}>Search · Bulk Buy · Alphanumeric series tickets</p>
           {loggedIn && (
             <div style={{ display: 'inline-flex', marginTop: 14, background: 'rgba(255,203,82,0.1)', border: '1px solid rgba(255,203,82,0.3)', borderRadius: 999, padding: '7px 22px' }}>
@@ -318,7 +318,7 @@ export default function LotteryPage() {
             <div className="wrapper">
               <div className="center"><ul style={{ display: 'flex', gap: 24 }}>
                 <li><Link href="/">Home</Link></li>
-                <li><Link href="/games/matka">Matka King</Link></li>
+                <li><Link href="/games/matka">Money Bank</Link></li>
                 <li><Link href="/games/spin">Spin Wheel</Link></li>
               </ul></div>
               <div className="right"><span>© 2025 Supreme Gaming Engine</span></div>
