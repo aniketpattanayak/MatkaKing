@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
       prisma.matkaMarket.findMany({
         include: {
           _count: { select: { bets: true } },
-          results: { take: 1, orderBy: { createdAt: 'desc' } },
+          results: { where: { createdAt: { gte: new Date(new Date().setHours(0,0,0,0)) } }, take: 1, orderBy: { createdAt: 'desc' } },
         },
       }),
       // BetStatus enum values: ACTIVE, WON, LOST, REFUNDED

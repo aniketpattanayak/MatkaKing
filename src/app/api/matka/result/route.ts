@@ -63,8 +63,16 @@ export async function POST(req: NextRequest) {
       where: { marketId, openPatti: { not: null } },
       orderBy: { createdAt: 'desc' },
     });
-    if (todayResult?.openPatti && ['JODI','FULL_SANGAM'].includes(norm.enum)) {
-      return NextResponse.json({ error: 'Jodi and Full Sangam bets are not allowed after Open result is declared.' }, { status: 400 });
+    if (todayResult?.openPatti) {
+      // After open declared: block Jodi, Full Sangam, and open-session patti bets
+      if (['JODI','FULL_SANGAM'].includes(norm.enum)) {
+        return NextResponse.json({ error: 'Jodi and Full Sangam not allowed after Open is declared.' }, { status: 400 });
+      }
+      const openSideBets = ['SINGLE_ANK','SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'];
+      const finalSession = session ?? 'OPEN';
+      if (openSideBets.includes(norm.enum) && finalSession === 'OPEN') {
+        return NextResponse.json({ error: 'Open-side bets not allowed after Open result is declared. Place Close-side bets only.' }, { status: 400 });
+      }
     }
     if (market.isResultDeclared) return NextResponse.json({ error: 'Result already declared' }, { status: 400 });
     if (!wallet || wallet.balance < amount)

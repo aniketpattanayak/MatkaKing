@@ -31,6 +31,10 @@ export async function POST(req: NextRequest) {
     if (action === 'create_series') {
       if (!name || !prefix || !ticketPrice || !totalTickets || !drawAt)
         return NextResponse.json({ error: 'All fields required' }, { status: 400 });
+      // Prevent backdated lottery
+      const drawDate = new Date(drawAt.includes('T') && !drawAt.includes('Z') && !drawAt.includes('+') ? drawAt+'+05:30' : drawAt);
+      if (drawDate <= new Date())
+        return NextResponse.json({ error: 'Draw date must be in the future. Cannot create backdated lottery.' }, { status: 400 });
       const fp = Number(firstPrize  || 0);
       const sp = Number(secondPrize || 0);
       const tp = Number(thirdPrize  || 0);

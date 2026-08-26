@@ -6,6 +6,14 @@ export const revalidate = 0;
 
 export async function GET() {
   try {
+    // Close series automatically 30 mins before draw time
+    const now = new Date();
+    const thirtyMinsFromNow = new Date(now.getTime() + 30 * 60 * 1000);
+    await prisma.lotterySeries.updateMany({
+      where: { status: 'OPEN', isActive: true, drawAt: { lte: thirtyMinsFromNow } },
+      data: { status: 'CLOSED' },
+    });
+
     const series = await prisma.lotterySeries.findMany({
       where: {
         status: { in: ['OPEN', 'CLOSED'] },

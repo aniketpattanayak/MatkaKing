@@ -20,9 +20,9 @@ const FALLBACK_MARKETS = [
 const GAME_TYPES = [
   { key: 'ANK',          label: 'Ank',        payout: 90,    maxSelect: 1, desc: 'Pick 1 digit (0-9)', disableAfterOpen: false },
   { key: 'JODI',         label: 'Jodi',        payout: 900,   maxSelect: 2, desc: 'Pick 2-digit jodi (00-99)', disableAfterOpen: true },
-  { key: 'SINGLE_PATTI', label: 'SP',          payout: 140,   maxSelect: 3, desc: 'SP: All 3 digits different (e.g. 123, 456, 789) — Win ×140', disableAfterOpen: false },
-  { key: 'DOUBLE_PATTI', label: 'DP',          payout: 280,   maxSelect: 3, desc: 'DP: Exactly 2 same digits (e.g. 112, 223, 344) — Win ×280', disableAfterOpen: false },
-  { key: 'TRIPLE_PATTI', label: 'TP',          payout: 450,   maxSelect: 3, desc: 'TP: All 3 digits same (e.g. 111, 222, 333) — Win ×450', disableAfterOpen: false },
+  { key: 'SINGLE_PATTI', label: 'SP',          payout: 140,   maxSelect: 3, desc: 'SP: All 3 digits different (e.g. 123, 456, 789) — Win ×140', disableAfterOpen: false, openSessionOnly: false },
+  { key: 'DOUBLE_PATTI', label: 'DP',          payout: 280,   maxSelect: 3, desc: 'DP: Exactly 2 same digits (e.g. 112, 223, 344) — Win ×280', disableAfterOpen: false, openSessionOnly: false },
+  { key: 'TRIPLE_PATTI', label: 'TP',          payout: 450,   maxSelect: 3, desc: 'TP: All 3 digits same (e.g. 111, 222, 333) — Win ×450', disableAfterOpen: false, openSessionOnly: false },
   { key: 'HALF_SANGAM',  label: 'Half Sangam', payout: 1500,  maxSelect: 4, desc: 'Ank + Patti combination', disableAfterOpen: false },
   { key: 'FULL_SANGAM',  label: 'Full Sangam', payout: 11000, maxSelect: 6, desc: 'Open Patti + Close Patti', disableAfterOpen: true },
 ];
@@ -186,6 +186,9 @@ export default function MatkaPage() {
   // Increments every time session flips → forces drums to re-scroll to correct digit
   const [scrollTrigger, setScrollTrigger]= useState(0);
 
+  // Auto-switch to CLOSE session if open is declared
+  const autoSession = openDeclared ? 'CLOSE' : session;
+
   const switchSession = (s: 'OPEN'|'CLOSE') => {
     setSession(s);
     // Small delay so columns re-render in new mirrored positions first, then scroll
@@ -312,6 +315,13 @@ export default function MatkaPage() {
   const addToCart = () => {
     if (!readyToAdd) return toast.warning(`Select ${gameType.maxSelect} digit${gameType.maxSelect > 1 ? 's' : ''} first`);
     if (market.status === 'CLOSED') return toast.error('Market is closed');
+    // Block open-session bets after open is declared
+    if (openDeclared && session === 'OPEN' && !['HALF_SANGAM','FULL_SANGAM'].includes(gameType.key)) {
+      return toast.error('Open result declared. Only Close-side bets allowed now.');
+    }
+    if (openDeclared && ['JODI','FULL_SANGAM'].includes(gameType.key)) {
+      return toast.error('Jodi and Full Sangam not allowed after Open is declared.');
+    }
     // Auto-switch patti type based on digit pattern AND add to cart
     if (['SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key) && autoClassifiedType && autoClassifiedType !== gameType.key) {
       const correctType = GAME_TYPES.find(g => g.key === autoClassifiedType);

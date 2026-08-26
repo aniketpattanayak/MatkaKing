@@ -257,7 +257,13 @@ export default function LotteryPage() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <span style={{ fontWeight: 700, fontSize: 16 }}>{available.length} available tickets</span>
+                <span style={{ fontWeight: 700, fontSize: 16 }}>
+                  <span style={{ color:'#2ECC71' }}>{available.length} available</span>
+                  <span style={{ color:'var(--Secondary)', margin:'0 8px' }}>·</span>
+                  <span style={{ color:'#ef4444' }}>{tickets.length - available.length} sold</span>
+                  <span style={{ color:'var(--Secondary)', margin:'0 8px' }}>·</span>
+                  <span style={{ color:'var(--Secondary)' }}>{tickets.length} total</span>
+                </span>
                 {selected.size > 0 && <span style={{ color: 'var(--Main-color)', fontWeight: 700 }}>{selected.size} selected · ₹{cost.toLocaleString()}</span>}
               </div>
 

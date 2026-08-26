@@ -18,7 +18,12 @@ export async function GET() {
       where: { isActive: true },
       orderBy: { openTime: 'asc' },
       include: {
-        results: { orderBy: { createdAt: 'desc' }, take: 1, select: { id:true, openPatti:true, closePatti:true, openAnk:true, closeAnk:true, jodi:true, declaredAt:true, totalPayout:true } },
+        results: { 
+          where: { createdAt: { gte: new Date(new Date().setHours(0,0,0,0)) } },
+          orderBy: { createdAt: 'desc' }, 
+          take: 1, 
+          select: { id:true, openPatti:true, closePatti:true, openAnk:true, closeAnk:true, jodi:true, declaredAt:true, totalPayout:true } 
+        },
       },
     });
     const enriched = markets.map((m: any) => {

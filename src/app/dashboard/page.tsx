@@ -258,6 +258,7 @@ export default function DashboardPage() {
                 <h4 style={{ fontWeight:700, fontSize:15 }}>My Matka Bets ({matkaBets.length})</h4>
                 <Link href="/games/matka" className="tf-btn" style={{ height:36, fontSize:12, padding:'0 16px' }}>Place Bet</Link>
               </div>
+              {matkaBets.length > 0 && <p style={{fontSize:12,color:'var(--Secondary)',padding:'8px 14px',borderBottom:'1px solid var(--Border)'}}>{matkaBets.filter((b:any)=>b.status==='ACTIVE').length} active · {matkaBets.filter((b:any)=>b.status==='WON').length} won · {matkaBets.filter((b:any)=>b.status==='LOST').length} lost</p>}
               {matkaBets.length === 0 ? (
                 <div style={{ padding:'60px', textAlign:'center', color:'var(--Secondary)' }}>
                   <Dices size={48} style={{ marginBottom:16, opacity:0.3 }}/>
@@ -265,8 +266,9 @@ export default function DashboardPage() {
                   <Link href="/games/matka" className="tf-btn" style={{ height:44, fontSize:14, padding:'0 28px' }}>Play Matka</Link>
                 </div>
               ) : (
+                <div style={{maxHeight:400,overflowY:'auto'}}>
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                  <thead><tr style={{ background:'rgba(0,0,0,0.2)' }}>
+                  <thead><tr style={{ background:'rgba(0,0,0,0.2)', position:'sticky', top:0, zIndex:1 }}>
                     {['Market','Bet Type','Number','Session','Amount','Win Amount','Status','Date'].map(h=>(
                       <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:11, fontWeight:700, color:'var(--Secondary)', textTransform:'uppercase' }}>{h}</th>
                     ))}
