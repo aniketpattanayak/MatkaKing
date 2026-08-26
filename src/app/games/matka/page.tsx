@@ -20,9 +20,9 @@ const FALLBACK_MARKETS = [
 const GAME_TYPES = [
   { key: 'ANK',          label: 'Ank',        payout: 90,    maxSelect: 1, desc: 'Pick 1 digit (0-9)', disableAfterOpen: false },
   { key: 'JODI',         label: 'Jodi',        payout: 900,   maxSelect: 2, desc: 'Pick 2-digit jodi (00-99)', disableAfterOpen: true },
-  { key: 'SINGLE_PATTI', label: 'SP',          payout: 140,   maxSelect: 3, desc: 'All 3 digits different (123, 456...)', disableAfterOpen: false },
-  { key: 'DOUBLE_PATTI', label: 'DP',          payout: 280,   maxSelect: 3, desc: '2 same + 1 different (112, 223...)', disableAfterOpen: false },
-  { key: 'TRIPLE_PATTI', label: 'TP',          payout: 450,   maxSelect: 3, desc: 'All 3 same (111, 222, 333...)', disableAfterOpen: false },
+  { key: 'SINGLE_PATTI', label: 'SP',          payout: 140,   maxSelect: 3, desc: 'SP: All 3 digits different (e.g. 123, 456, 789) — Win ×140', disableAfterOpen: false },
+  { key: 'DOUBLE_PATTI', label: 'DP',          payout: 280,   maxSelect: 3, desc: 'DP: Exactly 2 same digits (e.g. 112, 223, 344) — Win ×280', disableAfterOpen: false },
+  { key: 'TRIPLE_PATTI', label: 'TP',          payout: 450,   maxSelect: 3, desc: 'TP: All 3 digits same (e.g. 111, 222, 333) — Win ×450', disableAfterOpen: false },
   { key: 'HALF_SANGAM',  label: 'Half Sangam', payout: 1500,  maxSelect: 4, desc: 'Ank + Patti combination', disableAfterOpen: false },
   { key: 'FULL_SANGAM',  label: 'Full Sangam', payout: 11000, maxSelect: 6, desc: 'Open Patti + Close Patti', disableAfterOpen: true },
 ];
@@ -179,6 +179,7 @@ export default function MatkaPage() {
 
   const [amount,        setAmount]       = useState(20);
   const [cart,          setCart]         = useState<CartItem[]>([]);
+  const [todayBets,     setTodayBets]     = useState<any[]>([]);
   const [balance,       setBalance]      = useState(0);
   const [loggedIn,      setLoggedIn]     = useState(false);
   const [buying,        setBuying]       = useState(false);
@@ -217,6 +218,10 @@ export default function MatkaPage() {
         }));
         setAllMarkets(normalized);
         setMarket(normalized[0]); // preselect but don't show game yet
+      // Load today's bets
+      authFetch('/api/user/results').then(r=>r.json()).then(d=>{
+        if(d.matkaBets) setTodayBets(d.matkaBets.slice(0,20));
+      }).catch(()=>{});
       })
       .catch(() => {
         setAllMarkets(FALLBACK_allMarkets.map(m => ({...m, open:m.openTime,close:m.closeTime,result:m.resultTime,status:m.isOpen?'OPEN':'CLOSED',patti:'???-?',jodi:'??'})));
@@ -307,13 +312,18 @@ export default function MatkaPage() {
   const addToCart = () => {
     if (!readyToAdd) return toast.warning(`Select ${gameType.maxSelect} digit${gameType.maxSelect > 1 ? 's' : ''} first`);
     if (market.status === 'CLOSED') return toast.error('Market is closed');
-    // Auto-switch patti type based on digit pattern
+    // Auto-switch patti type based on digit pattern AND add to cart
     if (['SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key) && autoClassifiedType && autoClassifiedType !== gameType.key) {
       const correctType = GAME_TYPES.find(g => g.key === autoClassifiedType);
       if (correctType) {
-        setGameType(correctType);
-        toast.info(`Auto-switched to ${correctType.label} based on your digits!`);
-        return; // let user re-click add with correct type
+        // Add to cart with the correct type immediately
+        setCart(p => [...p, {
+          market: market.name, label: correctType.label, session,
+          value: betValue, amount, potential: amount * correctType.payout,
+        }]);
+        setDigits(Array(NUM_COLS).fill(null));
+        toast.success(`Auto-classified as ${correctType.label}: ${betValue} added to cart!`);
+        return;
       }
     }
     setCart(p => [...p, {
@@ -345,6 +355,12 @@ export default function MatkaPage() {
     setBalance(p => { const nb = p - totalBet; const cu = getCachedUser(); if (cu) setCachedUser({...cu, balance: nb}); return nb; });
     toast.success(`🎰 ${cart.length} bets placed! Potential ₹${totalPot.toLocaleString()}`);
     setCart([]);
+    // Reload today's bets
+    if (market?.id) {
+      authFetch(`/api/user/results`).then(r=>r.json()).then(d=>{
+        if(d.matkaBets) setTodayBets(d.matkaBets.filter((b:any)=>b.marketId===market.id));
+      }).catch(()=>{});
+    }
     setBuying(false);
   };
 
@@ -866,6 +882,45 @@ export default function MatkaPage() {
                   </>
                 )}
               </div>
+
+              {/* Today's Bets */}
+              {todayBets.filter(b=>b.marketId===market?.id).length > 0 && (
+                <div style={{background:'var(--Bg-2)',borderRadius:14,border:'1px solid var(--Border)',overflow:'hidden'}}>
+                  <div style={{padding:'12px 14px',borderBottom:'1px solid var(--Border)',background:'rgba(0,0,0,0.15)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <h4 style={{fontWeight:900,fontSize:14}}>📋 Today's Bets</h4>
+                    <span style={{fontSize:11,color:'var(--Secondary)'}}>{todayBets.filter(b=>b.marketId===market?.id).length} bets</span>
+                  </div>
+                  <div style={{maxHeight:200,overflowY:'auto'}}>
+                    {todayBets.filter(b=>b.marketId===market?.id).map((b:any,i:number)=>(
+                      <div key={i} style={{
+                        padding:'9px 12px',
+                        borderBottom:'1px solid rgba(255,255,255,0.03)',
+                        display:'flex',justifyContent:'space-between',alignItems:'center',
+                        background: b.status==='WON' ? 'rgba(46,204,113,0.08)' : 'transparent',
+                        borderLeft: b.status==='WON' ? '3px solid #2ECC71' : b.status==='LOST' ? '3px solid #ef4444' : '3px solid transparent',
+                      }}>
+                        <div>
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <span style={{fontFamily:'monospace',fontWeight:900,fontSize:16,color: b.status==='WON'?'#2ECC71':'#ffcb52'}}>{b.betValue}</span>
+                            <span style={{fontSize:9,borderRadius:999,padding:'1px 6px',fontWeight:700,
+                              background:b.session==='OPEN'?'rgba(46,204,113,0.15)':'rgba(52,152,219,0.15)',
+                              color:b.session==='OPEN'?'#2ECC71':'#3498DB'}}>{b.session}</span>
+                            {b.status==='WON' && <span style={{fontSize:10,fontWeight:700,color:'#2ECC71',background:'rgba(46,204,113,0.15)',padding:'1px 8px',borderRadius:999}}>🏆 WON</span>}
+                            {b.status==='LOST' && <span style={{fontSize:10,fontWeight:700,color:'#ef4444',background:'rgba(239,68,68,0.1)',padding:'1px 8px',borderRadius:999}}>❌ LOST</span>}
+                            {b.status==='ACTIVE' && <span style={{fontSize:10,fontWeight:700,color:'#ffcb52',background:'rgba(255,203,82,0.1)',padding:'1px 8px',borderRadius:999}}>⏳ Active</span>}
+                          </div>
+                          <div style={{fontSize:10,color:'var(--Secondary)',marginTop:1}}>{b.betType}</div>
+                        </div>
+                        <div style={{textAlign:'right'}}>
+                          <div style={{fontWeight:700,fontSize:13}}>₹{b.amount}</div>
+                          {b.status==='WON' && <div style={{fontSize:11,color:'#2ECC71',fontWeight:700}}>+₹{(b.wonAmount??0).toLocaleString()}</div>}
+                          {b.status!=='WON' && <div style={{fontSize:10,color:'#2ECC71'}}>→₹{(b.potentialWin??0).toLocaleString()}</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Game Rates */}
               <div style={{ background: 'var(--Bg-2)', borderRadius: 14, padding: '13px 15px', border: '1px solid var(--Border)' }}>
