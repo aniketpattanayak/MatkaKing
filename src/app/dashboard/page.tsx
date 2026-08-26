@@ -266,9 +266,8 @@ export default function DashboardPage() {
                   <Link href="/games/matka" className="tf-btn" style={{ height:44, fontSize:14, padding:'0 28px' }}>Play Matka</Link>
                 </div>
               ) : (
-                <div style={{maxHeight:400,overflowY:'auto'}}>
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                  <thead><tr style={{ background:'rgba(0,0,0,0.2)', position:'sticky', top:0, zIndex:1 }}>
+                  <thead><tr style={{ background:'rgba(0,0,0,0.2)' }}>
                     {['Market','Bet Type','Number','Session','Amount','Win Amount','Status','Date'].map(h=>(
                       <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:11, fontWeight:700, color:'var(--Secondary)', textTransform:'uppercase' }}>{h}</th>
                     ))}
