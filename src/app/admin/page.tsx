@@ -1218,7 +1218,6 @@ export default function AdminPage() {
                       </div>
                       <input placeholder="e.g. 123" maxLength={3} value={mResult.openPatti} 
                         readOnly={!!(data.markets.find((m:any)=>m.id===mResult.marketId)?.results?.[0]?.openPatti)}
-                        style_extra={{opacity: data.markets.find((m:any)=>m.id===mResult.marketId)?.results?.[0]?.openPatti ? 0.6 : 1}}
                         onChange={async e=>{
                         try {
                           const v=e.target.value.replace(/\D/g,'');
@@ -1306,7 +1305,7 @@ export default function AdminPage() {
                             ))}
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   )}
                   {/* Live preview */}
