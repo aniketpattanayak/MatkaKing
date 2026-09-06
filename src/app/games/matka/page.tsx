@@ -188,6 +188,12 @@ export default function MatkaPage() {
 
   // Auto-switch to CLOSE session if open is declared
   const autoSession = openDeclared ? 'CLOSE' : session;
+  // Auto-switch session when openDeclared changes
+  React.useEffect(() => {
+    if (openDeclared && session === 'OPEN') {
+      switchSession('CLOSE');
+    }
+  }, [openDeclared]);
 
   const switchSession = (s: 'OPEN'|'CLOSE') => {
     setSession(s);
@@ -685,14 +691,23 @@ export default function MatkaPage() {
                 {loggedIn && <span style={{ color: '#ffcb52', fontWeight: 700, fontSize: 13 }}>💰 {balance.toLocaleString()}</span>}
                 {/* OPEN / CLOSE toggle */}
                 <div style={{ display: 'flex', background: 'var(--Bg-3)', borderRadius: 999, padding: 3, border: '1px solid var(--Border)' }}>
-                  {(['OPEN', 'CLOSE'] as const).map(s => (
-                    <button key={s} onClick={() => switchSession(s)} style={{
-                      padding: '8px 22px', borderRadius: 999, border: 'none', cursor: 'pointer',
-                      fontWeight: 700, fontSize: 13, transition: 'all 0.2s',
-                      background: session === s ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'transparent',
-                      color: session === s ? '#fff' : 'var(--Secondary)',
-                    }}>{s}</button>
-                  ))}
+                  {(['OPEN', 'CLOSE'] as const).map(s => {
+                    const isOpenLocked = s === 'OPEN' && openDeclared;
+                    return (
+                      <button key={s} onClick={() => !isOpenLocked && switchSession(s)} style={{
+                        padding: '8px 22px', borderRadius: 999, border: 'none',
+                        cursor: isOpenLocked ? 'not-allowed' : 'pointer',
+                        fontWeight: 700, fontSize: 13, transition: 'all 0.2s',
+                        background: session === s ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'transparent',
+                        color: isOpenLocked ? 'rgba(255,255,255,0.2)' : session === s ? '#fff' : 'var(--Secondary)',
+                        opacity: isOpenLocked ? 0.4 : 1,
+                        position: 'relative',
+                      }}>
+                        {s}
+                        {isOpenLocked && <span style={{fontSize:9,marginLeft:4}}>🔒</span>}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
