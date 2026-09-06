@@ -84,7 +84,7 @@ export default function AdminPage() {
       const full = mResult.closePatti?.length===3;
       authFetch(`/api/admin/markets?check=1&marketId=${mResult.marketId}&openPatti=${mResult.openPatti}&closePatti=${cp}`)
         .then(r=>r.json())
-        .then(d=>{ if(d && !d.error) setPayoutPreview({payout:d.totalPayout,collected:d.totalBets,winners:d.winnerCount,safe:d.isSafe,full}); })
+        .then(d=>{ if(d && !d.error) setPayoutPreview({payout:d.totalPayout,collected:d.totalBets,winners:d.winnerCount,safe:d.isSafe,full,winnersList:d.winners??[]}); })
         .catch(()=>{});
     } else {
       setPayoutPreview(null);
@@ -1226,7 +1226,7 @@ export default function AdminPage() {
                           if(v.length===3 && mResult.marketId){
                             const cp=mResult.closePatti?.length===3?mResult.closePatti:'000';
                             const d=await authFetch(`/api/admin/markets?check=1&marketId=${mResult.marketId}&openPatti=${v}&closePatti=${cp}`).then(r=>r.json()).catch(()=>null);
-                            if(d && !d.error) setPayoutPreview({payout:d.totalPayout,collected:d.totalBets,winners:d.winnerCount,safe:d.isSafe});
+                            if(d && !d.error) setPayoutPreview({payout:d.totalPayout,collected:d.totalBets,winners:d.winnerCount,safe:d.isSafe,winnersList:d.winners??[]});
                           } else setPayoutPreview(null);
                         } catch(e) { console.error(e); }
                       }} style={{...inp,fontFamily:'monospace',fontSize:22,textAlign:'center',fontWeight:900}}/>
@@ -1292,6 +1292,19 @@ export default function AdminPage() {
                           <p style={{fontSize:12,color:'#ef4444',fontWeight:700}}>Payout: ₹{payoutPreview.payout?.toLocaleString()}</p>
                           <p style={{fontSize:11,color:'var(--Secondary)'}}>{payoutPreview.winners} winners · collected ₹{payoutPreview.collected?.toLocaleString()}</p>
                         </div>
+                      </div>
+                      {payoutPreview.winnersList?.length > 0 && (
+                        <div style={{marginTop:10,borderTop:'1px solid rgba(255,255,255,0.08)',paddingTop:10}}>
+                          <p style={{fontSize:11,fontWeight:700,color:'var(--Secondary)',marginBottom:6}}>Winners if you declare this:</p>
+                          <div style={{maxHeight:150,overflowY:'auto',display:'flex',flexDirection:'column',gap:4}}>
+                            {payoutPreview.winnersList.map((w:any,i:number)=>(
+                              <div key={i} style={{display:'flex',justifyContent:'space-between',fontSize:11,padding:'4px 8px',background:'var(--Bg-3)',borderRadius:6}}>
+                                <span style={{color:'var(--White)',fontWeight:600}}>{w.name}</span>
+                                <span style={{color:'var(--Secondary)'}}>{w.betType} {w.betValue} ({w.session})</span>
+                                <span style={{color:'#ef4444',fontWeight:700}}>-₹{w.winAmount?.toLocaleString()}</span>
+                              </div>
+                            ))}
+                          </div>
                       </div>
                     </div>
                   )}
