@@ -236,10 +236,7 @@ export default function MatkaPage() {
   // Clear on game type change
   useEffect(() => { setDigits(Array(NUM_COLS).fill(null)); }, [gameType.key]);
 
-  // Auto-switch to CLOSE when open is declared
-  useEffect(() => {
-    if (openDeclared && session === 'OPEN') setSession('CLOSE');
-  }, [openDeclared]); // eslint-disable-line
+
 
   // ── Column mapping ─────────────────────────────────────────────────────────
   //
@@ -298,6 +295,11 @@ export default function MatkaPage() {
   const readyToAdd = selectedStateIndices.length === gameType.maxSelect;
   // Check if open has been declared for this market
   const openDeclared = !!(market?.openPatti);
+
+  // Auto-switch to CLOSE when open is declared
+  useEffect(() => {
+    if (openDeclared && session === 'OPEN') setSession('CLOSE');
+  }, [openDeclared]); // eslint-disable-line
 
   // Auto-classify SP/DP/TP when 3 digits selected
   const autoClassifiedType = (() => {
