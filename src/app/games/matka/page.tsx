@@ -383,6 +383,24 @@ export default function MatkaPage() {
   // Always show columns 1-8 in order (never reverse)
   const visualOrder = Array.from({ length: NUM_COLS }, (_, i) => i); // [0,1,2,3,4,5,6,7]
 
+  // Which columns are active for current game type + session
+  const activeColsFn = (si: number): boolean => {
+    switch(gameType.key) {
+      case 'ANK': case 'SINGLE_ANK':
+        return session === 'OPEN' ? si === 3 : si === 4;
+      case 'JODI':
+        return si === 3 || si === 4;
+      case 'SINGLE_PATTI': case 'DOUBLE_PATTI': case 'TRIPLE_PATTI':
+        return session === 'OPEN' ? si < 3 : (si >= 4 && si < 7);
+      case 'HALF_SANGAM':
+        return session === 'OPEN' ? (si === 3 || (si >= 4 && si < 7)) : (si < 3 || si === 4);
+      case 'FULL_SANGAM':
+        return si < 3 || (si >= 4 && si < 7);
+      default: return true;
+    }
+  };
+
+
   if (marketsLoading || !market) return (
     <>
       <Header />
@@ -724,9 +742,9 @@ export default function MatkaPage() {
                 {visualOrder.map((si, vi) => (
                   <div key={vi} style={{ width: 44, textAlign: 'center' }}>
                     <span style={{ fontSize: 10, fontWeight: 700,
-                      color: digits[si] !== null ? '#fe8c45' : 'rgba(255,255,255,0.2)',
+                      color: digits[si] !== null ? '#fe8c45' : activeColsFn(si) ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.15)',
                     }}>
-                      {session === 'OPEN' ? vi + 1 : NUM_COLS - vi}
+                      {vi + 1}
                     </span>
                   </div>
                 ))}
@@ -755,7 +773,7 @@ export default function MatkaPage() {
                       colKey={`${gameType.key}-${si}`}
                       scrollTrigger={scrollTrigger}
                       digit={digits[si]}
-                      active={true}
+                      active={activeColsFn(si)}
                       onChange={d => {
                         // Check max selections before setting
                         setDigits(prev => {
