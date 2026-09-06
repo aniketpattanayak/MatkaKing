@@ -265,7 +265,12 @@ export default function AdminPage() {
     setMLoading(true);
     const r = await authFetch('/api/admin/markets', { method:'POST', body: JSON.stringify({ action:'declare_result', ...mResult }) });
     const d = await r.json();
-    if (r.ok) { toast.success(`✓ Result declared! Jodi: ${d.jodi} · Settled: ${d.settled} bets · Paid: ₹${d.totalPayout?.toLocaleString()}`); load(); setMResult({ marketId:'', openPatti:'', closePatti:'' }); }
+    if (r.ok) {
+          const bk = d.breakdown ?? {};
+          const parts = Object.entries(bk).map(([k,v]:any) => `${k}:${v.count}`).join(' · ');
+          toast.success(`✓ Jodi:${d.jodi} · Paid:₹${d.totalPayout?.toLocaleString()} · ${d.settled} bets settled${parts?' ('+parts+')':''}`);
+          load(); setMResult({ marketId:'', openPatti:'', closePatti:'' });
+        }
     else toast.error(d.error);
     setMLoading(false);
   }
@@ -656,6 +661,8 @@ export default function AdminPage() {
                   {label:'Active Users Today',value:dailyStats.activeUsersToday,color:'#2ECC71',icon:'👥'},
                   {label:'Total Deposit Today',value:`₹${(dailyStats.depositToday??0).toLocaleString()}`,color:'#3498DB',icon:'💰'},
                   {label:'Total Withdraw Today',value:`₹${(dailyStats.withdrawToday??0).toLocaleString()}`,color:'#ef4444',icon:'💸'},
+                  {label:'Matka Collected Today',value:`₹${(dailyStats.matkaCollectedToday??0).toLocaleString()}`,color:'#9B59B6',icon:'🎲'},
+                  {label:'Matka Paid Today',value:`₹${(dailyStats.matkaPaidToday??0).toLocaleString()}`,color:'#2ECC71',icon:'🏆'},
                   {label:'Total Users',value:dailyStats.totalUsers,color:'var(--Secondary)',icon:'🏦'},
                 ].map(s=>(
                   <div key={s.label} style={{...card,padding:'16px 18px'}}>

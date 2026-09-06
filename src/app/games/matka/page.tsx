@@ -315,12 +315,14 @@ export default function MatkaPage() {
   const addToCart = () => {
     if (!readyToAdd) return toast.warning(`Select ${gameType.maxSelect} digit${gameType.maxSelect > 1 ? 's' : ''} first`);
     if (market.status === 'CLOSED') return toast.error('Market is closed');
-    // Block open-session bets after open is declared
-    if (openDeclared && session === 'OPEN' && !['HALF_SANGAM','FULL_SANGAM'].includes(gameType.key)) {
-      return toast.error('Open result declared. Only Close-side bets allowed now.');
-    }
-    if (openDeclared && ['JODI','FULL_SANGAM'].includes(gameType.key)) {
-      return toast.error('Jodi and Full Sangam not allowed after Open is declared.');
+    // After open declared: block open-session ANK/Patti and Jodi/FullSangam
+    if (openDeclared) {
+      if (['JODI','FULL_SANGAM'].includes(gameType.key)) {
+        return toast.error('Jodi and Full Sangam not allowed after Open result is declared.');
+      }
+      if (session === 'OPEN' && ['ANK','SINGLE_ANK','SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key)) {
+        return toast.error('Open-side bets closed. Switch to CLOSE session to continue betting.');
+      }
     }
     // Auto-switch patti type based on digit pattern AND add to cart
     if (['SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key) && autoClassifiedType && autoClassifiedType !== gameType.key) {

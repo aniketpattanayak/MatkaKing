@@ -273,12 +273,14 @@ export async function POST(req: NextRequest) {
           const parts = bv.split('-');
           if (parts.length === 2) {
             const [a, b] = parts;
-            // Variant A: openAnk-closePatti (1 digit - 3 digits)
-            if (a === String(openAnk) && b === closePatti) won = true;
-            // Variant B: openPatti-closeAnk (3 digits - 1 digit)
-            if (a === openPatti && b === String(closeAnk)) won = true;
-            // Variant C: openAnk-closePatti reversed
-            if (b === String(openAnk) && a === closePatti) won = true;
+            // Format A: openAnk-closePatti (e.g. "6-786") — OPEN session bet
+            if (a.length === 1 && b.length === 3) {
+              if (a === String(openAnk) && b === closePatti) won = true;
+            }
+            // Format B: openPatti-closeAnk (e.g. "456-3") — CLOSE session bet
+            if (a.length === 3 && b.length === 1) {
+              if (a === openPatti && b === String(closeAnk)) won = true;
+            }
           }
         }
 
@@ -326,7 +328,14 @@ export async function POST(req: NextRequest) {
       });
     });
 
-    return NextResponse.json({ ok: true, settled: remaining.length, totalPayout, jodi, openAnk, closeAnk });
+    // Build breakdown by bet type
+    const breakdown: Record<string,{count:number,payout:number}> = {};
+    for (const bet of remaining) {
+      const bt = bet.betType;
+      if (!breakdown[bt]) breakdown[bt] = { count:0, payout:0 };
+      breakdown[bt].count++;
+    }
+    return NextResponse.json({ ok: true, settled: remaining.length, totalPayout, jodi, openAnk, closeAnk, breakdown });
   }
 
   // ── Update game rates ────────────────────────────────────────────────────

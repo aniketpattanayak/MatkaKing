@@ -19,6 +19,15 @@ export async function GET(req: NextRequest) {
       where: { type: 'WITHDRAWAL', createdAt: { gte: today } },
       _sum: { coins: true },
     });
+    // Matka collection vs payout today
+    const matkaBetAmt = await prisma.matkaBet.aggregate({
+      where: { placedAt: { gte: today } },
+      _sum: { amount: true },
+    });
+    const matkaWinAmt = await prisma.matkaBet.aggregate({
+      where: { placedAt: { gte: today }, status: 'WON' },
+      _sum: { wonAmount: true },
+    });
     return NextResponse.json({
       date: today.toLocaleDateString('en-IN'),
       lotteryTicketsSoldToday: lotteryTicketsSold,
@@ -27,6 +36,8 @@ export async function GET(req: NextRequest) {
       activeUsersToday: activeUsers,
       depositToday: depositToday._sum.coins ?? 0,
       withdrawToday: withdrawToday._sum.coins ?? 0,
+      matkaCollectedToday: matkaBetAmt._sum.amount ?? 0,
+      matkaPaidToday: matkaWinAmt._sum.wonAmount ?? 0,
     });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

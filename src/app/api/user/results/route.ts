@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
 
     const [matkaBets, lotteryBets, transactions] = await Promise.all([
       prisma.matkaBet.findMany({
-        where:   { userId: p.sub },
+        where:   { userId: p.sub, placedAt: { gte: new Date(Date.now() - 72*60*60*1000) } },
         orderBy: { placedAt: 'desc' },
         take:    50,
         include: {
