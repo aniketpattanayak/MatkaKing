@@ -12,13 +12,12 @@ import {
   TrendingUp, Activity, Settings, Eye, Bell, Calendar, Star, Gift, Send, Pin, Trophy, ArrowDownUp
 } from 'lucide-react';
 
-type Tab = 'overview'|'lottery'|'matka'|'spin'|'upi'|'users'|'payments'|'notifications'|'results'|'transactions'|'festivals';
+type Tab = 'overview'|'lottery'|'matka'|'upi'|'users'|'payments'|'notifications'|'results'|'transactions'|'festivals';
 
 const TABS: { key: Tab; icon: string; label: string }[] = [
   { key: 'overview', icon: '', label: 'Overview'   },
   { key: 'lottery',  icon: '', label: 'Lucky Winner'    },
   { key: 'matka',    icon: '', label: 'Money Bank' },
-  { key: 'spin',     icon: '', label: 'Spin Wheel' },
   { key: 'upi',      icon: '', label: 'UPI Pool'   },
   { key: 'users',    icon: '', label: 'Users'      },
   { key: 'payments',      icon: '', label: 'Payments'      },
@@ -129,7 +128,7 @@ export default function AdminPage() {
   const [msgBody,      setMsgBody]      = useState('');
   const [msgSending,   setMsgSending]   = useState(false);
   const [results,        setResults]        = useState<any>({ lottery:[], matka:[], spin:[], spinStats:{} });
-  const [resultsTab,     setResultsTab]     = useState<'lottery'|'matka'|'spin'>('lottery');
+  const [resultsTab,     setResultsTab]     = useState<'lottery'|'matka'>('lottery');
   const [resultsLoading, setResultsLoading] = useState(false);
   const [allTxns,        setAllTxns]        = useState<any[]>([]);
   const [txnTotal,       setTxnTotal]       = useState(0);
@@ -645,7 +644,7 @@ export default function AdminPage() {
                   { label:'Lottery Series', value: data.series.length,                            Icon:Ticket,         color:'#3498DB', sub: data.series.filter((s:any)=>s.status==='OPEN').length+' open' },
                   { label:'Matka Markets',  value: data.markets.length,                           Icon:Dices,          color:'#9B59B6', sub: data.markets.filter((m:any)=>m.isOpen).length+' open' },
                   { label:'Active UPIs',    value: data.upis.filter((u:any)=>u.isActive).length,  Icon:Wallet,         color:'#2ECC71', sub: data.upis.length+' total' },
-                  { label:'Spin Config',    value: data.spinConfig ? 'Active' : 'Not set',        Icon:RotateCcw,      color: data.spinConfig?'#2ECC71':'#E74C3C', sub: data.spinConfig ? `₹${data.spinConfig.pricePerSpin ?? 10}/spin` : 'Go to Spin tab' },
+
                 ].map(s=>(
                   <div key={s.label} style={{ ...card, padding:'18px 20px' }}>
                     <div style={{ width:40, height:40, borderRadius:10, background:`${s.color}18`, border:`1px solid ${s.color}40`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:12 }}>
@@ -1757,9 +1756,9 @@ export default function AdminPage() {
                 <button onClick={()=>{setResultsLoading(true);authFetch('/api/admin/results').then(r=>r.json()).then(d=>{if(d.lottery)setResults(d);else toast.error(d.error??'Failed');}).finally(()=>setResultsLoading(false));}} disabled={resultsLoading} style={{padding:'8px 18px',borderRadius:999,border:'1px solid var(--Border)',background:'var(--Bg-2)',color:'var(--Secondary)',fontSize:13,cursor:'pointer',fontWeight:600}}>{resultsLoading?'Loading...':'↻ Load Results'}</button>
               </div>
               <div style={{display:'flex',gap:5,background:'var(--Bg-2)',borderRadius:12,padding:4,marginBottom:20,border:'1px solid var(--Border)',width:'fit-content'}}>
-                {(['lottery','matka','spin'] as const).map(g=>(
+                {(['lottery','matka'] as const).map(g=>(
                   <button key={g} onClick={()=>setResultsTab(g)} style={{padding:'8px 20px',borderRadius:9,border:'none',cursor:'pointer',fontWeight:700,fontSize:13,background:resultsTab===g?'linear-gradient(270deg,#fe8c45,#ca2826)':'transparent',color:resultsTab===g?'#fff':'var(--Secondary)'}}>
-                    {g==='lottery'?'🎟 Lottery':g==='matka'?'🎲 Money Bank':'🎡 Spin Wheel'}
+                    {g==='lottery'?'🎟 Lottery':'🎲 Money Bank'}
                   </button>
                 ))}
               </div>
