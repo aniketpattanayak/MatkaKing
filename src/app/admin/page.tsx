@@ -1219,7 +1219,18 @@ export default function AdminPage() {
                     <div>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
                         <label style={label}>Close Patti</label>
-                        <button type="button" onClick={()=>{const r=()=>Math.floor(Math.random()*10);setMResult(p=>({...p,closePatti:`${r()}${r()}${r()}`}));}} style={{padding:'2px 10px',borderRadius:6,border:'1px solid rgba(255,203,82,0.3)',background:'rgba(255,203,82,0.08)',color:'#ffcb52',fontSize:11,cursor:'pointer',fontWeight:700}}>🎲 Random</button>
+                        <div style={{display:'flex',gap:4}}>
+                          <button type="button" onClick={async()=>{
+                            if(!mResult.marketId){toast.error('Select market first');return;}
+                            if(!mResult.openPatti||mResult.openPatti.length!==3){toast.error('Enter Open Patti first');return;}
+                            setSuggestLoading(true); setSuggest(null);
+                            const d=await authFetch(`/api/admin/markets-suggest?marketId=${mResult.marketId}&step=close&openPatti=${mResult.openPatti}`).then(r=>r.json());
+                            setSuggest({...d, forClose:true}); setSuggestLoading(false);
+                          }} style={{padding:'2px 8px',borderRadius:6,border:'1px solid rgba(46,204,113,0.3)',background:'rgba(46,204,113,0.08)',color:'#2ECC71',fontSize:10,cursor:'pointer',fontWeight:700}}>
+                            {suggestLoading?'...':'🔍 Safest'}
+                          </button>
+                          <button type="button" onClick={()=>{const r=()=>Math.floor(Math.random()*10);setMResult(p=>({...p,closePatti:`${r()}${r()}${r()}`}));}} style={{padding:'2px 8px',borderRadius:6,border:'1px solid rgba(255,203,82,0.3)',background:'rgba(255,203,82,0.08)',color:'#ffcb52',fontSize:10,cursor:'pointer',fontWeight:700}}>🎲</button>
+                        </div>
                       </div>
                       <input placeholder="e.g. 456" maxLength={3} value={mResult.closePatti} onChange={e=>setMResult({...mResult,closePatti:e.target.value.replace(/\D/g,'')})} style={{...inp,fontFamily:'monospace',fontSize:22,textAlign:'center',fontWeight:900}}/>
                     </div>
@@ -1229,12 +1240,16 @@ export default function AdminPage() {
                   {suggest && suggest.suggestions && (
                     <div style={{background:'rgba(46,204,113,0.06)',border:'1px solid rgba(46,204,113,0.3)',borderRadius:10,padding:14,marginBottom:10}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-                        <p style={{fontWeight:700,fontSize:13,color:'#2ECC71'}}>🔍 Top 5 Safest Open Pattis</p>
+                        <p style={{fontWeight:700,fontSize:13,color:'#2ECC71'}}>🔍 Top 5 Safest {suggest.forClose?'Close':'Open'} Pattis</p>
                         <button onClick={()=>setSuggest(null)} style={{background:'none',border:'none',color:'var(--Secondary)',cursor:'pointer',fontSize:16}}>×</button>
                       </div>
                       <p style={{fontSize:11,color:'var(--Secondary)',marginBottom:8}}>Collected: <strong style={{color:'#ffcb52'}}>₹{suggest.totalCollected?.toLocaleString()}</strong> · {suggest.totalBets} bets · Click to auto-fill</p>
                       {(suggest.suggestions??[]).slice(0,5).map((s:any,i:number)=>(
-                        <div key={i} onClick={()=>{setMResult(p=>({...p,openPatti:s.patti}));setSuggest(null);}} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',background:'var(--Bg-3)',borderRadius:8,cursor:'pointer',marginBottom:4,border:'1px solid transparent'}}
+                        <div key={i} onClick={()=>{
+                          if(suggest.forClose) setMResult(p=>({...p,closePatti:s.patti}));
+                          else setMResult(p=>({...p,openPatti:s.patti}));
+                          setSuggest(null);
+                        }} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',background:'var(--Bg-3)',borderRadius:8,cursor:'pointer',marginBottom:4,border:'1px solid transparent'}}
                           onMouseEnter={e=>(e.currentTarget.style.borderColor='#2ECC71')}
                           onMouseLeave={e=>(e.currentTarget.style.borderColor='transparent')}>
                           <div style={{display:'flex',gap:10,alignItems:'center'}}>
