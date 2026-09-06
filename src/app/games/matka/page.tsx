@@ -384,18 +384,24 @@ export default function MatkaPage() {
   const visualOrder = Array.from({ length: NUM_COLS }, (_, i) => i); // [0,1,2,3,4,5,6,7]
 
   // Which columns are active for current game type + session
+  // si=0→col1, si=1→col2, si=2→col3, si=3→col4, si=4→col5, si=5→col6, si=6→col7, si=7→col8
   const activeColsFn = (si: number): boolean => {
     switch(gameType.key) {
       case 'ANK': case 'SINGLE_ANK':
+        // OPEN=col4(si=3), CLOSE=col5(si=4)
         return session === 'OPEN' ? si === 3 : si === 4;
       case 'JODI':
+        // col4+col5 (si=3,4)
         return si === 3 || si === 4;
       case 'SINGLE_PATTI': case 'DOUBLE_PATTI': case 'TRIPLE_PATTI':
-        return session === 'OPEN' ? si < 3 : (si >= 4 && si < 7);
+        // OPEN=cols1,2,3(si=0,1,2), CLOSE=cols6,7,8(si=5,6,7)
+        return session === 'OPEN' ? si <= 2 : si >= 5;
       case 'HALF_SANGAM':
-        return session === 'OPEN' ? (si === 3 || (si >= 4 && si < 7)) : (si < 3 || si === 4);
+        // OPEN=cols1,2,3,4(si=0,1,2,3), CLOSE=cols5,6,7,8(si=4,5,6,7)
+        return session === 'OPEN' ? si <= 3 : si >= 4;
       case 'FULL_SANGAM':
-        return si < 3 || (si >= 4 && si < 7);
+        // cols1,2,3 + cols6,7,8 (si=0,1,2 + si=5,6,7)
+        return si <= 2 || si >= 5;
       default: return true;
     }
   };
