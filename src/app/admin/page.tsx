@@ -75,6 +75,7 @@ export default function AdminPage() {
   const [liveCheck, setLiveCheck] = useState<any>(null);
   const [suggest, setSuggest]     = useState<any>(null);
   const [suggestLoading, setSuggestLoading] = useState(false);
+  const [payoutPreview, setPayoutPreview] = useState<any>(null);
   const [checkLoading, setCheckLoading] = useState(false);
   // Notifications state
   const [notifs,       setNotifs]       = useState<any[]>([]);
