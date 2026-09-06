@@ -315,6 +315,9 @@ export default function MatkaPage() {
   const addToCart = () => {
     if (!readyToAdd) return toast.warning(`Select ${gameType.maxSelect} digit${gameType.maxSelect > 1 ? 's' : ''} first`);
     if (market.status === 'CLOSED') return toast.error('Market is closed');
+    if (session === 'CLOSE' && ['JODI','FULL_SANGAM'].includes(gameType.key)) {
+      return toast.error('Jodi and Full Sangam are only available in OPEN session.');
+    }
     // After open declared: block open-session ANK/Patti and Jodi/FullSangam
     if (openDeclared) {
       if (['JODI','FULL_SANGAM'].includes(gameType.key)) {
@@ -656,17 +659,26 @@ export default function MatkaPage() {
           <div style={{ background: 'var(--Bg-2)', borderRadius: 14, padding: '13px 18px', marginBottom: 18, border: '1px solid var(--Border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-                {dynamicTypes.map(g => (
-                  <button key={g.key} onClick={() => setGameType(g)} style={{
-                    padding: '7px 13px', borderRadius: 999, border: '1px solid',
-                    borderColor: gameType.key === g.key ? '#fe8c45' : 'var(--Border)',
-                    background: gameType.key === g.key ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'var(--Bg-3)',
-                    color: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer',
-                  }}>
-                    {g.label}
-                    <span style={{ fontSize: 9, opacity: 0.7, marginLeft: 3 }}>{g.payout}x</span>
-                  </button>
-                ))}
+                {dynamicTypes.map(g => {
+                  // Jodi and Full Sangam only in OPEN session
+                  const closeLocked = session === 'CLOSE' && (g.key === 'JODI' || g.key === 'FULL_SANGAM');
+                  // After open declared: Jodi and Full Sangam locked
+                  const openLocked = openDeclared && (g.key === 'JODI' || g.key === 'FULL_SANGAM');
+                  const isLocked = closeLocked || openLocked;
+                  return (
+                    <button key={g.key} onClick={() => !isLocked && setGameType(g)} style={{
+                      padding: '7px 13px', borderRadius: 999, border: '1px solid',
+                      borderColor: isLocked ? 'rgba(100,100,100,0.2)' : gameType.key === g.key ? '#fe8c45' : 'var(--Border)',
+                      background: isLocked ? 'rgba(100,100,100,0.1)' : gameType.key === g.key ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'var(--Bg-3)',
+                      color: isLocked ? 'rgba(255,255,255,0.2)' : '#fff', fontWeight: 700, fontSize: 12,
+                      cursor: isLocked ? 'not-allowed' : 'pointer', position:'relative',
+                    }}>
+                      {g.label}
+                      <span style={{ fontSize: 9, opacity: 0.7, marginLeft: 3 }}>{g.payout}x</span>
+                      {isLocked && <span style={{position:'absolute',top:-4,right:-4,fontSize:8,background:'#ef4444',color:'#fff',borderRadius:4,padding:'0 3px',fontWeight:700}}>🔒</span>}
+                    </button>
+                  );
+                })}
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
