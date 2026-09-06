@@ -383,6 +383,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             
+              {wins.length > 30 && <Pagination page={winsPage} setPage={setWinsPage} total={wins.length}/>}
               {wins.length > 30 && <Pagination page={winsPage} setPage={setWinsPage} total={wins.length}/>}</div>
           )}
 
