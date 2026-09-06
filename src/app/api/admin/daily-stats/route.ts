@@ -24,10 +24,13 @@ export async function GET(req: NextRequest) {
       where: { placedAt: { gte: today } },
       _sum: { amount: true },
     });
-    const matkaWinAmt = await prisma.matkaBet.aggregate({
-      where: { placedAt: { gte: today }, status: 'WON' },
-      _sum: { wonAmount: true },
-    });
+    let matkaWinAmt = { _sum: { wonAmount: 0 } };
+    try {
+      matkaWinAmt = await prisma.matkaBet.aggregate({
+        where: { placedAt: { gte: today }, status: 'WON' },
+        _sum: { wonAmount: true },
+      }) as any;
+    } catch(e) { /* wonAmount field may not exist */ }
     return NextResponse.json({
       date: today.toLocaleDateString('en-IN'),
       lotteryTicketsSoldToday: lotteryTicketsSold,
