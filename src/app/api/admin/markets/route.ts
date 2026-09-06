@@ -127,7 +127,9 @@ export async function POST(req: NextRequest) {
     if (!name || !openTime || !closeTime || !resultTime)
       return NextResponse.json({ error: 'name, openTime, closeTime, resultTime required' }, { status: 400 });
     const market = await prisma.matkaMarket.create({
-      data: { name, openTime, closeTime, resultTime, isActive: true, isOpen: true },
+      data: { name, openTime, closeTime, resultTime, isActive: true, isOpen: true,
+        payoutSingle: 9, payoutJodi: 90, payoutSP: 140, payoutDP: 280, payoutTP: 450,
+        payoutHalfSangam: 1500, payoutFullSangam: 11000 },
     });
     return NextResponse.json({ ok: true, market });
   }
