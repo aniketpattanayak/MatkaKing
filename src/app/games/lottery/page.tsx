@@ -32,9 +32,13 @@ export default function LotteryPage() {
   const [allSeries,  setAllSeries]  = useState<Series[]>([]);
   const [series,     setSeries]     = useState<Series | null>(null);
   const [tickets,    setTickets]    = useState<Ticket[]>([]);
-  const [hasMore,    setHasMore]    = useState(false);
-  const [loadingMore,setLoadingMore]= useState(false);
-  const [currentOffset, setCurrentOffset] = useState(0);
+  const [hasMore,      setHasMore]      = useState(false);
+  const [loadingMore,  setLoadingMore]  = useState(false);
+  const [currentOffset,setCurrentOffset]= useState(0);
+  const [currentPage,  setCurrentPage]  = useState(1);
+  const [totalAvail,   setTotalAvail]   = useState(0);
+  const [totalSold,    setTotalSold]    = useState(0);
+  const [totalPages,   setTotalPages]   = useState(0);
   const PAGE_SIZE = 500;
   const [selected,   setSelected]   = useState<Set<string>>(new Set());
   const [query,      setQuery]      = useState('');
@@ -78,7 +82,15 @@ export default function LotteryPage() {
     authFetch(`/api/lottery/search?seriesId=${series.id}&q=${q}&limit=${PAGE_SIZE}&offset=0`)
       .then(r => r.json())
       .then(d => {
-        if (d.tickets?.length > 0) { setTickets(d.tickets); setHasMore(d.hasMore??false); setCurrentOffset(d.nextOffset??PAGE_SIZE); }
+        if (d.tickets?.length >= 0) { 
+          setTickets(d.tickets); 
+          setHasMore(d.hasMore??false); 
+          setCurrentOffset(d.nextOffset??PAGE_SIZE);
+          setTotalAvail(d.totalAvailable??0);
+          setTotalSold((d.totalInSeries??0)-(d.totalAvailable??0));
+          setTotalPages(Math.ceil((d.totalInSeries??0)/PAGE_SIZE));
+          setCurrentPage(1);
+        }
         else setTickets([]);
       })
       .catch(() => setTickets([]));
@@ -158,6 +170,25 @@ export default function LotteryPage() {
     n.has(id) ? n.delete(id) : n.add(id);
     return n;
   });
+
+  const goToPage = async (page: number) => {
+    if (!series) return;
+    setLoadingMore(true);
+    const offset = (page - 1) * PAGE_SIZE;
+    const q = query || '';
+    const d = await authFetch(`/api/lottery/search?seriesId=${series.id}&q=${q}&limit=${PAGE_SIZE}&offset=${offset}`).then(r=>r.json());
+    if (d.tickets) {
+      setTickets(d.tickets);
+      setHasMore(d.hasMore??false);
+      setCurrentOffset(d.nextOffset??offset+PAGE_SIZE);
+      setCurrentPage(page);
+      setTotalAvail(d.totalAvailable??totalAvail);
+      setTotalSold((d.totalInSeries??0)-(d.totalAvailable??0));
+    }
+    setLoadingMore(false);
+    // Scroll to top of ticket grid
+    window.scrollTo({ top: 400, behavior: 'smooth' });
+  };
 
   const loadMoreTickets = async () => {
     if (!series || loadingMore || !hasMore) return;
@@ -284,17 +315,46 @@ export default function LotteryPage() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <span style={{ fontWeight: 700, fontSize: 16 }}>
-                  <span style={{ color:'#2ECC71' }}>{available.length} available</span>
+                  <span style={{ color:'#2ECC71' }}>{(totalAvail||available.length).toLocaleString()} available</span>
                   <span style={{ color:'var(--Secondary)', margin:'0 8px' }}>·</span>
-                  <span style={{ color:'#ef4444' }}>{tickets.length - available.length} sold</span>
+                  <span style={{ color:'#ef4444' }}>{(totalSold||(tickets.length-available.length)).toLocaleString()} sold</span>
                   <span style={{ color:'var(--Secondary)', margin:'0 8px' }}>·</span>
-                  <span style={{ color:'var(--Secondary)' }}>showing {tickets.length}{hasMore?'+':''}</span>
+                  <span style={{ color:'var(--Secondary)' }}>page {currentPage} of {totalPages||1}</span>
                 </span>
                 {selected.size > 0 && <span style={{ color: 'var(--Main-color)', fontWeight: 700 }}>{selected.size} selected · ₹{cost.toLocaleString()}</span>}
-                {hasMore && (
-                  <button onClick={loadMoreTickets} disabled={loadingMore} style={{ padding:'8px 20px', borderRadius:10, border:'1px solid var(--Border)', background:'var(--Bg-2)', color:'var(--Secondary)', fontSize:13, cursor:loadingMore?'not-allowed':'pointer', fontWeight:600, marginTop:8 }}>
-                    {loadingMore ? '⏳ Loading...' : `Load 500 more tickets ↓`}
-                  </button>
+                {/* Page navigation */}
+                {totalPages > 1 && (
+                  <div style={{ display:'flex', gap:6, flexWrap:'wrap', marginTop:12, alignItems:'center' }}>
+                    <span style={{ fontSize:12, color:'var(--Secondary)', marginRight:4 }}>Page:</span>
+                    {/* Previous */}
+                    {currentPage > 1 && (
+                      <button onClick={()=>goToPage(currentPage-1)} disabled={loadingMore} style={{ padding:'5px 10px', borderRadius:8, border:'1px solid var(--Border)', background:'var(--Bg-2)', color:'var(--Secondary)', fontSize:12, cursor:'pointer' }}>‹ Prev</button>
+                    )}
+                    {/* Page numbers */}
+                    {Array.from({length: Math.min(totalPages, 10)}, (_,i) => {
+                      // Show pages around current page
+                      let page = i + 1;
+                      if (totalPages > 10) {
+                        if (currentPage <= 5) page = i + 1;
+                        else if (currentPage >= totalPages - 4) page = totalPages - 9 + i;
+                        else page = currentPage - 4 + i;
+                      }
+                      return (
+                        <button key={page} onClick={()=>goToPage(page)} disabled={loadingMore} style={{
+                          padding:'5px 10px', borderRadius:8, border:'none', fontSize:13, cursor:'pointer', fontWeight:700, minWidth:36,
+                          background: page===currentPage ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'var(--Bg-2)',
+                          color: page===currentPage ? '#fff' : 'var(--Secondary)',
+                          border: page===currentPage ? 'none' : '1px solid var(--Border)',
+                        }}>
+                          {loadingMore && page===currentPage ? '...' : page}
+                        </button>
+                      );
+                    })}
+                    {/* Next */}
+                    {currentPage < totalPages && (
+                      <button onClick={()=>goToPage(currentPage+1)} disabled={loadingMore} style={{ padding:'5px 10px', borderRadius:8, border:'1px solid var(--Border)', background:'var(--Bg-2)', color:'var(--Secondary)', fontSize:12, cursor:'pointer' }}>Next ›</button>
+                    )}
+                  </div>
                 )}
               </div>
 
