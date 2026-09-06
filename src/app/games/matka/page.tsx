@@ -245,12 +245,12 @@ export default function MatkaPage() {
   //   Open:  appears at visual position 1  (2nd from LEFT)
   //   Close: appears at visual position 6  (2nd from RIGHT = 7-1)
 
-  const stateIdx = (visualIdx: number) =>
-    session === 'OPEN' ? visualIdx : (NUM_COLS - 1 - visualIdx);
+  // Columns 0-3 = OPEN side, Columns 4-7 = CLOSE side
+  const stateIdx = (visualIdx: number) => visualIdx;
 
   // Set a digit by VISUAL column index
   const setByVisual = useCallback((visualIdx: number, d: number) => {
-    const si = session === 'OPEN' ? visualIdx : (NUM_COLS - 1 - visualIdx);
+    const si = visualIdx;
     setDigits(prev => {
       const next = [...prev];
       // Count how many are already selected (excluding current column)
@@ -266,7 +266,7 @@ export default function MatkaPage() {
 
   // Clear a column by VISUAL index
   const clearByVisual = useCallback((visualIdx: number) => {
-    const si = session === 'OPEN' ? visualIdx : (NUM_COLS - 1 - visualIdx);
+    const si = visualIdx;
     setDigits(prev => { const n = [...prev]; n[si] = null; return n; });
   }, [session]);
 
@@ -380,9 +380,8 @@ export default function MatkaPage() {
   // Open:  visual positions 0..7 map to state 0..7
   // Close: visual positions 0..7 map to state 7..0
 
-  const visualOrder = session === 'OPEN'
-    ? Array.from({ length: NUM_COLS }, (_, i) => i)         // [0,1,2,3,4,5,6,7]
-    : Array.from({ length: NUM_COLS }, (_, i) => NUM_COLS - 1 - i); // [7,6,5,4,3,2,1,0]
+  // Always show columns 1-8 in order (never reverse)
+  const visualOrder = Array.from({ length: NUM_COLS }, (_, i) => i); // [0,1,2,3,4,5,6,7]
 
   if (marketsLoading || !market) return (
     <>
@@ -698,6 +697,30 @@ export default function MatkaPage() {
 
               {/* Column number labels */}
               <div style={{ display: 'flex', padding: '8px 16px 0', gap: 6, justifyContent: 'space-around' }}>
+                {/* Column labels */}
+                <div style={{display:'grid',gridTemplateColumns:`repeat(${NUM_COLS},1fr)`,gap:6,marginBottom:4}}>
+                  {visualOrder.map((si,vi)=>{
+                    const isOpenCol  = vi < 4;
+                    const isCloseCol = vi >= 4;
+                    const isActive = 
+                      (gameType.key==='ANK'         && ((session==='OPEN'&&vi===3)||(session==='CLOSE'&&vi===4))) ||
+                      (gameType.key==='JODI'         && (vi===3||vi===4)) ||
+                      (['SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key) && ((session==='OPEN'&&vi<3)||(session==='CLOSE'&&vi>=4&&vi<7))) ||
+                      (gameType.key==='HALF_SANGAM'  && ((session==='OPEN'&&(vi===3||vi>=4&&vi<7))||(session==='CLOSE'&&(vi<3||vi===4)))) ||
+                      (gameType.key==='FULL_SANGAM'  && (vi<3||vi>=4&&vi<7));
+                    return (
+                      <div key={vi} style={{textAlign:'center',fontSize:9,fontWeight:700,
+                        color:isActive?'#ffcb52':'rgba(255,255,255,0.15)',
+                        padding:'2px 0',
+                      }}>{vi+1}</div>
+                    );
+                  })}
+                </div>
+                {/* Open/Close zone labels */}
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
+                  <div style={{textAlign:'center',fontSize:10,fontWeight:700,color:'#2ECC71',background:'rgba(46,204,113,0.08)',borderRadius:6,padding:'3px 0'}}>← OPEN (1-4)</div>
+                  <div style={{textAlign:'center',fontSize:10,fontWeight:700,color:'#3498DB',background:'rgba(52,152,219,0.08)',borderRadius:6,padding:'3px 0'}}>CLOSE (5-8) →</div>
+                </div>
                 {visualOrder.map((si, vi) => (
                   <div key={vi} style={{ width: 44, textAlign: 'center' }}>
                     <span style={{ fontSize: 10, fontWeight: 700,
