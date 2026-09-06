@@ -1177,9 +1177,26 @@ export default function AdminPage() {
                     <div>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
                         <label style={label}>Open Patti</label>
-                        <button type="button" onClick={()=>{const r=()=>Math.floor(Math.random()*10);setMResult(p=>({...p,openPatti:`${r()}${r()}${r()}`}));}} style={{padding:'2px 10px',borderRadius:6,border:'1px solid rgba(255,203,82,0.3)',background:'rgba(255,203,82,0.08)',color:'#ffcb52',fontSize:11,cursor:'pointer',fontWeight:700}}>🎲 Random</button>
+                        <div style={{display:'flex',gap:4}}>
+                          <button type="button" onClick={async()=>{
+                            if(!mResult.marketId){toast.error('Select market first');return;}
+                            setSuggestLoading(true); setSuggest(null);
+                            const d=await authFetch(`/api/admin/markets-suggest?marketId=${mResult.marketId}&step=open`).then(r=>r.json());
+                            setSuggest(d); setSuggestLoading(false);
+                          }} style={{padding:'2px 8px',borderRadius:6,border:'1px solid rgba(46,204,113,0.3)',background:'rgba(46,204,113,0.08)',color:'#2ECC71',fontSize:10,cursor:'pointer',fontWeight:700}}>
+                            {suggestLoading?'...':'🔍 Safest'}
+                          </button>
+                          <button type="button" onClick={()=>{const r=()=>Math.floor(Math.random()*10);setMResult(p=>({...p,openPatti:`${r()}${r()}${r()}`}));}} style={{padding:'2px 8px',borderRadius:6,border:'1px solid rgba(255,203,82,0.3)',background:'rgba(255,203,82,0.08)',color:'#ffcb52',fontSize:10,cursor:'pointer',fontWeight:700}}>🎲</button>
+                        </div>
                       </div>
-                      <input placeholder="e.g. 123" maxLength={3} value={mResult.openPatti} onChange={e=>setMResult({...mResult,openPatti:e.target.value.replace(/\D/g,'')})} style={{...inp,fontFamily:'monospace',fontSize:22,textAlign:'center',fontWeight:900}}/>
+                      <input placeholder="e.g. 123" maxLength={3} value={mResult.openPatti} onChange={async e=>{
+                        const v=e.target.value.replace(/\D/g,'');
+                        setMResult({...mResult,openPatti:v});
+                        if(v.length===3 && mResult.marketId){
+                          const d=await authFetch(`/api/admin/markets?check=1&marketId=${mResult.marketId}&openPatti=${v}&closePatti=000`).then(r=>r.json()).catch(()=>null);
+                          if(d) setPayoutPreview({payout:d.totalPayout,collected:d.totalBets,safe:d.isSafe});
+                        } else setPayoutPreview(null);
+                      }} style={{...inp,fontFamily:'monospace',fontSize:22,textAlign:'center',fontWeight:900}}/>
                     </div>
                     <div>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
@@ -1190,6 +1207,45 @@ export default function AdminPage() {
                     </div>
                   </div>
 
+                  {/* Suggest results */}
+                  {suggest && suggest.suggestions && (
+                    <div style={{background:'rgba(46,204,113,0.06)',border:'1px solid rgba(46,204,113,0.3)',borderRadius:10,padding:14,marginBottom:10}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+                        <p style={{fontWeight:700,fontSize:13,color:'#2ECC71'}}>🔍 Top 5 Safest Open Pattis</p>
+                        <button onClick={()=>setSuggest(null)} style={{background:'none',border:'none',color:'var(--Secondary)',cursor:'pointer',fontSize:16}}>×</button>
+                      </div>
+                      <p style={{fontSize:11,color:'var(--Secondary)',marginBottom:8}}>Collected: <strong style={{color:'#ffcb52'}}>₹{suggest.totalCollected?.toLocaleString()}</strong> · {suggest.totalBets} bets · Click to auto-fill</p>
+                      {(suggest.suggestions??[]).slice(0,5).map((s:any,i:number)=>(
+                        <div key={i} onClick={()=>{setMResult(p=>({...p,openPatti:s.patti}));setSuggest(null);}} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',background:'var(--Bg-3)',borderRadius:8,cursor:'pointer',marginBottom:4,border:'1px solid transparent'}}
+                          onMouseEnter={e=>(e.currentTarget.style.borderColor='#2ECC71')}
+                          onMouseLeave={e=>(e.currentTarget.style.borderColor='transparent')}>
+                          <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                            <span style={{fontSize:10,color:'var(--Secondary)',fontWeight:700}}>#{i+1}</span>
+                            <span style={{fontFamily:'monospace',fontWeight:900,fontSize:17}}>{s.patti}</span>
+                            <span style={{fontSize:11,color:'var(--Secondary)'}}>Ank:{s.ank}</span>
+                          </div>
+                          <div style={{textAlign:'right'}}>
+                            <span style={{fontSize:11,color:'#ef4444',fontWeight:700}}>Pay:₹{s.payout?.toLocaleString()}</span>
+                            <span style={{fontSize:11,color:'#2ECC71',fontWeight:700,marginLeft:8}}>Profit:₹{s.profit?.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Real-time payout preview */}
+                  {payoutPreview && mResult.openPatti.length===3 && (
+                    <div style={{background:payoutPreview.safe?'rgba(46,204,113,0.08)':'rgba(239,68,68,0.08)',border:`1px solid ${payoutPreview.safe?'rgba(46,204,113,0.3)':'rgba(239,68,68,0.3)'}`,borderRadius:10,padding:'10px 14px',marginBottom:10}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <span style={{fontSize:13,fontWeight:700,color:payoutPreview.safe?'#2ECC71':'#ef4444'}}>
+                          {payoutPreview.safe?'✅ Safe to declare':'⚠️ High payout risk!'}
+                        </span>
+                        <div style={{textAlign:'right'}}>
+                          <p style={{fontSize:12,color:'#ef4444',fontWeight:700}}>Payout: ₹{payoutPreview.payout?.toLocaleString()}</p>
+                          <p style={{fontSize:11,color:'var(--Secondary)'}}>vs collected ₹{payoutPreview.collected?.toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {/* Live preview */}
                   {mResult.openPatti.length===3 && mResult.closePatti.length===3 && (
                     <div style={{ background:'rgba(255,203,82,0.08)', border:'1px solid rgba(255,203,82,0.25)', borderRadius:10, padding:'12px 16px' }}>
