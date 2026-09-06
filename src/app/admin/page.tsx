@@ -54,7 +54,7 @@ export default function AdminPage() {
   // ── Matka form ──────────────────────────────────────────────────────────────
   const [mResult,  setMResult]  = useState({ marketId:'', openPatti:'', closePatti:'' });
   const [settlementResult, setSettlementResult] = useState<any>(null); // after declare_close
-  const [mForm,    setMForm]    = useState({ name:'', openTime:'09:30', closeTime:'11:30', resultTime:'12:00' });
+  const [mForm,    setMForm]    = useState({ name:'', openTime:'13:00', closeTime:'18:45', resultTime:'19:00' });
   const [mCreate,  setMCreate]  = useState(false); // show create form
   const [mLoading, setMLoading] = useState(false);
 
@@ -306,7 +306,7 @@ export default function AdminPage() {
     setMLoading(true);
     const r = await authFetch('/api/admin/markets', { method:'POST', body: JSON.stringify({ action:'create_market', ...mForm }) });
     const d = await r.json();
-    if (r.ok) { toast.success(`✓ Market "${mForm.name}" created!`); load(); setMForm({ name:'', openTime:'09:30', closeTime:'11:30', resultTime:'12:00' }); setMCreate(false); }
+    if (r.ok) { toast.success(`✓ Market "${mForm.name}" created!`); load(); setMForm({ name:'', openTime:'13:00', closeTime:'18:45', resultTime:'19:00' }); setMCreate(false); }
     else toast.error(d.error ?? 'Failed');
     setMLoading(false);
   }

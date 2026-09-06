@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     if (!name || !openTime || !closeTime || !resultTime)
       return NextResponse.json({ error: 'name, openTime, closeTime, resultTime required' }, { status: 400 });
     const market = await prisma.matkaMarket.create({
-      data: { name, openTime, closeTime, resultTime, isActive: true, isOpen: false },
+      data: { name, openTime, closeTime, resultTime, isActive: true, isOpen: true },
     });
     return NextResponse.json({ ok: true, market });
   }
