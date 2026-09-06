@@ -306,11 +306,15 @@ export default function MatkaPage() {
     if (!['SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key)) return null;
     const vals = selectedStateIndices.map((x:any) => x.d);
     if (vals.length !== 3) return null;
-    const allSame = vals[0]===vals[1] && vals[1]===vals[2];
-    const sorted = [...vals].sort();
-    const hasPair = sorted[0]===sorted[1] || sorted[1]===sorted[2];
-    if (allSame) return 'TRIPLE_PATTI';
-    if (hasPair) return 'DOUBLE_PATTI';
+    const [a,b,d] = vals;
+    // TP: all 3 same (111, 222, 333...)
+    if (a===b && b===d) return 'TRIPLE_PATTI';
+    // DP: first two same OR last two same (221, 122, 334, 443...)
+    // BUT NOT palindrome like 121, 232 (those go to SP)
+    const firstTwoSame = a===b && b!==d;
+    const lastTwoSame  = b===d && a!==b;
+    if (firstTwoSame || lastTwoSame) return 'DOUBLE_PATTI';
+    // SP: all different (123) OR palindrome (121, 232, 343...)
     return 'SINGLE_PATTI';
   })();
   const autoLabel = autoClassifiedType === 'TRIPLE_PATTI' ? 'TP (Triple Patti)'
