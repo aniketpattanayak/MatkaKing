@@ -5,8 +5,36 @@ import { useRouter } from 'next/navigation';
 import { Ticket, Dices, RotateCcw, Trophy, Wallet, TrendingUp, Star, Copy } from 'lucide-react';
 import Header from '@/components/layout/Header';
 import { authFetch, getCachedUser, fetchCurrentUser, getToken } from '@/lib/auth-client';
+import { toast } from 'sonner';
 
 type Tab = 'overview' | 'tickets' | 'matka' | 'results' | 'winners';
+
+function DashPagination({ page, setPage, total, pageSize=30 }: { page:number, setPage:(p:number)=>void, total:number, pageSize?:number }) {
+  const totalPages = Math.ceil(total / pageSize);
+  if (totalPages <= 1) return null;
+  const pages = Array.from({length: Math.min(totalPages, 7)}, (_, i) => {
+    if (totalPages <= 7) return i + 1;
+    if (page <= 4) return i + 1;
+    if (page >= totalPages - 3) return totalPages - 6 + i;
+    return page - 3 + i;
+  });
+  return (
+    <div style={{display:'flex',gap:6,padding:'12px 14px',borderTop:'1px solid var(--Border)',alignItems:'center',flexWrap:'wrap'}}>
+      <span style={{fontSize:12,color:'var(--Secondary)',marginRight:4}}>
+        {((page-1)*pageSize)+1}–{Math.min(page*pageSize,total)} of {total}
+      </span>
+      {page > 1 && <button onClick={()=>setPage(page-1)} style={{padding:'4px 10px',borderRadius:7,border:'1px solid var(--Border)',background:'var(--Bg-3)',color:'var(--Secondary)',fontSize:12,cursor:'pointer'}}>‹</button>}
+      {pages.map(p=>(
+        <button key={p} onClick={()=>setPage(p)} style={{padding:'4px 10px',borderRadius:7,border:'none',fontSize:13,fontWeight:700,cursor:'pointer',minWidth:32,
+          background:p===page?'linear-gradient(270deg,#fe8c45,#ca2826)':'var(--Bg-3)',
+          color:p===page?'#fff':'var(--Secondary)'}}>
+          {p}
+        </button>
+      ))}
+      {page < totalPages && <button onClick={()=>setPage(page+1)} style={{padding:'4px 10px',borderRadius:7,border:'1px solid var(--Border)',background:'var(--Bg-3)',color:'var(--Secondary)',fontSize:12,cursor:'pointer'}}>›</button>}
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -30,7 +58,6 @@ export default function DashboardPage() {
     if (u) setUser(u);
     fetchCurrentUser().then(u => { if (u) setUser(u); });
     loadAll();
-    // Trigger auto-draw check on dashboard visit
     fetch('/api/cron/lottery-autodraw', { cache:'no-store' }).catch(()=>{});
   }, []);
 
@@ -42,46 +69,18 @@ export default function DashboardPage() {
         authFetch('/api/lottery/my-tickets').then(r => r.json()).catch(() => ({ bets: [] })),
         authFetch('/api/user/results').then(r => r.json()).catch(() => ({ matkaBets: [], lotteryBets: [], transactions: [] })),
       ]);
-      if (walletRes.wallet)       setWallet(walletRes.wallet);
-      if (walletRes.transactions) setTransactions(walletRes.transactions);
-      if (ticketsRes.bets)        setLotteryBets(ticketsRes.bets);
-      if (resultsRes.matkaBets)   setMatkaBets(resultsRes.matkaBets);
+      if (walletRes.wallet)        setWallet(walletRes.wallet);
+      if (walletRes.transactions)  setTransactions(walletRes.transactions);
+      if (ticketsRes.bets)         setLotteryBets(ticketsRes.bets);
+      if (resultsRes.matkaBets)    setMatkaBets(resultsRes.matkaBets);
       if (resultsRes.transactions) setWins(resultsRes.transactions);
     } catch(e) { console.error(e); }
     setLoading(false);
   };
 
-  const totalWon     = wins.reduce((s, t) => s + (t.coins ?? 0), 0);
-
-  // Pagination helper component
-  const Pagination = ({ page, setPage, total, pageSize=30 }: { page:number, setPage:(p:number)=>void, total:number, pageSize?:number }) => {
-    const totalPages = Math.ceil(total / pageSize);
-    if (totalPages <= 1) return null;
-    const pages = Array.from({length: Math.min(totalPages, 7)}, (_, i) => {
-      if (totalPages <= 7) return i + 1;
-      if (page <= 4) return i + 1;
-      if (page >= totalPages - 3) return totalPages - 6 + i;
-      return page - 3 + i;
-    });
-    return (
-      <div style={{display:'flex',gap:6,padding:'12px 14px',borderTop:'1px solid var(--Border)',alignItems:'center',flexWrap:'wrap'}}>
-        <span style={{fontSize:12,color:'var(--Secondary)',marginRight:4}}>
-          {((page-1)*pageSize)+1}–{Math.min(page*pageSize,total)} of {total}
-        </span>
-        {page > 1 && <button onClick={()=>setPage(page-1)} style={{padding:'4px 10px',borderRadius:7,border:'1px solid var(--Border)',background:'var(--Bg-3)',color:'var(--Secondary)',fontSize:12,cursor:'pointer'}}>‹</button>}
-        {pages.map(p=>(
-          <button key={p} onClick={()=>setPage(p)} style={{padding:'4px 10px',borderRadius:7,border:'none',fontSize:13,fontWeight:700,cursor:'pointer',minWidth:32,
-            background:p===page?'linear-gradient(270deg,#fe8c45,#ca2826)':'var(--Bg-3)',
-            color:p===page?'#fff':'var(--Secondary)'}}>
-            {p}
-          </button>
-        ))}
-        {page < totalPages && <button onClick={()=>setPage(page+1)} style={{padding:'4px 10px',borderRadius:7,border:'1px solid var(--Border)',background:'var(--Bg-3)',color:'var(--Secondary)',fontSize:12,cursor:'pointer'}}>›</button>}
-      </div>
-    );
-  };
-  const activeTickets= lotteryBets.filter(b => b.series?.status === 'OPEN').length;
-  const wonTickets   = lotteryBets.filter(b => b.ticket?.isWinner).length;
+  const totalWon      = wins.reduce((s, t) => s + (t.coins ?? 0), 0);
+  const activeTickets = lotteryBets.filter(b => b.series?.status === 'OPEN').length;
+  const wonTickets    = lotteryBets.filter(b => b.ticket?.isWinner).length;
 
   const statusColor = (s: string) => ({
     ACTIVE:'#ffcb52', WON:'#2ECC71', LOST:'#ef4444', REFUNDED:'#3498DB',
@@ -120,13 +119,13 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          {/* Stats row */}
+          {/* Stats */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:12, marginBottom:20 }}>
             {[
               { label:'Wallet Balance', value:`${(wallet?.balance ?? 0).toLocaleString()} Coins`, Icon:Wallet, color:'#ffcb52' },
-              { label:'Active Tickets', value:activeTickets,       Icon:Ticket,    color:'#3498DB' },
-              { label:'Total Won',      value:`${totalWon.toLocaleString()} Coins`, Icon:Trophy,    color:'#2ECC71' },
-              { label:'Matka Bets',     value:matkaBets.length,    Icon:Dices,     color:'#9B59B6' },
+              { label:'Active Tickets', value:activeTickets, Icon:Ticket, color:'#3498DB' },
+              { label:'Total Won', value:`${totalWon.toLocaleString()} Coins`, Icon:Trophy, color:'#2ECC71' },
+              { label:'Matka Bets', value:matkaBets.length, Icon:Dices, color:'#9B59B6' },
             ].map(s => (
               <div key={s.label} style={{ ...card, padding:'18px 20px' }}>
                 <div style={{ width:38, height:38, borderRadius:10, background:`${s.color}18`, border:`1px solid ${s.color}40`, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:12 }}>
@@ -138,25 +137,18 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Referral Code Card */}
+          {/* Referral */}
           {user?.referralCode && (
-            <div style={{
-              background:'var(--Bg-2)', border:'1px solid rgba(255,203,82,0.3)',
-              borderRadius:16, padding:'18px 22px', marginBottom:20,
-              display:'flex', alignItems:'center', justifyContent:'space-between',
-              flexWrap:'wrap', gap:14,
-            }}>
+            <div style={{ background:'var(--Bg-2)', border:'1px solid rgba(255,203,82,0.3)', borderRadius:16, padding:'18px 22px', marginBottom:20, display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:14 }}>
               <div>
                 <p style={{fontWeight:900,fontSize:15,color:'#ffcb52',marginBottom:4}}>🎁 Your Referral Code — Earn 20 coins per invite</p>
                 <p style={{fontSize:12,color:'var(--Secondary)'}}>Share with friends. They get +10 coins on signup, you get +20 coins.</p>
               </div>
               <div style={{display:'flex',alignItems:'center',gap:10}}>
-                <div style={{background:'var(--Bg-3)',border:'1px solid rgba(255,203,82,0.4)',borderRadius:10,padding:'10px 18px',fontFamily:'monospace',fontWeight:900,fontSize:18,color:'#ffcb52',letterSpacing:2,userSelect:'all'}}>
+                <div style={{background:'var(--Bg-3)',border:'1px solid rgba(255,203,82,0.4)',borderRadius:10,padding:'10px 18px',fontFamily:'monospace',fontWeight:900,fontSize:18,color:'#ffcb52',letterSpacing:2}}>
                   {user.referralCode.slice(0,10).toUpperCase()}
                 </div>
-                <button onClick={()=>{
-                  navigator.clipboard.writeText(user.referralCode).then(()=>toast.success('Referral code copied!')).catch(()=>toast.info(`Your code: ${user.referralCode.slice(0,10).toUpperCase()}`));
-                }} style={{height:44,padding:'0 18px',borderRadius:10,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontWeight:800,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+                <button onClick={()=>{ navigator.clipboard.writeText(user.referralCode).then(()=>toast.success('Copied!')).catch(()=>{}); }} style={{height:44,padding:'0 18px',borderRadius:10,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontWeight:800,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
                   <Copy size={14}/> Copy
                 </button>
               </div>
@@ -172,23 +164,15 @@ export default function DashboardPage() {
               ['results','Win History',Trophy],
               ['winners','🏆 Winners',Star],
             ] as const).map(([k,l,Icon]) => (
-              <button key={k} onClick={()=>setTab(k as Tab)} style={{
-                display:'flex', alignItems:'center', gap:6, flex:1,
-                padding:'10px 0', borderRadius:11, border:'none', cursor:'pointer',
-                fontWeight:700, fontSize:13, justifyContent:'center',
-                background:tab===k?'linear-gradient(270deg,#fe8c45,#ca2826)':'transparent',
-                color:tab===k?'#fff':'var(--Secondary)',
-              }}>
+              <button key={k} onClick={()=>setTab(k as Tab)} style={{ display:'flex', alignItems:'center', gap:6, flex:1, padding:'10px 0', borderRadius:11, border:'none', cursor:'pointer', fontWeight:700, fontSize:13, justifyContent:'center', background:tab===k?'linear-gradient(270deg,#fe8c45,#ca2826)':'transparent', color:tab===k?'#fff':'var(--Secondary)' }}>
                 <Icon size={14}/> {l}
               </button>
             ))}
           </div>
 
-          {/* ── OVERVIEW ── */}
+          {/* OVERVIEW */}
           {tab==='overview' && (
             <div className='two-col' style={{ gap:16 }}>
-
-              {/* Recent transactions */}
               <div style={card}>
                 <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--Border)', background:'rgba(0,0,0,0.15)' }}>
                   <h4 style={{ fontWeight:700, fontSize:15 }}>Recent Transactions</h4>
@@ -199,9 +183,7 @@ export default function DashboardPage() {
                   <div key={i} style={{ padding:'12px 18px', borderBottom:'1px solid rgba(255,255,255,0.03)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                     <div>
                       <p style={{ fontWeight:600, fontSize:13 }}>{t.type.replace(/_/g,' ')}</p>
-                      <p style={{ fontSize:11, color:'var(--Secondary)' }}>
-                        {new Date(t.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}
-                      </p>
+                      <p style={{ fontSize:11, color:'var(--Secondary)' }}>{new Date(t.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</p>
                     </div>
                     <span style={{ fontWeight:700, fontSize:14, color:['WIN_CREDIT','DEPOSIT','BONUS'].includes(t.type)?'#2ECC71':'#ef4444' }}>
                       {['WIN_CREDIT','DEPOSIT','BONUS'].includes(t.type)?'+':'-'}{(t.coins||t.amount||0).toLocaleString()}
@@ -212,16 +194,14 @@ export default function DashboardPage() {
                   <Link href="/dashboard/wallet" style={{ fontSize:13, color:'var(--Main-color)', fontWeight:600 }}>View all transactions →</Link>
                 </div>
               </div>
-
-              {/* Quick links */}
               <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
                 {[
-                  { href:'/games/lottery', Icon:Ticket,    label:'Buy Lottery Tickets',  sub:'Search & pick your lucky numbers', color:'#3498DB' },
-                  { href:'/games/matka',   Icon:Dices,     label:'Play Matka King',       sub:'Place bets on today\'s markets',    color:'#9B59B6' },
-                  { href:'/games/spin',    Icon:RotateCcw, label:'Spin the Wheel',        sub:`Daily free spin available`,         color:'#2ECC71' },
-                  { href:'/dashboard/wallet', Icon:Wallet, label:'Add Coins',             sub:'Deposit via UPI — instant credit',  color:'#ffcb52' },
+                  { href:'/games/lottery', Icon:Ticket,    label:'Buy Lottery Tickets', sub:'Search & pick your lucky numbers', color:'#3498DB' },
+                  { href:'/games/matka',   Icon:Dices,     label:'Play Money Bank',      sub:"Place bets on today's markets",    color:'#9B59B6' },
+                  { href:'/games/spin',    Icon:RotateCcw, label:'Spin the Wheel',       sub:'Daily free spin available',        color:'#2ECC71' },
+                  { href:'/dashboard/wallet', Icon:Wallet, label:'Add Coins',            sub:'Deposit via UPI — instant credit', color:'#ffcb52' },
                 ].map(item => (
-                  <Link key={item.href} href={item.href} style={{ ...card, padding:'16px 20px', display:'flex', alignItems:'center', gap:14, textDecoration:'none', transition:'border-color 0.2s', borderColor:'var(--Border)' }}>
+                  <Link key={item.href} href={item.href} style={{ ...card, padding:'16px 20px', display:'flex', alignItems:'center', gap:14, textDecoration:'none' }}>
                     <div style={{ width:42, height:42, borderRadius:12, background:`${item.color}18`, border:`1px solid ${item.color}40`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                       <item.Icon size={20} color={item.color}/>
                     </div>
@@ -235,7 +215,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* ── MY LOTTERY TICKETS ── */}
+          {/* LOTTERY TICKETS */}
           {tab==='tickets' && (
             <div style={card}>
               <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--Border)', background:'rgba(0,0,0,0.15)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
@@ -249,42 +229,41 @@ export default function DashboardPage() {
                   <Link href="/games/lottery" className="tf-btn" style={{ height:44, fontSize:14, padding:'0 28px' }}>Buy Tickets</Link>
                 </div>
               ) : (
-                <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                  <thead><tr style={{ background:'rgba(0,0,0,0.2)' }}>
-                    {['Ticket Code','Series','Draw Date','Price Paid','Status'].map(h=>(
-                      <th key={h} style={{ padding:'10px 16px', textAlign:'left', fontSize:11, fontWeight:700, color:'var(--Secondary)', textTransform:'uppercase' }}>{h}</th>
-                    ))}
-                  </tr></thead>
-                  <tbody>
-                    {lotteryBets.slice((lotteryPage-1)*30, lotteryPage*30).map((b,i) => (
-                      <tr key={i} style={{ borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
-                        <td style={{ padding:'13px 16px' }}>
-                          <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:16, color: b.ticket?.isWinner ? '#ffcb52' : 'var(--White)' }}>
-                            {b.ticket?.ticketCode ?? '—'}
-                          </span>
-                          {b.ticket?.isWinner && <span style={{ marginLeft:8, fontSize:11, background:'rgba(255,203,82,0.2)', color:'#ffcb52', borderRadius:999, padding:'1px 8px', fontWeight:700 }}>WINNER!</span>}
-                        </td>
-                        <td style={{ padding:'13px 16px', fontSize:13 }}>{b.series?.name ?? '—'}</td>
-                        <td style={{ padding:'13px 16px', fontSize:12, color:'var(--Secondary)' }}>
-                          {b.series?.drawAt ? new Date(b.series.drawAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}
-                        </td>
-                        <td style={{ padding:'13px 16px', fontWeight:700, fontSize:13 }}>₹{b.amountPaid}</td>
-                        <td style={{ padding:'13px 16px' }}>
-                          <span style={{ padding:'2px 10px', borderRadius:999, fontSize:11, fontWeight:700,
-                            background: b.ticket?.isWinner ? 'rgba(255,203,82,0.2)' : b.series?.status==='OPEN' ? 'rgba(52,152,219,0.15)' : 'rgba(100,100,100,0.2)',
-                            color: b.ticket?.isWinner ? '#ffcb52' : statusColor(b.series?.status ?? '') }}>
-                            {b.ticket?.isWinner ? 'Won!' : b.series?.status ?? 'Active'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <>
+                  <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                    <thead><tr style={{ background:'rgba(0,0,0,0.2)' }}>
+                      {['Ticket Code','Series','Draw Date','Price Paid','Status'].map(h=>(
+                        <th key={h} style={{ padding:'10px 16px', textAlign:'left', fontSize:11, fontWeight:700, color:'var(--Secondary)', textTransform:'uppercase' }}>{h}</th>
+                      ))}
+                    </tr></thead>
+                    <tbody>
+                      {lotteryBets.slice((lotteryPage-1)*30, lotteryPage*30).map((b,i) => (
+                        <tr key={i} style={{ borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
+                          <td style={{ padding:'13px 16px' }}>
+                            <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:16, color: b.ticket?.isWinner ? '#ffcb52' : 'var(--White)' }}>{b.ticket?.ticketCode ?? '—'}</span>
+                            {b.ticket?.isWinner && <span style={{ marginLeft:8, fontSize:11, background:'rgba(255,203,82,0.2)', color:'#ffcb52', borderRadius:999, padding:'1px 8px', fontWeight:700 }}>WINNER!</span>}
+                          </td>
+                          <td style={{ padding:'13px 16px', fontSize:13 }}>{b.series?.name ?? '—'}</td>
+                          <td style={{ padding:'13px 16px', fontSize:12, color:'var(--Secondary)' }}>
+                            {b.series?.drawAt ? new Date(b.series.drawAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}
+                          </td>
+                          <td style={{ padding:'13px 16px', fontWeight:700, fontSize:13 }}>₹{b.amountPaid}</td>
+                          <td style={{ padding:'13px 16px' }}>
+                            <span style={{ padding:'2px 10px', borderRadius:999, fontSize:11, fontWeight:700, background: b.ticket?.isWinner ? 'rgba(255,203,82,0.2)' : b.series?.status==='OPEN' ? 'rgba(52,152,219,0.15)' : 'rgba(100,100,100,0.2)', color: b.ticket?.isWinner ? '#ffcb52' : statusColor(b.series?.status ?? '') }}>
+                              {b.ticket?.isWinner ? 'Won!' : b.series?.status ?? 'Active'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <DashPagination page={lotteryPage} setPage={setLotteryPage} total={lotteryBets.length}/>
+                </>
               )}
             </div>
           )}
 
-          {/* ── MATKA BETS ── */}
+          {/* MATKA BETS */}
           {tab==='matka' && (
             <div style={card}>
               <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--Border)', background:'rgba(0,0,0,0.15)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
@@ -299,49 +278,47 @@ export default function DashboardPage() {
                   <Link href="/games/matka" className="tf-btn" style={{ height:44, fontSize:14, padding:'0 28px' }}>Play Matka</Link>
                 </div>
               ) : (
-                <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                  <thead><tr style={{ background:'rgba(0,0,0,0.2)' }}>
-                    {['Market','Bet Type','Number','Session','Amount','Win Amount','Status','Date'].map(h=>(
-                      <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:11, fontWeight:700, color:'var(--Secondary)', textTransform:'uppercase' }}>{h}</th>
-                    ))}
-                  </tr></thead>
-                  <tbody>
-                    {matkaBets.slice((matkaPage-1)*30, matkaPage*30).map((b,i) => (
-                      <tr key={i} style={{ borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
-                        <td style={{ padding:'12px 14px', fontWeight:600, fontSize:13 }}>{b.market?.name ?? '—'}</td>
-                        <td style={{ padding:'12px 14px', fontSize:12, color:'var(--Secondary)' }}>{b.betType}</td>
-                        <td style={{ padding:'12px 14px', fontFamily:'monospace', fontWeight:700, fontSize:15, color:'#ffcb52' }}>{b.betValue}</td>
-                        <td style={{ padding:'12px 14px', fontSize:12 }}>
-                          <span style={{ padding:'1px 8px', borderRadius:999, fontSize:10, fontWeight:700,
-                            background:b.session==='OPEN'?'rgba(46,204,113,0.15)':'rgba(52,152,219,0.15)',
-                            color:b.session==='OPEN'?'#2ECC71':'#3498DB' }}>{b.session}</span>
-                        </td>
-                        <td style={{ padding:'12px 14px', fontWeight:700 }}>₹{b.amount}</td>
-                        <td style={{ padding:'12px 14px', fontWeight:700, color:'#2ECC71' }}>
-                          {(b.wonAmount||b.winAmount||0)>0 ? <strong style={{color:'#2ECC71'}}>+₹{(b.wonAmount||b.winAmount).toLocaleString()}</strong> : <span style={{color:'var(--Secondary)'}}>—</span>}
-                        </td>
-                        <td style={{ padding:'12px 14px' }}>
-                          <span style={{ padding:'2px 10px', borderRadius:999, fontSize:10, fontWeight:700,
-                            background: b.status==='WON'?'rgba(46,204,113,0.15)':b.status==='LOST'?'rgba(239,68,68,0.1)':'rgba(255,203,82,0.15)',
-                            color: statusColor(b.status) }}>
-                            {b.status==='WON'?'🏆 WON':b.status==='LOST'?'❌ LOST':b.status==='ACTIVE'?'⏳ Active':b.status}
-                          </span>
-                        </td>
-                        <td style={{ padding:'12px 14px', fontSize:11, color:'var(--Secondary)' }}>
-                          {b.placedAt ? new Date(b.placedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <>
+                  <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                    <thead><tr style={{ background:'rgba(0,0,0,0.2)' }}>
+                      {['Market','Bet Type','Number','Session','Amount','Win Amount','Status','Date'].map(h=>(
+                        <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:11, fontWeight:700, color:'var(--Secondary)', textTransform:'uppercase' }}>{h}</th>
+                      ))}
+                    </tr></thead>
+                    <tbody>
+                      {matkaBets.slice((matkaPage-1)*30, matkaPage*30).map((b:any,i:number) => (
+                        <tr key={i} style={{ borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
+                          <td style={{ padding:'12px 14px', fontWeight:600, fontSize:13 }}>{b.market?.name ?? '—'}</td>
+                          <td style={{ padding:'12px 14px', fontSize:12, color:'var(--Secondary)' }}>{b.betType}</td>
+                          <td style={{ padding:'12px 14px', fontFamily:'monospace', fontWeight:700, fontSize:15, color:'#ffcb52' }}>{b.betValue}</td>
+                          <td style={{ padding:'12px 14px', fontSize:12 }}>
+                            <span style={{ padding:'1px 8px', borderRadius:999, fontSize:10, fontWeight:700, background:b.session==='OPEN'?'rgba(46,204,113,0.15)':'rgba(52,152,219,0.15)', color:b.session==='OPEN'?'#2ECC71':'#3498DB' }}>{b.session}</span>
+                          </td>
+                          <td style={{ padding:'12px 14px', fontWeight:700 }}>₹{b.amount}</td>
+                          <td style={{ padding:'12px 14px', fontWeight:700, color:'#2ECC71' }}>
+                            {(b.wonAmount||b.winAmount||0)>0 ? <strong style={{color:'#2ECC71'}}>+₹{(b.wonAmount||b.winAmount).toLocaleString()}</strong> : <span style={{color:'var(--Secondary)'}}>—</span>}
+                          </td>
+                          <td style={{ padding:'12px 14px' }}>
+                            <span style={{ padding:'2px 10px', borderRadius:999, fontSize:10, fontWeight:700, background: b.status==='WON'?'rgba(46,204,113,0.15)':b.status==='LOST'?'rgba(239,68,68,0.1)':'rgba(255,203,82,0.15)', color: statusColor(b.status) }}>
+                              {b.status==='WON'?'🏆 WON':b.status==='LOST'?'❌ LOST':b.status==='ACTIVE'?'⏳ Active':b.status}
+                            </span>
+                          </td>
+                          <td style={{ padding:'12px 14px', fontSize:11, color:'var(--Secondary)' }}>
+                            {b.placedAt ? new Date(b.placedAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <DashPagination page={matkaPage} setPage={setMatkaPage} total={matkaBets.length}/>
+                </>
               )}
             </div>
           )}
 
-          {/* ── WIN HISTORY ── */}
+          {/* WIN HISTORY */}
           {tab==='results' && (
             <div>
-              {/* Summary */}
               <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:14, marginBottom:20 }}>
                 {[
                   { label:'Total Winnings', value:`₹${totalWon.toLocaleString()} Coins`, color:'#2ECC71' },
@@ -354,8 +331,6 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-
-              {/* Win transactions */}
               <div style={card}>
                 <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--Border)', background:'rgba(0,0,0,0.15)' }}>
                   <h4 style={{ fontWeight:700, fontSize:15 }}>Win Credits</h4>
@@ -365,29 +340,30 @@ export default function DashboardPage() {
                     <Trophy size={48} style={{ marginBottom:16, opacity:0.3 }}/>
                     <p>No winnings yet — keep playing!</p>
                   </div>
-                ) : wins.map((t,i)=>(
-                  <div key={i} style={{ padding:'14px 18px', borderBottom:'1px solid rgba(255,255,255,0.03)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-                      <div style={{ width:36, height:36, borderRadius:10, background:'rgba(46,204,113,0.12)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                        <Trophy size={18} color="#2ECC71"/>
+                ) : (
+                  <>
+                    {wins.slice((winsPage-1)*30, winsPage*30).map((t:any,i:number)=>(
+                      <div key={i} style={{ padding:'14px 18px', borderBottom:'1px solid rgba(255,255,255,0.03)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                          <div style={{ width:36, height:36, borderRadius:10, background:'rgba(46,204,113,0.12)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                            <Trophy size={18} color="#2ECC71"/>
+                          </div>
+                          <div>
+                            <p style={{ fontWeight:700, fontSize:14 }}>Win Credit</p>
+                            <p style={{ fontSize:11, color:'var(--Secondary)' }}>{new Date(t.createdAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+                          </div>
+                        </div>
+                        <span style={{ fontWeight:900, fontSize:20, color:'#2ECC71' }}>+{(t.coins||0).toLocaleString()} Coins</span>
                       </div>
-                      <div>
-                        <p style={{ fontWeight:700, fontSize:14 }}>Win Credit</p>
-                        <p style={{ fontSize:11, color:'var(--Secondary)' }}>
-                          {new Date(t.createdAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
-                        </p>
-                      </div>
-                    </div>
-                    <span style={{ fontWeight:900, fontSize:20, color:'#2ECC71' }}>+{(t.coins||0).toLocaleString()} Coins</span>
-                  </div>
-                ))}
+                    ))}
+                    <DashPagination page={winsPage} setPage={setWinsPage} total={wins.length}/>
+                  </>
+                )}
               </div>
-            
-              {wins.length > 30 && <Pagination page={winsPage} setPage={setWinsPage} total={wins.length}/>}
-              {wins.length > 30 && <Pagination page={winsPage} setPage={setWinsPage} total={wins.length}/>}</div>
+            </div>
           )}
 
-
+          {/* WINNERS */}
           {tab==='winners' && (
             <div>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:12}}>
@@ -395,10 +371,7 @@ export default function DashboardPage() {
                   <h3 style={{fontWeight:900,fontSize:22}}>🏆 Lottery Winners</h3>
                   <p style={{color:'var(--Secondary)',fontSize:13,marginTop:4}}>See who won each lottery draw</p>
                 </div>
-                <button onClick={()=>{
-                  setWinnersLoading(true);
-                  fetch('/api/lottery/winners').then(r=>r.json()).then(d=>{ if(d.series) setLotteryWinners(d.series); }).finally(()=>setWinnersLoading(false));
-                }} disabled={winnersLoading} style={{padding:'8px 18px',borderRadius:999,border:'1px solid var(--Border)',background:'var(--Bg-2)',color:'var(--Secondary)',fontSize:13,cursor:'pointer',fontWeight:600}}>
+                <button onClick={()=>{ setWinnersLoading(true); fetch('/api/lottery/winners').then(r=>r.json()).then(d=>{ if(d.series) setLotteryWinners(d.series); }).finally(()=>setWinnersLoading(false)); }} disabled={winnersLoading} style={{padding:'8px 18px',borderRadius:999,border:'1px solid var(--Border)',background:'var(--Bg-2)',color:'var(--Secondary)',fontSize:13,cursor:'pointer',fontWeight:600}}>
                   {winnersLoading?'Loading...':'↻ Load Winners'}
                 </button>
               </div>
