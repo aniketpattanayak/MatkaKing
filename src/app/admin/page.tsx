@@ -1169,7 +1169,19 @@ export default function AdminPage() {
                 <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
                   <div>
                     <label style={label}>Select Market</label>
-                    <select value={mResult.marketId} onChange={e=>setMResult({...mResult,marketId:e.target.value})} style={{...inp,appearance:'none',color:'var(--White)',background:'var(--Bg-3)'}}>
+                    <select value={mResult.marketId} onChange={e=>{
+                      const mid = e.target.value;
+                      // Find market's today result and auto-fill open patti if declared
+                      const mkt = data.markets.find((m:any)=>m.id===mid);
+                      const todayResult = mkt?.results?.[0];
+                      setMResult({
+                        marketId: mid,
+                        openPatti: todayResult?.openPatti ?? '',
+                        closePatti: todayResult?.closePatti ?? '',
+                      });
+                      setSuggest(null);
+                      setPayoutPreview(null);
+                    }} style={{...inp,appearance:'none',color:'var(--White)',background:'var(--Bg-3)'}}>
                       <option value="">— Select market —</option>
                       {data.markets.map((m:any)=><option key={m.id} value={m.id}>{m.name}</option>)}
                     </select>
