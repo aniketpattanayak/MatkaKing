@@ -8,9 +8,9 @@ export async function GET(req: NextRequest) {
 
     const [matkaBets, lotteryBets, transactions] = await Promise.all([
       prisma.matkaBet.findMany({
-        where:   { userId: p.sub, placedAt: { gte: new Date(Date.now() - 72*60*60*1000) } },
+        where:   { userId: p.sub },
         orderBy: { placedAt: 'desc' },
-        take:    50,
+        take:    500,
         include: {
           market: { select: { id: true, name: true, openTime: true, closeTime: true } },
           result: { select: { openPatti: true, closePatti: true, jodi: true, openAnk: true, closeAnk: true } },
@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       prisma.lotteryBet.findMany({
         where:   { userId: p.sub },
         orderBy: { placedAt: 'desc' },
-        take:    50,
+        take:    500,
         include: {
           series: { select: { id: true, name: true, status: true, drawAt: true, prefix: true, firstPrize: true, secondPrize: true, thirdPrize: true } },
           ticket: { select: { ticketCode: true, isWinner: true } },
