@@ -27,6 +27,8 @@ export default function DashboardPage() {
     if (u) setUser(u);
     fetchCurrentUser().then(u => { if (u) setUser(u); });
     loadAll();
+    // Trigger auto-draw check on dashboard visit
+    fetch('/api/cron/lottery-autodraw', { cache:'no-store' }).catch(()=>{});
   }, []);
 
   const loadAll = async () => {

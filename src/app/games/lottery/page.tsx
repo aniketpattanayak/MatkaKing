@@ -124,7 +124,8 @@ export default function LotteryPage() {
         body: JSON.stringify({ seriesId: series.id, quantity: qty }),  // server picks random available tickets
       });
       const data = await res.json();
-      if (res.ok) { setBalance(data.newBalance ?? balance - cost); toast.success(`${data.count} tickets bought! ${cost} coins deducted.`); }
+      if (res.ok) { setBalance(data.newBalance ?? balance - cost); toast.success(`${data.count} tickets bought! ${cost} coins deducted.`);
+        fetch('/api/cron/lottery-autodraw', { cache:'no-store' }).catch(()=>{}); }
       else throw new Error(data.error);
     } catch(e: any) {
       toast.error(e.message ?? 'Purchase failed');

@@ -141,6 +141,8 @@ export default function AdminPage() {
       ]);
 
       setData({ upis: upiD.upis ?? [], markets: mkD.markets ?? [], series: lD.series ?? [], spinConfig: sD.config, users: [] });
+      // Trigger auto-draw check on admin load
+      fetch('/api/cron/lottery-autodraw', { cache:'no-store' }).catch(()=>{});
       // Load daily stats
       authFetch('/api/admin/daily-stats').then(r=>r.json()).then(d=>{ if(!d.error) setDailyStats(d); }).catch(()=>{});
       authFetch('/api/admin/history-stats').then(r=>r.json()).then(d=>{ if(d.days) setHistoryStats(d.days); }).catch(()=>{});
