@@ -90,6 +90,15 @@ export async function POST(req: NextRequest) {
         created += batch.length;
       }
 
+      // Auto-schedule the draw
+      try {
+        await prisma.scheduledDraw.upsert({
+          where:  { seriesId: series.id },
+          update: { drawAt: series.drawAt, status: 'PENDING' },
+          create: { seriesId: series.id, drawAt: series.drawAt, status: 'PENDING' },
+        });
+      } catch(e) { /* ignore if model not ready */ }
+
       return NextResponse.json({ ok: true, series, ticketsGenerated: created, total: Number(totalTickets) });
     }
 
