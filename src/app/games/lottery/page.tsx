@@ -32,6 +32,10 @@ export default function LotteryPage() {
   const [allSeries,  setAllSeries]  = useState<Series[]>([]);
   const [series,     setSeries]     = useState<Series | null>(null);
   const [tickets,    setTickets]    = useState<Ticket[]>([]);
+  const [hasMore,    setHasMore]    = useState(false);
+  const [loadingMore,setLoadingMore]= useState(false);
+  const [currentOffset, setCurrentOffset] = useState(0);
+  const PAGE_SIZE = 500;
   const [selected,   setSelected]   = useState<Set<string>>(new Set());
   const [query,      setQuery]      = useState('');
   const [lucky,      setLucky]      = useState('');
@@ -68,10 +72,11 @@ export default function LotteryPage() {
   // Search tickets
   const searchTickets = useCallback((q: string) => {
     if (!series) return;
-    authFetch(`/api/lottery/search?seriesId=${series.id}&q=${q}&limit=${series.endNumber ?? 50000}`)
+    setCurrentOffset(0);
+    authFetch(`/api/lottery/search?seriesId=${series.id}&q=${q}&limit=${PAGE_SIZE}&offset=0`)
       .then(r => r.json())
       .then(d => {
-        if (d.tickets?.length > 0) setTickets(d.tickets);
+        if (d.tickets?.length > 0) { setTickets(d.tickets); setHasMore(d.hasMore??false); setCurrentOffset(d.nextOffset??PAGE_SIZE); }
         else setTickets([]);
       })
       .catch(() => setTickets([]));
@@ -150,6 +155,24 @@ export default function LotteryPage() {
     n.has(id) ? n.delete(id) : n.add(id);
     return n;
   });
+
+  const loadMoreTickets = async () => {
+    if (!series || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const q = query || '';
+    const d = await authFetch(`/api/lottery/search?seriesId=${series.id}&q=${q}&limit=${PAGE_SIZE}&offset=${currentOffset}`).then(r=>r.json());
+    if (d.tickets) {
+      setTickets(prev => {
+        // Merge avoiding duplicates
+        const ids = new Set(prev.map((t:any)=>t.ticketId));
+        const newOnes = d.tickets.filter((t:any)=>!ids.has(t.ticketId));
+        return [...prev, ...newOnes];
+      });
+      setHasMore(d.hasMore??false);
+      setCurrentOffset(d.nextOffset??currentOffset+PAGE_SIZE);
+    }
+    setLoadingMore(false);
+  };
 
   const available = tickets.filter(t => !t.isSold);
   const cost = series ? selected.size * series.ticketPrice : 0;
@@ -262,9 +285,14 @@ export default function LotteryPage() {
                   <span style={{ color:'var(--Secondary)', margin:'0 8px' }}>·</span>
                   <span style={{ color:'#ef4444' }}>{tickets.length - available.length} sold</span>
                   <span style={{ color:'var(--Secondary)', margin:'0 8px' }}>·</span>
-                  <span style={{ color:'var(--Secondary)' }}>{tickets.length} total</span>
+                  <span style={{ color:'var(--Secondary)' }}>showing {tickets.length}{hasMore?'+':''}</span>
                 </span>
                 {selected.size > 0 && <span style={{ color: 'var(--Main-color)', fontWeight: 700 }}>{selected.size} selected · ₹{cost.toLocaleString()}</span>}
+                {hasMore && (
+                  <button onClick={loadMoreTickets} disabled={loadingMore} style={{ padding:'8px 20px', borderRadius:10, border:'1px solid var(--Border)', background:'var(--Bg-2)', color:'var(--Secondary)', fontSize:13, cursor:loadingMore?'not-allowed':'pointer', fontWeight:600, marginTop:8 }}>
+                    {loadingMore ? '⏳ Loading...' : `Load 500 more tickets ↓`}
+                  </button>
+                )}
               </div>
 
               {/* Ticket grid */}

@@ -7,10 +7,17 @@ export const revalidate = 0;
 export async function GET() {
   try {
     // Close series automatically 30 mins before draw time
+    // Only close if: drawAt is within 30 mins AND series was created at least 2 hours ago
     const now = new Date();
     const thirtyMinsFromNow = new Date(now.getTime() + 30 * 60 * 1000);
+    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
     await prisma.lotterySeries.updateMany({
-      where: { status: 'OPEN', isActive: true, drawAt: { lte: thirtyMinsFromNow } },
+      where: { 
+        status: 'OPEN', 
+        isActive: true, 
+        drawAt: { lte: thirtyMinsFromNow },
+        createdAt: { lte: twoHoursAgo }, // only close series older than 2 hours
+      },
       data: { status: 'CLOSED' },
     });
 

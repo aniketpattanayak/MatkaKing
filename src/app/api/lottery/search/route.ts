@@ -5,7 +5,8 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const seriesId = searchParams.get('seriesId') ?? '';
   const q        = searchParams.get('q') ?? '';
-  const limit    = Math.min(parseInt(searchParams.get('limit') ?? '50000'), 50000);
+  const limit    = Math.min(parseInt(searchParams.get('limit') ?? '500'), 2000);
+  const offset   = parseInt(searchParams.get('offset') ?? '0');
 
   if (!seriesId) return NextResponse.json({ tickets: [], totalAvailable: 0, totalInSeries: 0 });
 
@@ -18,7 +19,9 @@ export async function GET(req: NextRequest) {
 
     const [tickets, totalAvailable, totalInSeries] = await Promise.all([
       prisma.lotteryTicket.findMany({
-        where, take: limit, orderBy: { ticketCode: 'asc' },
+        where, take: limit, skip: offset,
+        // Sort: available first, then sold
+        orderBy: [{ isSold: 'asc' }, { ticketCode: 'asc' }],
         select: { id: true, ticketCode: true, isSold: true, isWinner: true },
       }),
       prisma.lotteryTicket.count({ where: { seriesId, isSold: false } }),
@@ -27,12 +30,14 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       tickets: isDrawn 
-        ? tickets.map(t => ({ ticketId: t.id, ticketCode: t.ticketCode, isSold: true, isWinner: t.isWinner })) // mark all as "sold" so can't buy
+        ? tickets.map(t => ({ ticketId: t.id, ticketCode: t.ticketCode, isSold: true, isWinner: t.isWinner }))
         : tickets.map(t => ({ ticketId: t.id, ticketCode: t.ticketCode, isSold: t.isSold })),
       totalAvailable: isDrawn ? 0 : totalAvailable,
       totalInSeries,
       isDrawn,
       status: series?.status,
+      hasMore: offset + limit < totalInSeries,
+      nextOffset: offset + limit,
     });
   } catch (e: any) {
     console.error('lottery search error:', e.message);

@@ -70,9 +70,10 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // Generate ALL tickets in one batch for speed
+      // For large counts, generate first batch immediately then continue
+      // This prevents timeout on Vercel
       // Vercel hobby has 10s timeout — build array in memory then single DB call
-      const BATCH = 1000;
+      const BATCH = 5000; // larger batch = faster inserts
       let created = 0;
       const padLen = String(endNum).length; // dynamic padding based on total tickets
       for (let i = startNum; i <= endNum; i += BATCH) {
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
         created += batch.length;
       }
 
-      return NextResponse.json({ ok: true, series, ticketsGenerated: created });
+      return NextResponse.json({ ok: true, series, ticketsGenerated: created, total: Number(totalTickets) });
     }
 
     // ── Update status ────────────────────────────────────────────────────────
