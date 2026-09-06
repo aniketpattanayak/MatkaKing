@@ -19,6 +19,9 @@ export default function DashboardPage() {
   const [wins,         setWins]         = useState<any[]>([]);
   const [lotteryWinners, setLotteryWinners] = useState<any[]>([]);
   const [winnersLoading, setWinnersLoading] = useState(false);
+  const [lotteryPage,  setLotteryPage]  = useState(1);
+  const [matkaPage,    setMatkaPage]    = useState(1);
+  const [winsPage,     setWinsPage]     = useState(1);
   const [loading,      setLoading]      = useState(true);
 
   useEffect(() => {
@@ -49,6 +52,34 @@ export default function DashboardPage() {
   };
 
   const totalWon     = wins.reduce((s, t) => s + (t.coins ?? 0), 0);
+
+  // Pagination helper component
+  const Pagination = ({ page, setPage, total, pageSize=30 }: { page:number, setPage:(p:number)=>void, total:number, pageSize?:number }) => {
+    const totalPages = Math.ceil(total / pageSize);
+    if (totalPages <= 1) return null;
+    const pages = Array.from({length: Math.min(totalPages, 7)}, (_, i) => {
+      if (totalPages <= 7) return i + 1;
+      if (page <= 4) return i + 1;
+      if (page >= totalPages - 3) return totalPages - 6 + i;
+      return page - 3 + i;
+    });
+    return (
+      <div style={{display:'flex',gap:6,padding:'12px 14px',borderTop:'1px solid var(--Border)',alignItems:'center',flexWrap:'wrap'}}>
+        <span style={{fontSize:12,color:'var(--Secondary)',marginRight:4}}>
+          {((page-1)*pageSize)+1}–{Math.min(page*pageSize,total)} of {total}
+        </span>
+        {page > 1 && <button onClick={()=>setPage(page-1)} style={{padding:'4px 10px',borderRadius:7,border:'1px solid var(--Border)',background:'var(--Bg-3)',color:'var(--Secondary)',fontSize:12,cursor:'pointer'}}>‹</button>}
+        {pages.map(p=>(
+          <button key={p} onClick={()=>setPage(p)} style={{padding:'4px 10px',borderRadius:7,border:'none',fontSize:13,fontWeight:700,cursor:'pointer',minWidth:32,
+            background:p===page?'linear-gradient(270deg,#fe8c45,#ca2826)':'var(--Bg-3)',
+            color:p===page?'#fff':'var(--Secondary)'}}>
+            {p}
+          </button>
+        ))}
+        {page < totalPages && <button onClick={()=>setPage(page+1)} style={{padding:'4px 10px',borderRadius:7,border:'1px solid var(--Border)',background:'var(--Bg-3)',color:'var(--Secondary)',fontSize:12,cursor:'pointer'}}>›</button>}
+      </div>
+    );
+  };
   const activeTickets= lotteryBets.filter(b => b.series?.status === 'OPEN').length;
   const wonTickets   = lotteryBets.filter(b => b.ticket?.isWinner).length;
 
@@ -225,7 +256,7 @@ export default function DashboardPage() {
                     ))}
                   </tr></thead>
                   <tbody>
-                    {lotteryBets.map((b,i) => (
+                    {lotteryBets.slice((lotteryPage-1)*30, lotteryPage*30).map((b,i) => (
                       <tr key={i} style={{ borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
                         <td style={{ padding:'13px 16px' }}>
                           <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:16, color: b.ticket?.isWinner ? '#ffcb52' : 'var(--White)' }}>
@@ -275,7 +306,7 @@ export default function DashboardPage() {
                     ))}
                   </tr></thead>
                   <tbody>
-                    {matkaBets.map((b,i) => (
+                    {matkaBets.slice((matkaPage-1)*30, matkaPage*30).map((b,i) => (
                       <tr key={i} style={{ borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
                         <td style={{ padding:'12px 14px', fontWeight:600, fontSize:13 }}>{b.market?.name ?? '—'}</td>
                         <td style={{ padding:'12px 14px', fontSize:12, color:'var(--Secondary)' }}>{b.betType}</td>
@@ -351,7 +382,8 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
-            </div>
+            
+              {wins.length > 30 && <Pagination page={winsPage} setPage={setWinsPage} total={wins.length}/>}</div>
           )}
 
 
