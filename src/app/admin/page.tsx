@@ -77,14 +77,32 @@ export default function AdminPage() {
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [payoutPreview, setPayoutPreview] = useState<any>(null);
 
-  // Auto-check payout whenever both pattis are filled
+  // Auto-check payout whenever pattis change
   useEffect(() => {
     if (mResult.openPatti?.length===3 && mResult.marketId) {
       const cp = mResult.closePatti?.length===3 ? mResult.closePatti : '000';
       const full = mResult.closePatti?.length===3;
       authFetch(`/api/admin/markets?check=1&marketId=${mResult.marketId}&openPatti=${mResult.openPatti}&closePatti=${cp}`)
         .then(r=>r.json())
-        .then(d=>{ if(d && !d.error) setPayoutPreview({payout:d.totalPayout,collected:d.totalBets,winners:d.winnerCount,safe:d.isSafe,full,winnersList:d.winners??[]}); })
+        .then(d=>{
+          if(d && !d.error) {
+            // totalBets = total amount collected from ALL bets in market
+            // totalPayout = what will be paid out for these pattis
+            const collected = d.totalBets ?? 0;
+            const payout = d.totalPayout ?? 0;
+            const profit = collected - payout;
+            setPayoutPreview({
+              payout,
+              collected,
+              profit,
+              winners: d.winnerCount ?? 0,
+              safe: profit >= 0,
+              full,
+              winnersList: d.winners ?? [],
+              isOpenOnly: d.isOpenOnly ?? !full,
+            });
+          }
+        })
         .catch(()=>{});
     } else {
       setPayoutPreview(null);
@@ -1283,8 +1301,8 @@ export default function AdminPage() {
                   {payoutPreview && mResult.openPatti.length===3 && (
                     <div style={{background:payoutPreview.safe?'rgba(46,204,113,0.08)':'rgba(239,68,68,0.08)',border:`1px solid ${payoutPreview.safe?'rgba(46,204,113,0.3)':'rgba(239,68,68,0.3)'}`,borderRadius:10,padding:'10px 14px',marginBottom:10}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-                        <span style={{fontSize:13,fontWeight:700,color:payoutPreview.safe?'#2ECC71':'#ef4444'}}>
-                          {payoutPreview.safe?'✅ Safe to declare':'⚠️ High payout risk!'}
+                        <span style={{fontSize:13,fontWeight:700,color:(payoutPreview.profit??0)>=0?'#2ECC71':'#ef4444'}}>
+                          {(payoutPreview.profit??0)>=0?'✅ Safe to declare':'⚠️ High payout risk!'}
                           {payoutPreview.full?' (Full result)':' (Open side only)'}
                         </span>
                         <span style={{fontSize:11,color:'var(--Secondary)'}}>{payoutPreview.winners} winners</span>
@@ -1299,18 +1317,18 @@ export default function AdminPage() {
                           <p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:3}}>Payout</p>
                           <p style={{fontSize:14,fontWeight:900,color:'#ef4444'}}>₹{payoutPreview.payout?.toLocaleString()}</p>
                         </div>
-                        <div style={{background:payoutPreview.safe?'rgba(46,204,113,0.15)':'rgba(239,68,68,0.15)',borderRadius:8,padding:'8px 10px',textAlign:'center',border:`1px solid ${payoutPreview.safe?'rgba(46,204,113,0.3)':'rgba(239,68,68,0.3)'}`}}>
-                          <p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:3}}>{payoutPreview.safe?'Profit':'Loss'}</p>
-                          <p style={{fontSize:14,fontWeight:900,color:payoutPreview.safe?'#2ECC71':'#ef4444'}}>
-                            {payoutPreview.safe?'+':'-'}₹{Math.abs((payoutPreview.collected??0)-(payoutPreview.payout??0)).toLocaleString()}
+                        <div style={{background:(payoutPreview.profit??0)>=0?'rgba(46,204,113,0.15)':'rgba(239,68,68,0.15)',borderRadius:8,padding:'8px 10px',textAlign:'center',border:`1px solid ${(payoutPreview.profit??0)>=0?'rgba(46,204,113,0.3)':'rgba(239,68,68,0.3)'}`}}>
+                          <p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:3}}>{(payoutPreview.profit??0)>=0?'Profit':'Loss'}</p>
+                          <p style={{fontSize:14,fontWeight:900,color:(payoutPreview.profit??0)>=0?'#2ECC71':'#ef4444'}}>
+                            {(payoutPreview.profit??0)>=0?'+':'-'}₹{Math.abs(payoutPreview.profit??0).toLocaleString()}
                           </p>
                         </div>
                       </div>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                         <span style={{fontSize:11,color:'var(--Secondary)'}}>
-                          {payoutPreview.safe
-                            ? `Admin keeps ₹${((payoutPreview.collected??0)-(payoutPreview.payout??0)).toLocaleString()} after paying ${payoutPreview.winners} winners`
-                            : `Admin loses ₹${((payoutPreview.payout??0)-(payoutPreview.collected??0)).toLocaleString()} — payout exceeds collection!`
+                          {(payoutPreview.profit??0)>=0
+                            ? `✅ Admin profit: ₹${(payoutPreview.profit??0).toLocaleString()} after paying ${payoutPreview.winners} winner${payoutPreview.winners===1?'':'s'}`
+                            : `⚠️ Admin loss: ₹${Math.abs(payoutPreview.profit??0).toLocaleString()} — payout exceeds total collected!`
                           }
                         </span>
                       </div>
