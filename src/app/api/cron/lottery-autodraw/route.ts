@@ -7,7 +7,7 @@ import { prisma } from '@/lib/api-helper';
 
 const COMMISSION_PCT  = 30;
 const DUMMY_EMAIL     = 'dummy@supremegaming.in';
-const CLOSE_IF_MINS   = 5; // draw if drawAt was at least 5 mins ago
+const CLOSE_IF_MINS   = 0; // draw immediately when drawAt passes
 
 async function getDummyUser() {
   let dummy = await prisma.user.findFirst({ where: { email: DUMMY_EMAIL } });
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   // Protected by the drawAt time check - cannot draw future lotteries
 
   const now       = new Date();
-  const threshold = new Date(now.getTime() - CLOSE_IF_MINS * 60 * 1000);
+  const threshold = new Date(now.getTime()); // draw as soon as drawAt passes
 
   // Find OPEN series whose draw time has passed by at least CLOSE_IF_MINS
   const dueSeries = await prisma.lotterySeries.findMany({
