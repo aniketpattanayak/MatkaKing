@@ -280,7 +280,6 @@ export default function DashboardPage() {
                     ))}
                   </tbody>
                 </table>
-                <Pagination page={lotteryPage} setPage={setLotteryPage} total={lotteryBets.length}/>
               )}
             </div>
           )}
@@ -335,7 +334,6 @@ export default function DashboardPage() {
                     ))}
                   </tbody>
                 </table>
-                <Pagination page={matkaPage} setPage={setMatkaPage} total={matkaBets.length}/>
               )}
             </div>
           )}
@@ -386,6 +384,7 @@ export default function DashboardPage() {
               </div>
             
               {wins.length > 30 && <Pagination page={winsPage} setPage={setWinsPage} total={wins.length}/>}
+              {wins.length > 30 && <Pagination page={winsPage} setPage={setWinsPage} total={wins.length}/>}</div>
           )}
 
 
