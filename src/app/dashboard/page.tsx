@@ -388,9 +388,9 @@ export default function DashboardPage() {
                         {s.winners.map((w:any,i:number)=>(
                           <div key={i} style={{padding:'16px 18px',borderRadius:14,background:i===0?'rgba(255,203,82,0.08)':i===1?'rgba(52,152,219,0.08)':'rgba(155,89,182,0.08)',border:`2px solid ${i===0?'rgba(255,203,82,0.3)':i===1?'rgba(52,152,219,0.3)':'rgba(155,89,182,0.3)'}`}}>
                             <p style={{fontSize:10,fontWeight:700,color:i===0?'#ffcb52':i===1?'#3498DB':'#9B59B6',textTransform:'uppercase',marginBottom:8,letterSpacing:1}}>{w.tier} Prize</p>
-                            <p style={{fontFamily:'monospace',fontWeight:900,fontSize:22,color:'var(--White)',marginBottom:6}}>{w.ticket}</p>
-                            <p style={{fontWeight:700,fontSize:14,marginBottom:4,color:w.isCurrentUser?'#2ECC71':'var(--White)'}}>{w.isCurrentUser?'🎉 You!':w.userName??'Winner'}</p>
-                            <p style={{fontWeight:900,color:'#2ECC71',fontSize:18}}>₹{w.prize?.toLocaleString()}</p>
+                            <p style={{fontFamily:'monospace',fontWeight:900,fontSize:24,color:'#ffcb52',marginBottom:6}}>{w.ticket}</p>
+                            <p style={{fontWeight:900,color:'#2ECC71',fontSize:20}}>₹{w.prize?.toLocaleString()}</p>
+                            {w.isCurrentUser && <p style={{fontSize:12,color:'#2ECC71',fontWeight:700,marginTop:4}}>🎉 Your ticket!</p>}
                           </div>
                         ))}
                       </div>
