@@ -86,6 +86,7 @@ export default function AdminPage() {
   const [wdSettings,   setWdSettings]   = useState({ minWithdraw:'100', maxWithdraw:'50000', withdrawPerDay:'1' });
   const [wdSaving,     setWdSaving]     = useState(false);
   const [dailyStats,   setDailyStats]   = useState<any>(null);
+  const [historyStats, setHistoryStats] = useState<any[]>([]);
   const [msgTo,        setMsgTo]        = useState('');
   const [msgTitle,     setMsgTitle]     = useState('');
   const [msgBody,      setMsgBody]      = useState('');
@@ -142,6 +143,7 @@ export default function AdminPage() {
       setData({ upis: upiD.upis ?? [], markets: mkD.markets ?? [], series: lD.series ?? [], spinConfig: sD.config, users: [] });
       // Load daily stats
       authFetch('/api/admin/daily-stats').then(r=>r.json()).then(d=>{ if(!d.error) setDailyStats(d); }).catch(()=>{});
+      authFetch('/api/admin/history-stats').then(r=>r.json()).then(d=>{ if(d.days) setHistoryStats(d.days); }).catch(()=>{});
       if (sD.config) setSForm({ costPerSpin: String(sD.config.costPerSpin ?? 10), freeSpinInterval: String(sD.config.freeSpinInterval ?? 6) });
 
       // Auto-seed markets if none exist
@@ -674,6 +676,64 @@ export default function AdminPage() {
               </div>
             </div>
           )}
+          {/* 10-Day History Charts */}
+          {tab==='overview' && historyStats.length > 0 && (
+            <div style={{marginBottom:24}}>
+              {/* Lucky Winner - Last 10 Days */}
+              <div style={{background:'var(--Bg-2)',borderRadius:16,border:'1px solid var(--Border)',padding:24,marginBottom:16}}>
+                <h4 style={{fontWeight:900,fontSize:16,marginBottom:4}}>🎟 Lucky Winner — Last 10 Days Revenue</h4>
+                <p style={{color:'var(--Secondary)',fontSize:12,marginBottom:16}}>Total ticket purchase amount per day</p>
+                <div style={{display:'flex',alignItems:'flex-end',gap:6,height:120}}>
+                  {historyStats.map((d:any,i:number)=>{
+                    const max = Math.max(...historyStats.map((x:any)=>x.lotteryRevenue),1);
+                    const h = Math.max(4, Math.round((d.lotteryRevenue/max)*100));
+                    const isToday = i === historyStats.length-1;
+                    return (
+                      <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                        <span style={{fontSize:9,color:'#ffcb52',fontWeight:700}}>{d.lotteryRevenue>0?'₹'+(d.lotteryRevenue/1000).toFixed(0)+'K':''}</span>
+                        <div style={{width:'100%',height:`${h}%`,minHeight:4,borderRadius:'4px 4px 0 0',background:isToday?'linear-gradient(180deg,#ffcb52,#fe8c45)':'rgba(255,203,82,0.3)',transition:'height 0.3s'}}/>
+                        <span style={{fontSize:9,color:isToday?'#ffcb52':'var(--Secondary)',fontWeight:isToday?700:400,textAlign:'center'}}>{d.date}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{marginTop:12,display:'flex',justifyContent:'space-between',fontSize:12}}>
+                  <span style={{color:'var(--Secondary)'}}>Total 10 days:</span>
+                  <strong style={{color:'#ffcb52'}}>₹{historyStats.reduce((s:number,d:any)=>s+d.lotteryRevenue,0).toLocaleString()}</strong>
+                </div>
+              </div>
+
+              {/* Money Bank - Last 10 Days */}
+              <div style={{background:'var(--Bg-2)',borderRadius:16,border:'1px solid var(--Border)',padding:24}}>
+                <h4 style={{fontWeight:900,fontSize:16,marginBottom:4}}>🎲 Money Bank — Last 10 Days</h4>
+                <p style={{color:'var(--Secondary)',fontSize:12,marginBottom:16}}>Collected vs Paid per day</p>
+                <div style={{display:'flex',alignItems:'flex-end',gap:6,height:120}}>
+                  {historyStats.map((d:any,i:number)=>{
+                    const max = Math.max(...historyStats.map((x:any)=>Math.max(x.matkaCollected,x.matkaPaid)),1);
+                    const hC = Math.max(4, Math.round((d.matkaCollected/max)*100));
+                    const hP = Math.max(4, Math.round((d.matkaPaid/max)*100));
+                    const isToday = i === historyStats.length-1;
+                    return (
+                      <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+                        <span style={{fontSize:8,color:'#2ECC71',fontWeight:700}}>{d.matkaCollected>0?'₹'+(d.matkaCollected/1000).toFixed(0)+'K':''}</span>
+                        <div style={{width:'100%',display:'flex',gap:1,alignItems:'flex-end',height:100}}>
+                          <div style={{flex:1,height:`${hC}%`,minHeight:4,borderRadius:'3px 3px 0 0',background:isToday?'#2ECC71':'rgba(46,204,113,0.4)'}}/>
+                          <div style={{flex:1,height:`${hP}%`,minHeight:4,borderRadius:'3px 3px 0 0',background:isToday?'#ef4444':'rgba(239,68,68,0.4)'}}/>
+                        </div>
+                        <span style={{fontSize:9,color:isToday?'#ffcb52':'var(--Secondary)',fontWeight:isToday?700:400,textAlign:'center'}}>{d.date}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div style={{display:'flex',gap:16,marginTop:12,fontSize:12}}>
+                  <span style={{display:'flex',alignItems:'center',gap:4}}><span style={{width:10,height:10,borderRadius:2,background:'#2ECC71',display:'inline-block'}}/><span style={{color:'var(--Secondary)'}}>Collected: <strong style={{color:'#2ECC71'}}>₹{historyStats.reduce((s:number,d:any)=>s+d.matkaCollected,0).toLocaleString()}</strong></span></span>
+                  <span style={{display:'flex',alignItems:'center',gap:4}}><span style={{width:10,height:10,borderRadius:2,background:'#ef4444',display:'inline-block'}}/><span style={{color:'var(--Secondary)'}}>Paid: <strong style={{color:'#ef4444'}}>₹{historyStats.reduce((s:number,d:any)=>s+d.matkaPaid,0).toLocaleString()}</strong></span></span>
+                  <span style={{color:'var(--Secondary)'}}>Profit: <strong style={{color:historyStats.reduce((s:number,d:any)=>s+d.matkaProfit,0)>=0?'#2ECC71':'#ef4444'}}>₹{historyStats.reduce((s:number,d:any)=>s+d.matkaProfit,0).toLocaleString()}</strong></span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Withdrawal Settings */}
           {tab==='overview' && (
             <div style={{marginTop:24}}>
