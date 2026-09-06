@@ -713,42 +713,7 @@ export default function MatkaPage() {
                 </div>
               </div>
 
-              {/* Column number labels */}
-              <div style={{ display: 'flex', padding: '8px 16px 0', gap: 6, justifyContent: 'space-around' }}>
-                {/* Column labels */}
-                <div style={{display:'grid',gridTemplateColumns:`repeat(${NUM_COLS},1fr)`,gap:6,marginBottom:4}}>
-                  {visualOrder.map((si,vi)=>{
-                    const isOpenCol  = vi < 4;
-                    const isCloseCol = vi >= 4;
-                    const isActive = 
-                      (gameType.key==='ANK'         && ((session==='OPEN'&&vi===3)||(session==='CLOSE'&&vi===4))) ||
-                      (gameType.key==='JODI'         && (vi===3||vi===4)) ||
-                      (['SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key) && ((session==='OPEN'&&vi<3)||(session==='CLOSE'&&vi>=4&&vi<7))) ||
-                      (gameType.key==='HALF_SANGAM'  && ((session==='OPEN'&&(vi===3||vi>=4&&vi<7))||(session==='CLOSE'&&(vi<3||vi===4)))) ||
-                      (gameType.key==='FULL_SANGAM'  && (vi<3||vi>=4&&vi<7));
-                    return (
-                      <div key={vi} style={{textAlign:'center',fontSize:9,fontWeight:700,
-                        color:isActive?'#ffcb52':'rgba(255,255,255,0.15)',
-                        padding:'2px 0',
-                      }}>{vi+1}</div>
-                    );
-                  })}
-                </div>
-                {/* Open/Close zone labels */}
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginBottom:6}}>
-                  <div style={{textAlign:'center',fontSize:10,fontWeight:700,color:'#2ECC71',background:'rgba(46,204,113,0.08)',borderRadius:6,padding:'3px 0'}}>← OPEN (1-4)</div>
-                  <div style={{textAlign:'center',fontSize:10,fontWeight:700,color:'#3498DB',background:'rgba(52,152,219,0.08)',borderRadius:6,padding:'3px 0'}}>CLOSE (5-8) →</div>
-                </div>
-                {visualOrder.map((si, vi) => (
-                  <div key={vi} style={{ width: 44, textAlign: 'center' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700,
-                      color: digits[si] !== null ? '#fe8c45' : activeColsFn(si) ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.15)',
-                    }}>
-                      {vi + 1}
-                    </span>
-                  </div>
-                ))}
-              </div>
+
 
               {/* 8 drum columns — always 8, order flips on Close */}
               <div style={{ padding: '10px 16px 10px', position: 'relative' }}>
