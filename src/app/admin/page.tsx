@@ -1210,7 +1210,8 @@ export default function AdminPage() {
                           const v=e.target.value.replace(/\D/g,'');
                           setMResult(p=>({...p,openPatti:v}));
                           if(v.length===3 && mResult.marketId){
-                            const d=await authFetch(`/api/admin/markets?check=1&marketId=${mResult.marketId}&openPatti=${v}&closePatti=000`).then(r=>r.json()).catch(()=>null);
+                            const cp=mResult.closePatti?.length===3?mResult.closePatti:'000';
+                            const d=await authFetch(`/api/admin/markets?check=1&marketId=${mResult.marketId}&openPatti=${v}&closePatti=${cp}`).then(r=>r.json()).catch(()=>null);
                             if(d && !d.error) setPayoutPreview({payout:d.totalPayout,collected:d.totalBets,winners:d.winnerCount,safe:d.isSafe});
                           } else setPayoutPreview(null);
                         } catch(e) { console.error(e); }
@@ -1271,6 +1272,7 @@ export default function AdminPage() {
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                         <span style={{fontSize:13,fontWeight:700,color:payoutPreview.safe?'#2ECC71':'#ef4444'}}>
                           {payoutPreview.safe?'✅ Safe to declare':'⚠️ High payout risk!'}
+                          {payoutPreview.full?' (Full result)':' (Open side only)'}
                         </span>
                         <div style={{textAlign:'right'}}>
                           <p style={{fontSize:12,color:'#ef4444',fontWeight:700}}>Payout: ₹{payoutPreview.payout?.toLocaleString()}</p>
