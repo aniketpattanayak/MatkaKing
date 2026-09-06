@@ -76,6 +76,20 @@ export default function AdminPage() {
   const [suggest, setSuggest]     = useState<any>(null);
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [payoutPreview, setPayoutPreview] = useState<any>(null);
+
+  // Auto-check payout whenever both pattis are filled
+  useEffect(() => {
+    if (mResult.openPatti?.length===3 && mResult.marketId) {
+      const cp = mResult.closePatti?.length===3 ? mResult.closePatti : '000';
+      const full = mResult.closePatti?.length===3;
+      authFetch(`/api/admin/markets?check=1&marketId=${mResult.marketId}&openPatti=${mResult.openPatti}&closePatti=${cp}`)
+        .then(r=>r.json())
+        .then(d=>{ if(d && !d.error) setPayoutPreview({payout:d.totalPayout,collected:d.totalBets,winners:d.winnerCount,safe:d.isSafe,full}); })
+        .catch(()=>{});
+    } else {
+      setPayoutPreview(null);
+    }
+  }, [mResult.openPatti, mResult.closePatti, mResult.marketId]);
   const [checkLoading, setCheckLoading] = useState(false);
   // Notifications state
   const [notifs,       setNotifs]       = useState<any[]>([]);
