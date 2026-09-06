@@ -359,12 +359,13 @@ export default function LotteryPage() {
               </div>
 
               {/* Ticket grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: 6, maxHeight:'70vh', overflowY:'auto', marginBottom: selected.size > 0 ? 110 : 48 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(88px, 1fr))', gap: 6, maxHeight:'70vh', overflowY:'auto', marginBottom: selected.size > 0 ? 110 : 48 }}>
                 {tickets.map(t => {
                   const sel = selected.has(t.ticketId);
                   return (
                     <div key={t.ticketId} onClick={() => !t.isSold && toggle(t.ticketId)} style={{
-                      padding: '10px 4px', borderRadius: 10, textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, fontSize: 13,
+                      padding: '8px 4px', borderRadius: 10, textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, fontSize: 11,
+                      overflow: 'hidden', wordBreak: 'break-all', lineHeight: 1.3,
                       cursor: t.isSold ? 'not-allowed' : 'pointer', border: '1px solid',
                       borderColor: t.isSold ? 'transparent' : sel ? 'var(--Main-color)' : 'var(--Border-2)',
                       background: t.isSold ? 'rgba(255,255,255,0.02)' : sel ? 'rgba(254,140,69,0.15)' : 'var(--Bg-2)',
