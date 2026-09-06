@@ -282,10 +282,10 @@ export default function MatkaPage() {
     const vals = selectedStateIndices.map(x => x.d!);
     if (vals.length === 0) return '—';
     if (gameType.key === 'HALF_SANGAM' && vals.length === 4) {
-      // Format: openAnk-closePatti (1 digit + 3 digits)
-      if (session === 'OPEN') return `${vals[0]}-${vals[1]}${vals[2]}${vals[3]}`;
-      // Format: openPatti-closeAnk (3 digits + 1 digit)  
-      return `${vals[0]}${vals[1]}${vals[2]}-${vals[3]}`;
+      // OPEN: openPatti-openAnk = 3 digits + 1 digit (e.g. 123-6)
+      if (session === 'OPEN') return `${vals[0]}${vals[1]}${vals[2]}-${vals[3]}`;
+      // CLOSE: closeAnk-closePatti = 1 digit + 3 digits (e.g. 6-321)
+      return `${vals[0]}-${vals[1]}${vals[2]}${vals[3]}`;
     }
     if (gameType.key === 'FULL_SANGAM' && vals.length === 6)
       return `${vals[0]}${vals[1]}${vals[2]}-${vals[3]}${vals[4]}${vals[5]}`;
