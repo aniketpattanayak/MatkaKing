@@ -1190,12 +1190,14 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <input placeholder="e.g. 123" maxLength={3} value={mResult.openPatti} onChange={async e=>{
-                        const v=e.target.value.replace(/\D/g,'');
-                        setMResult({...mResult,openPatti:v});
-                        if(v.length===3 && mResult.marketId){
-                          const d=await authFetch(`/api/admin/markets?check=1&marketId=${mResult.marketId}&openPatti=${v}&closePatti=000`).then(r=>r.json()).catch(()=>null);
-                          if(d) setPayoutPreview({payout:d.totalPayout,collected:d.totalBets,safe:d.isSafe});
-                        } else setPayoutPreview(null);
+                        try {
+                          const v=e.target.value.replace(/\D/g,'');
+                          setMResult(p=>({...p,openPatti:v}));
+                          if(v.length===3 && mResult.marketId){
+                            const d=await authFetch(`/api/admin/markets?check=1&marketId=${mResult.marketId}&openPatti=${v}&closePatti=000`).then(r=>r.json()).catch(()=>null);
+                            if(d && !d.error) setPayoutPreview({payout:d.totalPayout,collected:d.totalBets,winners:d.winnerCount,safe:d.isSafe});
+                          } else setPayoutPreview(null);
+                        } catch(e) { console.error(e); }
                       }} style={{...inp,fontFamily:'monospace',fontSize:22,textAlign:'center',fontWeight:900}}/>
                     </div>
                     <div>
@@ -1241,7 +1243,7 @@ export default function AdminPage() {
                         </span>
                         <div style={{textAlign:'right'}}>
                           <p style={{fontSize:12,color:'#ef4444',fontWeight:700}}>Payout: ₹{payoutPreview.payout?.toLocaleString()}</p>
-                          <p style={{fontSize:11,color:'var(--Secondary)'}}>vs collected ₹{payoutPreview.collected?.toLocaleString()}</p>
+                          <p style={{fontSize:11,color:'var(--Secondary)'}}>{payoutPreview.winners} winners · collected ₹{payoutPreview.collected?.toLocaleString()}</p>
                         </div>
                       </div>
                     </div>
