@@ -1282,15 +1282,37 @@ export default function AdminPage() {
                   {/* Real-time payout preview */}
                   {payoutPreview && mResult.openPatti.length===3 && (
                     <div style={{background:payoutPreview.safe?'rgba(46,204,113,0.08)':'rgba(239,68,68,0.08)',border:`1px solid ${payoutPreview.safe?'rgba(46,204,113,0.3)':'rgba(239,68,68,0.3)'}`,borderRadius:10,padding:'10px 14px',marginBottom:10}}>
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
                         <span style={{fontSize:13,fontWeight:700,color:payoutPreview.safe?'#2ECC71':'#ef4444'}}>
                           {payoutPreview.safe?'✅ Safe to declare':'⚠️ High payout risk!'}
                           {payoutPreview.full?' (Full result)':' (Open side only)'}
                         </span>
-                        <div style={{textAlign:'right'}}>
-                          <p style={{fontSize:12,color:'#ef4444',fontWeight:700}}>Payout: ₹{payoutPreview.payout?.toLocaleString()}</p>
-                          <p style={{fontSize:11,color:'var(--Secondary)'}}>{payoutPreview.winners} winners · collected ₹{payoutPreview.collected?.toLocaleString()}</p>
+                        <span style={{fontSize:11,color:'var(--Secondary)'}}>{payoutPreview.winners} winners</span>
+                      </div>
+                      {/* Financial summary */}
+                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:8}}>
+                        <div style={{background:'rgba(0,0,0,0.2)',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
+                          <p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:3}}>Collected</p>
+                          <p style={{fontSize:14,fontWeight:900,color:'#3498DB'}}>₹{payoutPreview.collected?.toLocaleString()}</p>
                         </div>
+                        <div style={{background:'rgba(0,0,0,0.2)',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
+                          <p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:3}}>Payout</p>
+                          <p style={{fontSize:14,fontWeight:900,color:'#ef4444'}}>₹{payoutPreview.payout?.toLocaleString()}</p>
+                        </div>
+                        <div style={{background:payoutPreview.safe?'rgba(46,204,113,0.15)':'rgba(239,68,68,0.15)',borderRadius:8,padding:'8px 10px',textAlign:'center',border:`1px solid ${payoutPreview.safe?'rgba(46,204,113,0.3)':'rgba(239,68,68,0.3)'}`}}>
+                          <p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:3}}>{payoutPreview.safe?'Profit':'Loss'}</p>
+                          <p style={{fontSize:14,fontWeight:900,color:payoutPreview.safe?'#2ECC71':'#ef4444'}}>
+                            {payoutPreview.safe?'+':'-'}₹{Math.abs((payoutPreview.collected??0)-(payoutPreview.payout??0)).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <span style={{fontSize:11,color:'var(--Secondary)'}}>
+                          {payoutPreview.safe
+                            ? `Admin keeps ₹${((payoutPreview.collected??0)-(payoutPreview.payout??0)).toLocaleString()} after paying ${payoutPreview.winners} winners`
+                            : `Admin loses ₹${((payoutPreview.payout??0)-(payoutPreview.collected??0)).toLocaleString()} — payout exceeds collection!`
+                          }
+                        </span>
                       </div>
                       {payoutPreview.winnersList?.length > 0 && (
                         <div style={{marginTop:10,borderTop:'1px solid rgba(255,255,255,0.08)',paddingTop:10}}>
@@ -1905,8 +1927,8 @@ export default function AdminPage() {
                 </div>
                 <div style={{padding:24,display:'flex',flexDirection:'column',gap:14}}>
                   {[
-                    {key:'payoutSingle',label:'Single Ank',default:90,desc:'User bets on a single digit (0-9)'},
-                    {key:'payoutJodi',  label:'Jodi',      default:900, desc:'User bets on 2-digit jodi (00-99)'},
+                    {key:'payoutSingle',label:'Single Ank',default:9,desc:'User bets on a single digit (0-9)'},
+                    {key:'payoutJodi',  label:'Jodi',      default:90, desc:'User bets on 2-digit jodi (00-99)'},
                     {key:'payoutSP',    label:'Single Patti (SP)', default:140, desc:'3-digit sum patti'},
                     {key:'payoutDP',    label:'Double Patti (DP)', default:280, desc:'3-digit with 2 same digits'},
                     {key:'payoutTP',    label:'Triple Patti (TP)', default:450, desc:'3 same digits (111,222...)'},
