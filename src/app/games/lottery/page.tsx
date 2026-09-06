@@ -62,8 +62,10 @@ export default function LotteryPage() {
           setSeries(d.series[0]);
         }
         // Silently trigger auto-draw for any overdue lotteries
-        // This means the moment any user visits after draw time, it auto-draws
-        fetch('/api/cron/lottery-autodraw', { cache: 'no-store' }).catch(() => {});
+        fetch('/api/cron/lottery-autodraw', { 
+          cache: 'no-store',
+          headers: { 'x-internal': '1' }
+        }).catch(() => {});
       })
       .catch(() => {})
       .finally(() => setLoadingSeries(false));

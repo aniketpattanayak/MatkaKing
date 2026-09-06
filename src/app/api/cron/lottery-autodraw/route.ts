@@ -30,7 +30,11 @@ async function getDummyUser() {
 export async function GET(req: NextRequest) {
   // Allow Vercel cron + manual trigger with secret
   const auth = req.headers.get('authorization');
-  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  const host = req.headers.get('host') ?? '';
+  const xInternal = req.headers.get('x-internal') === '1';
+  const isInternal = xInternal || host.includes('kismathub.com') || host.includes('localhost') || host.includes('vercel.app');
+  // Allow: valid cron secret OR internal origin (same site trigger)
+  if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}` && !isInternal) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
