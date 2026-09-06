@@ -72,7 +72,9 @@ export default function AdminPage() {
   const [uLoading, setULoading] = useState(false);
   const [editUpi,  setEditUpi]  = useState<any>(null);
   const [editRates, setEditRates] = useState<any>(null);  // market being rate-edited
-  const [liveCheck, setLiveCheck] = useState<any>(null);  // real-time profit check result
+  const [liveCheck, setLiveCheck] = useState<any>(null);
+  const [suggest, setSuggest]     = useState<any>(null);
+  const [suggestLoading, setSuggestLoading] = useState(false);
   const [checkLoading, setCheckLoading] = useState(false);
   // Notifications state
   const [notifs,       setNotifs]       = useState<any[]>([]);
