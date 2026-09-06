@@ -53,6 +53,7 @@ export default function AdminPage() {
 
   // ── Matka form ──────────────────────────────────────────────────────────────
   const [mResult,  setMResult]  = useState({ marketId:'', openPatti:'', closePatti:'' });
+  const [settlementResult, setSettlementResult] = useState<any>(null); // after declare_close
   const [mForm,    setMForm]    = useState({ name:'', openTime:'09:30', closeTime:'11:30', resultTime:'12:00' });
   const [mCreate,  setMCreate]  = useState(false); // show create form
   const [mLoading, setMLoading] = useState(false);
@@ -266,9 +267,8 @@ export default function AdminPage() {
     const r = await authFetch('/api/admin/markets', { method:'POST', body: JSON.stringify({ action:'declare_result', ...mResult }) });
     const d = await r.json();
     if (r.ok) {
-          const bk = d.breakdown ?? {};
-          const parts = Object.entries(bk).map(([k,v]:any) => `${k}:${v.count}`).join(' · ');
-          toast.success(`✓ Jodi:${d.jodi} · Paid:₹${d.totalPayout?.toLocaleString()} · ${d.settled} bets settled${parts?' ('+parts+')':''}`);
+          toast.success(`✓ Result declared! Jodi:${d.jodi} · Paid:₹${d.totalPayout?.toLocaleString()} · ${d.settled} bets settled`);
+          setSettlementResult(d);
           load(); setMResult({ marketId:'', openPatti:'', closePatti:'' });
         }
     else toast.error(d.error);
@@ -1012,13 +1012,61 @@ export default function AdminPage() {
                         <button onClick={()=>deleteMarket(m.id,m.name)} style={{ padding:'5px 10px', borderRadius:8, border:'1px solid rgba(239,68,68,0.3)', background:'rgba(239,68,68,0.1)', color:'#ef4444', fontSize:12, cursor:'pointer' }}>Del</button>
                       </div>
                     </div>
-                    <div style={{ display:'flex', gap:20, fontSize:12, color:'var(--Secondary)' }}>
-                      <span> {m._count?.bets??0} bets</span>
-                      {m.results?.[0] && <span>Last result: <strong style={{ color:'#ffcb52', fontFamily:'monospace' }}>{m.results[0].jodi}</strong></span>}
+                    <div style={{ display:'flex', gap:16, fontSize:12, color:'var(--Secondary)', flexWrap:'wrap', marginTop:6 }}>
+                      <span>📊 {m._count?.bets??0} bets</span>
+                      {m.results?.[0]?.openPatti && (
+                        <span>🟢 Open: <strong style={{color:'#2ECC71',fontFamily:'monospace'}}>{m.results[0].openPatti} ({m.results[0].openAnk})</strong></span>
+                      )}
+                      {m.results?.[0]?.closePatti && (
+                        <span>🔴 Close: <strong style={{color:'#ef4444',fontFamily:'monospace'}}>{m.results[0].closePatti} ({m.results[0].closeAnk})</strong></span>
+                      )}
+                      {m.results?.[0]?.jodi && (
+                        <span>🎯 Jodi: <strong style={{color:'#ffcb52',fontFamily:'monospace',fontSize:15}}>{m.results[0].jodi}</strong></span>
+                      )}
+                      {!m.results?.[0] && <span style={{color:'var(--Secondary)',fontSize:11}}>No result today</span>}
                     </div>
                   </div>
                 ))}
               </div>
+
+              {/* Settlement Result Panel */}
+              {settlementResult && (
+                <div style={{...card,padding:22,border:'1px solid rgba(46,204,113,0.3)',background:'rgba(46,204,113,0.04)'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                    <h4 style={{fontWeight:900,fontSize:17,color:'#2ECC71'}}>✓ Settlement Complete</h4>
+                    <button onClick={()=>setSettlementResult(null)} style={{background:'none',border:'none',color:'var(--Secondary)',cursor:'pointer',fontSize:18}}>×</button>
+                  </div>
+                  {/* Main stats */}
+                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}}>
+                    {[
+                      {label:'Jodi',value:settlementResult.jodi,color:'#ffcb52'},
+                      {label:'Total Paid',value:'₹'+(settlementResult.totalPayout??0).toLocaleString(),color:'#2ECC71'},
+                      {label:'Bets Settled',value:settlementResult.settled,color:'#3498DB'},
+                    ].map((s:any)=>(
+                      <div key={s.label} style={{background:'var(--Bg-3)',borderRadius:10,padding:'12px 14px',textAlign:'center'}}>
+                        <p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:4}}>{s.label}</p>
+                        <p style={{fontFamily:'monospace',fontWeight:900,fontSize:20,color:s.color}}>{s.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Bet type breakdown */}
+                  {settlementResult.breakdown && Object.keys(settlementResult.breakdown).length > 0 && (
+                    <div>
+                      <p style={{fontSize:11,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:8}}>Bet Type Breakdown</p>
+                      <div style={{display:'flex',flexDirection:'column',gap:4}}>
+                        {Object.entries(settlementResult.breakdown).map(([type,data]:any)=>(
+                          <div key={type} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 10px',background:'var(--Bg-3)',borderRadius:8}}>
+                            <span style={{fontSize:12,fontWeight:700,color:'var(--White)'}}>{type}</span>
+                            <div style={{display:'flex',gap:12,fontSize:11}}>
+                              <span style={{color:'var(--Secondary)'}}>{data.count} bets</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Declare Result */}
               <div style={{ ...card, padding:22 }}>
@@ -1034,11 +1082,17 @@ export default function AdminPage() {
                   </div>
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
                     <div>
-                      <label style={label}>Open Patti</label>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                        <label style={label}>Open Patti</label>
+                        <button type="button" onClick={()=>{const r=()=>Math.floor(Math.random()*10);setMResult(p=>({...p,openPatti:`${r()}${r()}${r()}`}));}} style={{padding:'2px 10px',borderRadius:6,border:'1px solid rgba(255,203,82,0.3)',background:'rgba(255,203,82,0.08)',color:'#ffcb52',fontSize:11,cursor:'pointer',fontWeight:700}}>🎲 Random</button>
+                      </div>
                       <input placeholder="e.g. 123" maxLength={3} value={mResult.openPatti} onChange={e=>setMResult({...mResult,openPatti:e.target.value.replace(/\D/g,'')})} style={{...inp,fontFamily:'monospace',fontSize:22,textAlign:'center',fontWeight:900}}/>
                     </div>
                     <div>
-                      <label style={label}>Close Patti</label>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                        <label style={label}>Close Patti</label>
+                        <button type="button" onClick={()=>{const r=()=>Math.floor(Math.random()*10);setMResult(p=>({...p,closePatti:`${r()}${r()}${r()}`}));}} style={{padding:'2px 10px',borderRadius:6,border:'1px solid rgba(255,203,82,0.3)',background:'rgba(255,203,82,0.08)',color:'#ffcb52',fontSize:11,cursor:'pointer',fontWeight:700}}>🎲 Random</button>
+                      </div>
                       <input placeholder="e.g. 456" maxLength={3} value={mResult.closePatti} onChange={e=>setMResult({...mResult,closePatti:e.target.value.replace(/\D/g,'')})} style={{...inp,fontFamily:'monospace',fontSize:22,textAlign:'center',fontWeight:900}}/>
                     </div>
                   </div>
