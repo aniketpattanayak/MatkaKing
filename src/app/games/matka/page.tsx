@@ -189,6 +189,15 @@ export default function MatkaPage() {
   // Auto-switch to CLOSE session if open is declared
   const autoSession = openDeclared ? 'CLOSE' : session;
 
+  // Clear only active columns when switching session
+  const clearActiveDigits = () => {
+    setDigits(prev => {
+      const next = [...prev];
+      next.forEach((_,i) => { next[i] = null; }); // clear all on session switch
+      return next;
+    });
+  };
+
   const switchSession = (s: 'OPEN'|'CLOSE') => {
     setSession(s);
     // Small delay so columns re-render in new mirrored positions first, then scroll
@@ -430,11 +439,11 @@ export default function MatkaPage() {
         setDigits(prev => {
           const next = [...prev];
           const activeCols = next.map((_,si) => si).filter(si => activeColsFn(si));
+          const selected = next.filter((v,si) => v !== null && activeColsFn(si)).length;
+          // Stop if already at max
+          if (selected >= gameType.maxSelect) return prev;
           const firstEmpty = activeCols.find(si => next[si] === null);
-          if (firstEmpty !== undefined) {
-            const selected = next.filter((v,si) => v !== null && activeColsFn(si)).length;
-            if (selected < gameType.maxSelect) next[firstEmpty] = digit;
-          }
+          if (firstEmpty !== undefined) next[firstEmpty] = digit;
           return next;
         });
       } else if (e.key === 'Backspace') {
