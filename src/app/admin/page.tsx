@@ -82,28 +82,30 @@ export default function AdminPage() {
     if (mResult.openPatti?.length===3 && mResult.marketId) {
       const cp = mResult.closePatti?.length===3 ? mResult.closePatti : '000';
       const full = mResult.closePatti?.length===3;
-      authFetch(`/api/admin/markets?check=1&marketId=${mResult.marketId}&openPatti=${mResult.openPatti}&closePatti=${cp}`)
-        .then(r=>r.json())
-        .then(d=>{
-          if(d && !d.error) {
-            // totalBets = total amount collected from ALL bets in market
-            // totalPayout = what will be paid out for these pattis
-            const collected = d.totalBets ?? 0;
-            const payout = d.totalPayout ?? 0;
-            const profit = collected - payout;
-            setPayoutPreview({
-              payout,
-              collected,
-              profit,
-              winners: d.winnerCount ?? 0,
-              safe: profit >= 0,
-              full,
-              winnersList: d.winners ?? [],
-              isOpenOnly: d.isOpenOnly ?? !full,
-            });
-          }
-        })
-        .catch(()=>{});
+      // Fetch both: payout check + market all-time summary
+      Promise.all([
+        authFetch(`/api/admin/markets?check=1&marketId=${mResult.marketId}&openPatti=${mResult.openPatti}&closePatti=${cp}`).then(r=>r.json()).catch(()=>null),
+        authFetch(`/api/admin/markets?summary=1&marketId=${mResult.marketId}`).then(r=>r.json()).catch(()=>null),
+      ]).then(([checkData, summaryData]) => {
+        if (checkData && !checkData.error) {
+          const payout = checkData.totalPayout ?? 0;
+          const todayCollected = checkData.totalBets ?? 0;
+          const profit = todayCollected - payout;
+          setPayoutPreview({
+            payout,
+            collected: todayCollected,
+            profit,
+            winners: checkData.winnerCount ?? 0,
+            safe: profit >= 0,
+            full,
+            winnersList: checkData.winners ?? [],
+            // All-time stats from summary
+            allTimeCollected: summaryData?.totalCollected ?? 0,
+            allTimePaid: summaryData?.totalPaid ?? 0,
+            allTimeProfit: summaryData?.allTimeProfit ?? 0,
+          });
+        }
+      }).catch(()=>{});
     } else {
       setPayoutPreview(null);
     }
@@ -1324,14 +1326,34 @@ export default function AdminPage() {
                           </p>
                         </div>
                       </div>
-                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                        <span style={{fontSize:11,color:'var(--Secondary)'}}>
-                          {(payoutPreview.profit??0)>=0
-                            ? `✅ Admin profit: ₹${(payoutPreview.profit??0).toLocaleString()} after paying ${payoutPreview.winners} winner${payoutPreview.winners===1?'':'s'}`
-                            : `⚠️ Admin loss: ₹${Math.abs(payoutPreview.profit??0).toLocaleString()} — payout exceeds total collected!`
-                          }
-                        </span>
+                      <div style={{fontSize:11,color:'var(--Secondary)',marginTop:4}}>
+                        {(payoutPreview.profit??0)>=0
+                          ? `✅ Today profit: ₹${(payoutPreview.profit??0).toLocaleString()} after paying ${payoutPreview.winners} winner${payoutPreview.winners===1?'':'s'}`
+                          : `⚠️ Today loss: ₹${Math.abs(payoutPreview.profit??0).toLocaleString()} — payout exceeds today's collection!`
+                        }
                       </div>
+                      {/* All-time market stats */}
+                      {(payoutPreview.allTimeCollected??0) > 0 && (
+                        <div style={{marginTop:10,borderTop:'1px solid rgba(255,255,255,0.08)',paddingTop:10}}>
+                          <p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:8}}>All-Time Market Stats</p>
+                          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}}>
+                            <div style={{background:'rgba(0,0,0,0.2)',borderRadius:6,padding:'6px 8px',textAlign:'center'}}>
+                              <p style={{fontSize:9,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:2}}>Total Collected</p>
+                              <p style={{fontSize:13,fontWeight:900,color:'#3498DB'}}>₹{(payoutPreview.allTimeCollected??0).toLocaleString()}</p>
+                            </div>
+                            <div style={{background:'rgba(0,0,0,0.2)',borderRadius:6,padding:'6px 8px',textAlign:'center'}}>
+                              <p style={{fontSize:9,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:2}}>Total Paid</p>
+                              <p style={{fontSize:13,fontWeight:900,color:'#ef4444'}}>₹{(payoutPreview.allTimePaid??0).toLocaleString()}</p>
+                            </div>
+                            <div style={{background:(payoutPreview.allTimeProfit??0)>=0?'rgba(46,204,113,0.12)':'rgba(239,68,68,0.12)',borderRadius:6,padding:'6px 8px',textAlign:'center',border:`1px solid ${(payoutPreview.allTimeProfit??0)>=0?'rgba(46,204,113,0.3)':'rgba(239,68,68,0.3)'}`}}>
+                              <p style={{fontSize:9,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:2}}>Net Profit</p>
+                              <p style={{fontSize:13,fontWeight:900,color:(payoutPreview.allTimeProfit??0)>=0?'#2ECC71':'#ef4444'}}>
+                                {(payoutPreview.allTimeProfit??0)>=0?'+':'-'}₹{Math.abs(payoutPreview.allTimeProfit??0).toLocaleString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       {payoutPreview.winnersList?.length > 0 && (
                         <div style={{marginTop:10,borderTop:'1px solid rgba(255,255,255,0.08)',paddingTop:10}}>
                           <p style={{fontSize:11,fontWeight:700,color:'var(--Secondary)',marginBottom:6}}>Winners if you declare this:</p>

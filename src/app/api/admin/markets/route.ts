@@ -12,6 +12,27 @@ export async function GET(req: NextRequest) {
   if (!await isAdmin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   // Live result check - real-time payout calculation
   const check = req.nextUrl?.searchParams?.get('check') ?? new URL(req.url).searchParams.get('check');
+  // Market all-time summary
+  const summary = req.nextUrl?.searchParams?.get('summary') ?? new URL(req.url).searchParams.get('summary');
+  if (summary === '1') {
+    const url2 = new URL(req.url);
+    const marketId2 = url2.searchParams.get('marketId') ?? '';
+    if (!marketId2) return json({ error: 'marketId required' }, 400);
+    const [collected, paid] = await Promise.all([
+      prisma.matkaBet.aggregate({
+        where: { marketId: marketId2 },
+        _sum: { amount: true },
+      }),
+      prisma.matkaBet.aggregate({
+        where: { marketId: marketId2, status: 'WON' },
+        _sum: { wonAmount: true },
+      }),
+    ]);
+    const totalCollected = collected._sum.amount ?? 0;
+    const totalPaid = paid._sum.wonAmount ?? 0;
+    return json({ totalCollected, totalPaid, allTimeProfit: totalCollected - totalPaid });
+  }
+
   if (check === '1') {
     const url        = new URL(req.url);
     const marketId   = url.searchParams.get('marketId') ?? '';
