@@ -82,9 +82,9 @@ export async function POST(req: NextRequest) {
     const multiplier = (market as any)[norm.rateField] ?? 0;
     if (multiplier <= 0) return NextResponse.json({ error: 'Bet type not enabled for this market' }, { status: 400 });
 
-    // Sangam + Jodi are not session-bound — force session to OPEN for consistency
-    const isSangamOrJodi = ['JODI','HALF_SANGAM','FULL_SANGAM'].includes(norm.enum);
-    const finalSession = isSangamOrJodi ? 'OPEN' : (session ?? 'OPEN');
+    // Jodi and Full Sangam are OPEN only, Half Sangam keeps its session
+    const isOpenOnly = ['JODI','FULL_SANGAM'].includes(norm.enum);
+    const finalSession = isOpenOnly ? 'OPEN' : (session ?? 'OPEN');
 
     const bet = await prisma.$transaction(async (tx) => {
       const b = await tx.matkaBet.create({
