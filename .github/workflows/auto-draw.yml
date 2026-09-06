@@ -1,16 +1,12 @@
 name: Lottery Auto Draw
 on:
   schedule:
-    - cron: '* * * * *'  # every minute
-  workflow_dispatch:       # manual trigger too
+    - cron: '*/5 * * * *'  # every 5 minutes
+  workflow_dispatch:
 
 jobs:
   autodraw:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger auto draw
-        run: |
-          curl -s "https://www.kismathub.com/api/cron/lottery-autodraw" || true
-      - name: Trigger matka auto open
-        run: |
-          curl -s "https://www.kismathub.com/api/cron/matka-autoopen" || true
+      - name: Auto Draw Overdue Lotteries
+        run: curl -s "https://www.kismathub.com/api/cron/lottery-autodraw"
