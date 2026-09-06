@@ -788,7 +788,36 @@ export default function AdminPage() {
                       <div><label style={{fontSize:10,fontWeight:700,color:'#3498DB',display:'block',marginBottom:4}}>2ND PRIZE (₹)</label><input type="number" value={lForm.secondPrize} onChange={e=>setLForm({...lForm,secondPrize:e.target.value})} style={inp}/></div>
                       <div><label style={{fontSize:10,fontWeight:700,color:'#9B59B6',display:'block',marginBottom:4}}>3RD PRIZE (₹)</label><input type="number" value={lForm.thirdPrize} onChange={e=>setLForm({...lForm,thirdPrize:e.target.value})} style={inp}/></div>
                     </div>
-                    <p style={{fontSize:11,color:'var(--Secondary)',marginTop:8}}>Total: <strong style={{color:'#ffcb52'}}>₹{(Number(lForm.firstPrize||0)+Number(lForm.secondPrize||0)+Number(lForm.thirdPrize||0)).toLocaleString()}</strong></p>
+                    {(() => {
+                      const price    = Number(lForm.ticketPrice||0);
+                      const tickets  = Number(lForm.totalTickets||0);
+                      const fp       = Number(lForm.firstPrize||0);
+                      const sp       = Number(lForm.secondPrize||0);
+                      const tp       = Number(lForm.thirdPrize||0);
+                      const totalPrize  = fp + sp + tp;
+                      const totalRev    = price * tickets;
+                      const profit      = totalRev - totalPrize;
+                      const isLoss      = profit < 0;
+                      return (
+                        <div style={{marginTop:12,display:'flex',flexDirection:'column',gap:6}}>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:12}}>
+                            <span style={{color:'var(--Secondary)'}}>Total Prize Pool</span>
+                            <strong style={{color:'#ffcb52'}}>₹{totalPrize.toLocaleString()}</strong>
+                          </div>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:12}}>
+                            <span style={{color:'var(--Secondary)'}}>Total Revenue ({tickets.toLocaleString()} × ₹{price})</span>
+                            <strong style={{color:'#3498DB'}}>₹{totalRev.toLocaleString()}</strong>
+                          </div>
+                          <div style={{height:1,background:'rgba(255,255,255,0.08)',margin:'2px 0'}}/>
+                          <div style={{display:'flex',justifyContent:'space-between',fontSize:14,padding:'8px 12px',borderRadius:8,background:isLoss?'rgba(239,68,68,0.1)':'rgba(46,204,113,0.1)',border:`1px solid ${isLoss?'rgba(239,68,68,0.3)':'rgba(46,204,113,0.3)'}`}}>
+                            <strong style={{color:isLoss?'#ef4444':'#2ECC71'}}>{isLoss?'⚠️ Expected Loss':'✅ Expected Profit'}</strong>
+                            <strong style={{color:isLoss?'#ef4444':'#2ECC71',fontSize:16}}>{isLoss?'-':'+'} ₹{Math.abs(profit).toLocaleString()}</strong>
+                          </div>
+                          {isLoss && <p style={{fontSize:11,color:'#ef4444',textAlign:'center'}}>You will lose ₹{Math.abs(profit).toLocaleString()} if all tickets are sold!</p>}
+                          {!isLoss && tickets > 0 && price > 0 && <p style={{fontSize:11,color:'#2ECC71',textAlign:'center'}}>Break-even at {Math.ceil(totalPrize/price).toLocaleString()} tickets sold ({Math.round(totalPrize/totalRev*100)}% of total)</p>}
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div><label style={label}>Draw Date &amp; Time</label><input type="datetime-local" value={lForm.drawAt} onChange={e=>setLForm({...lForm,drawAt:e.target.value})} style={inp}/></div>
 
