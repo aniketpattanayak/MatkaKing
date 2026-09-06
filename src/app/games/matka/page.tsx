@@ -296,46 +296,6 @@ export default function MatkaPage() {
   // Check if open has been declared for this market
   const openDeclared = !!(market?.openPatti);
 
-  // Keyboard input handler - type digits to fill columns, backspace to clear
-  useEffect(() => {
-    if (!marketSelected) return;
-    const handler = (e: KeyboardEvent) => {
-      // Ignore if typing in an input/textarea
-      if (['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
-      
-      if (e.key >= '0' && e.key <= '9') {
-        const digit = parseInt(e.key);
-        // Find first active empty column
-        setDigits(prev => {
-          const next = [...prev];
-          const activeCols = next.map((_,i) => i).filter(i => activeColsFn(i));
-          const firstEmpty = activeCols.find(i => next[i] === null);
-          if (firstEmpty !== undefined) {
-            const alreadySelected = next.filter((v,i) => v !== null && activeColsFn(i)).length;
-            if (alreadySelected < gameType.maxSelect) {
-              next[firstEmpty] = digit;
-            }
-          }
-          return next;
-        });
-      } else if (e.key === 'Backspace') {
-        // Remove last filled active column
-        setDigits(prev => {
-          const next = [...prev];
-          const activeCols = next.map((_,i) => i).filter(i => activeColsFn(i));
-          const lastFilled = [...activeCols].reverse().find(i => next[i] !== null);
-          if (lastFilled !== undefined) next[lastFilled] = null;
-          return next;
-        });
-      } else if (e.key === 'Enter') {
-        // Add to cart on Enter
-        document.getElementById('add-to-cart-btn')?.click();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [marketSelected, gameType, activeColsFn]); // eslint-disable-line
-
   // Auto-switch to CLOSE when open is declared
   useEffect(() => {
     if (openDeclared && session === 'OPEN') setSession('CLOSE');
@@ -459,6 +419,39 @@ export default function MatkaPage() {
       default: return true;
     }
   };
+
+  // Keyboard input - type digits 0-9, backspace to clear, Enter to add cart
+  useEffect(() => {
+    if (!marketSelected) return;
+    const handler = (e: KeyboardEvent) => {
+      if (['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (e.key >= '0' && e.key <= '9') {
+        const digit = parseInt(e.key);
+        setDigits(prev => {
+          const next = [...prev];
+          const activeCols = next.map((_,si) => si).filter(si => activeColsFn(si));
+          const firstEmpty = activeCols.find(si => next[si] === null);
+          if (firstEmpty !== undefined) {
+            const selected = next.filter((v,si) => v !== null && activeColsFn(si)).length;
+            if (selected < gameType.maxSelect) next[firstEmpty] = digit;
+          }
+          return next;
+        });
+      } else if (e.key === 'Backspace') {
+        setDigits(prev => {
+          const next = [...prev];
+          const activeCols = next.map((_,si) => si).filter(si => activeColsFn(si));
+          const lastFilled = [...activeCols].reverse().find(si => next[si] !== null);
+          if (lastFilled !== undefined) next[lastFilled] = null;
+          return next;
+        });
+      } else if (e.key === 'Enter') {
+        document.getElementById('add-to-cart-btn')?.click();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [marketSelected, gameType.key, gameType.maxSelect, session]); // eslint-disable-line
 
 
   if (marketsLoading || !market) return (
