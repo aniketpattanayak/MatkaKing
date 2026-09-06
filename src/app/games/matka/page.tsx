@@ -189,11 +189,6 @@ export default function MatkaPage() {
   // Auto-switch to CLOSE session if open is declared
   const autoSession = openDeclared ? 'CLOSE' : session;
 
-  // Auto-switch to CLOSE when open is declared
-  useEffect(() => {
-    if (openDeclared && session === 'OPEN') setSession('CLOSE');
-  }, [openDeclared]); // eslint-disable-line
-
   const switchSession = (s: 'OPEN'|'CLOSE') => {
     setSession(s);
     // Small delay so columns re-render in new mirrored positions first, then scroll
@@ -240,6 +235,11 @@ export default function MatkaPage() {
 
   // Clear on game type change
   useEffect(() => { setDigits(Array(NUM_COLS).fill(null)); }, [gameType.key]);
+
+  // Auto-switch to CLOSE when open is declared
+  useEffect(() => {
+    if (openDeclared && session === 'OPEN') setSession('CLOSE');
+  }, [openDeclared]); // eslint-disable-line
 
   // ── Column mapping ─────────────────────────────────────────────────────────
   //
