@@ -1202,7 +1202,10 @@ export default function AdminPage() {
                           <button type="button" onClick={()=>{const r=()=>Math.floor(Math.random()*10);setMResult(p=>({...p,openPatti:`${r()}${r()}${r()}`}));}} style={{padding:'2px 8px',borderRadius:6,border:'1px solid rgba(255,203,82,0.3)',background:'rgba(255,203,82,0.08)',color:'#ffcb52',fontSize:10,cursor:'pointer',fontWeight:700}}>🎲</button>
                         </div>
                       </div>
-                      <input placeholder="e.g. 123" maxLength={3} value={mResult.openPatti} onChange={async e=>{
+                      <input placeholder="e.g. 123" maxLength={3} value={mResult.openPatti} 
+                        readOnly={!!(data.markets.find((m:any)=>m.id===mResult.marketId)?.results?.[0]?.openPatti)}
+                        style_extra={{opacity: data.markets.find((m:any)=>m.id===mResult.marketId)?.results?.[0]?.openPatti ? 0.6 : 1}}
+                        onChange={async e=>{
                         try {
                           const v=e.target.value.replace(/\D/g,'');
                           setMResult(p=>({...p,openPatti:v}));

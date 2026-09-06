@@ -188,13 +188,11 @@ export default function MatkaPage() {
 
   // Auto-switch to CLOSE session if open is declared
   const autoSession = openDeclared ? 'CLOSE' : session;
-  // Auto-switch session when openDeclared changes
+
+  // Auto-switch to CLOSE when open is declared
   useEffect(() => {
-    if (openDeclared && session === 'OPEN') {
-      setSession('CLOSE');
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openDeclared]);
+    if (openDeclared && session === 'OPEN') setSession('CLOSE');
+  }, [openDeclared]); // eslint-disable-line
 
   const switchSession = (s: 'OPEN'|'CLOSE') => {
     setSession(s);
