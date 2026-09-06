@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
 
   // Find OPEN series whose draw time has passed by at least CLOSE_IF_MINS
   const dueSeries = await prisma.lotterySeries.findMany({
-    where: { status: 'OPEN', isActive: true, drawAt: { lte: threshold } },
+    where: { status: { in: ['OPEN', 'CLOSED'] }, isActive: true, drawAt: { lte: threshold } },
   });
 
   if (dueSeries.length === 0) {
