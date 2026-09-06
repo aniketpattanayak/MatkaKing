@@ -1968,7 +1968,7 @@ export default function AdminPage() {
                 <div style={{padding:24,display:'flex',flexDirection:'column',gap:14}}>
                   {[
                     {key:'payoutSingle',label:'Single Ank',default:9,desc:'User bets on a single digit (0-9)'},
-                    {key:'payoutJodi',  label:'Jodi',      default:90, desc:'User bets on 2-digit jodi (00-99)'},
+                    {key:'payoutJodi',  label:'Jodi',      default:90,desc:'User bets on 2-digit jodi (00-99)'},
                     {key:'payoutSP',    label:'Single Patti (SP)', default:140, desc:'3-digit sum patti'},
                     {key:'payoutDP',    label:'Double Patti (DP)', default:280, desc:'3-digit with 2 same digits'},
                     {key:'payoutTP',    label:'Triple Patti (TP)', default:450, desc:'3 same digits (111,222...)'},
