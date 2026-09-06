@@ -273,13 +273,13 @@ export async function POST(req: NextRequest) {
           const parts = bv.split('-');
           if (parts.length === 2) {
             const [a, b] = parts;
-            // Format A: openAnk-closePatti (e.g. "6-786") — OPEN session bet
-            if (a.length === 1 && b.length === 3) {
-              if (a === String(openAnk) && b === closePatti) won = true;
+            // OPEN format: openPatti-openAnk (e.g. "123-6") — 3digits-1digit
+            if (a.length === 3 && b.length === 1 && bet.session === 'OPEN') {
+              if (a === openPatti && b === String(openAnk)) won = true;
             }
-            // Format B: openPatti-closeAnk (e.g. "456-3") — CLOSE session bet
-            if (a.length === 3 && b.length === 1) {
-              if (a === openPatti && b === String(closeAnk)) won = true;
+            // CLOSE format: closeAnk-closePatti (e.g. "6-321") — 1digit-3digits
+            if (a.length === 1 && b.length === 3 && bet.session === 'CLOSE') {
+              if (a === String(closeAnk) && b === closePatti) won = true;
             }
           }
         }
