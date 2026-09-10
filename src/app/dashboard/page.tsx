@@ -114,8 +114,8 @@ export default function DashboardPage() {
               <h1 style={{ fontWeight:900, fontSize:28, marginBottom:4 }}>My Dashboard</h1>
               <p style={{ color:'var(--Secondary)', fontSize:14 }}>Welcome back, {user?.name ?? 'Player'}</p>
             </div>
-            <Link href="/dashboard/wallet" className="tf-btn" style={{ height:44, fontSize:14, padding:'0 24px', display:'flex', alignItems:'center', gap:8 }}>
-              <Wallet size={16}/> Add Coins
+            <Link href="/dashboard/wallet" className="tf-btn" style={{ height:44, fontSize:14, padding:'0 24px', display:'flex', alignItems:'center', gap:8, background:'linear-gradient(270deg,#2ECC71,#16a34a)' }}>
+              <Wallet size={16}/> �� Add Coins / Recharge
             </Link>
           </div>
 

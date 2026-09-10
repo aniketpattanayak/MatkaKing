@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
     if (!p) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const bets = await prisma.lotteryBet.findMany({
-      where:   { userId: p.sub },
+      where:   { userId: p.sub, series: { drawAt: { gte: new Date(Date.now() - 36*60*60*1000) } } },
       orderBy: { placedAt: 'desc' },   // ✅ correct field (not createdAt)
       include: {
         series: {

@@ -878,6 +878,20 @@ export default function MatkaPage() {
                 </div>
               </div>
 
+              {/* Show computed ANK when patti is complete */}
+              {betValue && betValue.length >= 3 && ['SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key) && (
+                <div style={{display:'flex',gap:12,padding:'8px 14px',background:'rgba(255,203,82,0.08)',border:'1px solid rgba(255,203,82,0.2)',borderRadius:10,marginBottom:8,alignItems:'center',flexWrap:'wrap'}}>
+                  <span style={{fontSize:12,color:'var(--Secondary)'}}>Patti: <strong style={{color:'#ffcb52',fontFamily:'monospace',fontSize:16}}>{betValue}</strong></span>
+                  <span style={{fontSize:12,color:'var(--Secondary)'}}>→ Ank: <strong style={{color:'#fe8c45',fontSize:18,fontFamily:'monospace'}}>{betValue.split('').reduce((s:number,d:string)=>s+parseInt(d),0)%10}</strong></span>
+                  {session==='OPEN' && <span style={{fontSize:11,color:'#2ECC71',fontWeight:700}}>OPEN side</span>}
+                  {session==='CLOSE' && <span style={{fontSize:11,color:'#3498DB',fontWeight:700}}>CLOSE side</span>}
+                </div>
+              )}
+              {betValue && gameType.key==='JODI' && betValue.length===2 && (
+                <div style={{padding:'8px 14px',background:'rgba(255,203,82,0.08)',border:'1px solid rgba(255,203,82,0.2)',borderRadius:10,marginBottom:8}}>
+                  <span style={{fontSize:12,color:'var(--Secondary)'}}>Jodi: <strong style={{color:'#ffcb52',fontFamily:'monospace',fontSize:20}}>{betValue}</strong></span>
+                </div>
+              )}
               {/* Amount + Add to Cart */}
               <div style={{ padding: '14px 18px 18px', borderTop: '1px solid var(--Border)', background: 'rgba(0,0,0,0.1)' }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>

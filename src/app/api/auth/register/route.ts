@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     if (referralCode && String(referralCode).trim() !== '') {
       const code = String(referralCode).trim();
       referrer = await prisma.user.findFirst({
-        where: { referralCode: { equals: code, mode: 'insensitive' } },
+        where: { referralCode: code },
         select: { id: true },
       });
       if (!referrer) {

@@ -317,8 +317,7 @@ export default function LotteryPage() {
                 <span style={{ fontWeight: 700, fontSize: 16 }}>
                   <span style={{ color:'#2ECC71' }}>{(totalAvail||available.length).toLocaleString()} available</span>
                   <span style={{ color:'var(--Secondary)', margin:'0 8px' }}>·</span>
-                  <span style={{ color:'#ef4444' }}>{(totalSold||(tickets.length-available.length)).toLocaleString()} sold</span>
-                  <span style={{ color:'var(--Secondary)', margin:'0 8px' }}>·</span>
+
                   <span style={{ color:'var(--Secondary)' }}>page {currentPage} of {totalPages||1}</span>
                 </span>
                 {selected.size > 0 && <span style={{ color: 'var(--Main-color)', fontWeight: 700 }}>{selected.size} selected · ₹{cost.toLocaleString()}</span>}

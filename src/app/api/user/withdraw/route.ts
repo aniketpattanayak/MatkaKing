@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, verifyToken } from '@/lib/api-helper';
 
+const MIN_WITHDRAW = 1000;
+const MAX_WITHDRAW = 5000;
+const MIN_BALANCE_AFTER = 50;
+
 export async function POST(req: NextRequest) {
   const p = verifyToken(req);
   if (!p) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
