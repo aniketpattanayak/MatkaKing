@@ -37,9 +37,11 @@ export async function GET(req: NextRequest) {
   const threshold = new Date(now.getTime()); // draw as soon as drawAt passes
 
   // Find OPEN series whose draw time has passed by at least CLOSE_IF_MINS
-  const dueSeries = await prisma.lotterySeries.findMany({
-    where: { status: { in: ['OPEN', 'CLOSED'] }, isActive: true, drawAt: { lte: threshold } },
+  // Fetch all active series and filter in JS to handle SQLite datetime issues
+  const allActiveSeries = await prisma.lotterySeries.findMany({
+    where: { status: { in: ['OPEN', 'CLOSED'] }, isActive: true },
   });
+  const dueSeries = allActiveSeries.filter(s => new Date(s.drawAt) <= threshold);
 
   if (dueSeries.length === 0) {
     return NextResponse.json({ ok: true, processed: 0, message: 'No overdue series' });

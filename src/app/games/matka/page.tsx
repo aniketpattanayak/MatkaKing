@@ -531,7 +531,7 @@ export default function MatkaPage() {
                       {/* Open */}
                       <div style={{ textAlign:'center' }}>
                         <p style={{ fontSize:9, color:'#2ECC71', fontWeight:700, textTransform:'uppercase', marginBottom:4 }}>Open</p>
-                        <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color: m.openPatti ? '#ffcb52' : 'var(--Secondary)' }}>
+                        <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:22, color: m.openPatti ? '#2ECC71' : 'var(--Secondary)', background: m.openPatti ? 'rgba(46,204,113,0.1)' : 'transparent', padding:'4px 10px', borderRadius:8 }}>
                           {m.openPatti ?? '???'}
                         </p>
                         <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:2 }}>
@@ -542,7 +542,7 @@ export default function MatkaPage() {
                       {/* Close */}
                       <div style={{ textAlign:'center' }}>
                         <p style={{ fontSize:9, color:'#ef4444', fontWeight:700, textTransform:'uppercase', marginBottom:4 }}>Close</p>
-                        <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color: m.closePatti ? '#ffcb52' : 'var(--Secondary)' }}>
+                        <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:22, color: m.closePatti ? '#3498DB' : 'var(--Secondary)', background: m.closePatti ? 'rgba(52,152,219,0.1)' : 'transparent', padding:'4px 10px', borderRadius:8 }}>
                           {m.closePatti ?? '???'}
                         </p>
                         <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:2 }}>

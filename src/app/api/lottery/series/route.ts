@@ -13,15 +13,21 @@ export async function GET() {
     const now = new Date();
     const thirtyMinsFromNow = new Date(now.getTime() + 30 * 60 * 1000);
     const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
-    await prisma.lotterySeries.updateMany({
-      where: { 
-        status: 'OPEN', 
-        isActive: true, 
-        drawAt: { lte: thirtyMinsFromNow },
-        createdAt: { lte: twoHoursAgo }, // only close series older than 2 hours
-      },
-      data: { status: 'CLOSED' },
+    // Get all OPEN series and filter in JS to avoid SQLite datetime issues
+    const openSeries = await prisma.lotterySeries.findMany({
+      where: { status: 'OPEN', isActive: true },
+      select: { id: true, drawAt: true, createdAt: true },
     });
+    const toClose = openSeries.filter(s => 
+      new Date(s.drawAt) <= thirtyMinsFromNow && 
+      new Date(s.createdAt) <= twoHoursAgo
+    ).map(s => s.id);
+    if (toClose.length > 0) {
+      await prisma.lotterySeries.updateMany({
+        where: { id: { in: toClose } },
+        data: { status: 'CLOSED' },
+      });
+    }
 
     const series = await prisma.lotterySeries.findMany({
       where: {
