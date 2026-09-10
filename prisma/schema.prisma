@@ -7,8 +7,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 // ─────────────────────────────────────────────
@@ -20,7 +20,7 @@ model User {
   phone         String?   @unique
   name          String?
   passwordHash  String
-  role          Role      @default(USER)
+  role          String      @default("USER")
   referralCode  String    @unique @default(cuid())
   referredBy    String?
   isActive      Boolean   @default(true)
@@ -49,11 +49,6 @@ model Session {
   user      User     @relation(fields: [userId], references: [id])
 }
 
-enum Role {
-  USER
-  ADMIN
-  SUPERADMIN
-}
 
 // ─────────────────────────────────────────────
 // WALLET SYSTEM
@@ -98,13 +93,13 @@ model Transaction {
   id              String            @id @default(cuid())
   userId          String
   upiPoolId       String?
-  type            TxnType
-  status          TxnStatus         @default(PENDING)
+  type            String
+  status          String         @default("PENDING")
   amount          Int               // INR paise (x100) for deposits; Coins for others
   coins           Int               @default(0)
   upiRef          String?           // bank UTR / reference number
   orderId         String            @unique @default(cuid())
-  webhookPayload  Json?
+  webhookPayload  String?
   failureReason   String?
   processedAt     DateTime?
   createdAt       DateTime          @default(now())
@@ -112,29 +107,11 @@ model Transaction {
 
   user            User              @relation(fields: [userId], references: [id])
   upiPool         UpiPool?          @relation(fields: [upiPoolId], references: [id])
-
-  @@index([userId, status])
   @@index([orderId])
   @@index([upiRef])
 }
 
-enum TxnType {
-  DEPOSIT
-  WITHDRAWAL
-  BET_DEBIT
-  WIN_CREDIT
-  REFUND
-  BONUS
-  SPIN_WIN
-}
 
-enum TxnStatus {
-  PENDING
-  SUCCESS
-  FAILED
-  PROCESSING
-  REVERSED
-}
 
 // ─────────────────────────────────────────────
 // LOTTERY SYSTEM
@@ -158,7 +135,7 @@ model LotterySeries {
   thirdWinnerId   String?
   thirdTicket     String?
   drawnAt         DateTime?
-  status        LotteryStatus @default(OPEN)
+  status        String @default("OPEN")
   isActive      Boolean       @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -189,7 +166,7 @@ model LotteryBet {
   ticketId    String
   quantity    Int           @default(1)
   amountPaid  Int                               // Coins
-  status      BetStatus     @default(ACTIVE)
+  status      String     @default("ACTIVE")
   wonAmount   Int           @default(0)
   placedAt    DateTime      @default(now())
 
@@ -201,19 +178,7 @@ model LotteryBet {
   @@index([seriesId])
 }
 
-enum LotteryStatus {
-  OPEN
-  CLOSED
-  DRAWN
-  CANCELLED
-}
 
-enum BetStatus {
-  ACTIVE
-  WON
-  LOST
-  REFUNDED
-}
 
 // ─────────────────────────────────────────────
 // MATKA KING ENGINE
@@ -267,12 +232,12 @@ model MatkaBet {
   userId          String
   marketId        String
   resultId        String?
-  betType         MatkaBetType
+  betType         String
   betValue        String                           // "6" / "67" / "1-2-3"
-  session         MatkaSession
+  session         String
   amount          Int                              // Coins
   potentialWin    Int                              // pre-computed
-  status          BetStatus   @default(ACTIVE)
+  status          String   @default("ACTIVE")
   wonAmount       Int         @default(0)
   placedAt        DateTime    @default(now())
 
@@ -281,24 +246,10 @@ model MatkaBet {
   result          MatkaResult? @relation(fields: [resultId], references: [id])
 
   @@index([userId])
-  @@index([marketId, session])
   @@index([marketId, betValue, betType])          // liability lookup
 }
 
-enum MatkaBetType {
-  SINGLE_ANK
-  JODI
-  SINGLE_PATTI
-  DOUBLE_PATTI
-  TRIPLE_PATTI
-  HALF_SANGAM
-  FULL_SANGAM
-}
 
-enum MatkaSession {
-  OPEN
-  CLOSE
-}
 
 // ─────────────────────────────────────────────
 // SPIN WHEEL / PROMOTIONS
@@ -378,19 +329,12 @@ model AffiliateLink {
 // NOTIFICATIONS & FESTIVALS
 // ─────────────────────────────────────────────
 
-enum NotificationType {
-  GENERAL
-  FESTIVAL
-  WINNER
-  PROMO
-  SYSTEM
-}
 
 model Notification {
   id          String           @id @default(cuid())
   title       String
   message     String
-  type        NotificationType @default(GENERAL)
+  type        String @default("GENERAL")
   icon        String?          // emoji or icon name
   color       String           @default("#fe8c45")
   isActive    Boolean          @default(true)

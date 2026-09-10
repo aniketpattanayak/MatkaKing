@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 // /api/cron/lottery-autodraw
 // Runs daily. Finds any OPEN lottery series whose drawAt has passed,
 // then auto-draws (real if profitable, dummy if not, closes if 0 tickets sold).
