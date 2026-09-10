@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
             isWinner:   false,
           });
         }
-        await prisma.lotteryTicket.createMany({ data: batch, skipDuplicates: true });
+        await prisma.$executeRawUnsafe(`INSERT OR IGNORE INTO "LotteryTicket" ("id","seriesId","ticketCode","isSold","isWinner","createdAt") VALUES ${batch.map((_:any,i:number)=>`(?,?,?,0,0,datetime('now'))`).join(',')}`, ...batch.flatMap((t:any)=>[t.id??require('crypto').randomUUID().replace(/-/g,'').slice(0,25),t.seriesId,t.ticketCode]));
         created += batch.length;
       }
 
@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
       for (let i = lastNum+1; i <= newEnd; i++) {
         batch.push({ seriesId, ticketCode: series.prefix+String(i).padStart(padLen,'0'), isSold:false, isWinner:false });
       }
-      await prisma.lotteryTicket.createMany({ data:batch, skipDuplicates:true });
+      await prisma.lotteryTicket.createMany({ data:batch });
       await prisma.lotterySeries.update({ where:{id:seriesId}, data:{ endNumber:newEnd } });
       return NextResponse.json({ ok:true, added:count, newEnd });
     }
@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
       for (let i = lastNum+1; i <= newEnd; i++) {
         batch.push({ seriesId, ticketCode: series.prefix+String(i).padStart(padLen,'0'), isSold:false, isWinner:false });
       }
-      await prisma.lotteryTicket.createMany({ data:batch, skipDuplicates:true });
+      await prisma.lotteryTicket.createMany({ data:batch });
       await prisma.lotterySeries.update({ where:{id:seriesId}, data:{ endNumber:newEnd } });
       return NextResponse.json({ ok:true, added:count, newEnd });
     }

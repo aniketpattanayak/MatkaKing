@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
         isWinner: false,
       });
     }
-    await prisma.lotteryTicket.createMany({ data: batch, skipDuplicates: true });
+    await prisma.lotteryTicket.createMany({ data: batch, });
     created += batch.length;
   }
 
