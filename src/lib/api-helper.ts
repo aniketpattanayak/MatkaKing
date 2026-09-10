@@ -5,6 +5,7 @@ import { PrismaLibSQL } from '@prisma/adapter-libsql';
 import { createClient } from '@libsql/client';
 
 const g = globalThis as unknown as { _prisma?: PrismaClient };
+// Connection pool optimization
 function makePrisma(): PrismaClient {
   const url = process.env.TURSO_DATABASE_URL;
   const authToken = process.env.TURSO_AUTH_TOKEN;
@@ -16,6 +17,24 @@ function makePrisma(): PrismaClient {
   return new PrismaClient({ log: [] });
 }
 export const prisma: PrismaClient = g._prisma ?? (g._prisma = makePrisma());
+
+
+// ── Simple in-memory cache to reduce DB calls ─────────────────────────────
+const cache = new Map<string, {data:any, exp:number}>();
+export function getCache(key:string) {
+  const item = cache.get(key);
+  if (!item) return null;
+  if (Date.now() > item.exp) { cache.delete(key); return null; }
+  return item.data;
+}
+export function setCache(key:string, data:any, ttlMs=30000) {
+  cache.set(key, {data, exp: Date.now()+ttlMs});
+}
+export function clearCache(key?:string) {
+  if (key) cache.delete(key);
+  else cache.clear();
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 export const JWT_SECRET = process.env.JWT_SECRET ?? 'sge-dev-secret-change-in-prod';
 

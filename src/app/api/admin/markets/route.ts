@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, verifyToken, isAdminToken, json } from '@/lib/api-helper';
+import { prisma, verifyToken, isAdminToken, json, clearCache } from '@/lib/api-helper';
 
 async function isAdmin(req: NextRequest) {
   const p = verifyToken(req);
@@ -131,6 +131,7 @@ export async function POST(req: NextRequest) {
         payoutSingle: 9, payoutJodi: 90, payoutSP: 140, payoutDP: 280, payoutTP: 450,
         payoutHalfSangam: 1500, payoutFullSangam: 11000 },
     });
+    clearCache('matka:markets');
     return NextResponse.json({ ok: true, market });
   }
 

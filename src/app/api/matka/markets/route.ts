@@ -13,6 +13,10 @@ function isMarketOpen(openTime: string, closeTime: string): boolean {
 }
 
 export async function GET() {
+  // Check cache first (30s TTL)
+  const cacheKey = 'matka:markets';
+  const cached = getCache(cacheKey);
+  if (cached) return NextResponse.json(cached);
   try {
     const markets = await prisma.matkaMarket.findMany({
       where: { isActive: true },

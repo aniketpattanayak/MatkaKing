@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/api-helper';
+import { prisma, getCache, setCache } from '@/lib/api-helper';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET() {
+  const cached = getCache('lottery:series');
+  if (cached) return NextResponse.json(cached);
   try {
     // Close series automatically 30 mins before draw time
     // Only close if: drawAt is within 30 mins AND series was created at least 2 hours ago
