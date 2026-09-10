@@ -1,10 +1,21 @@
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { PrismaLibSQL } from '@prisma/adapter-libsql';
+import { createClient } from '@libsql/client';
 
-// ── Singleton Prisma (prevents connection pool exhaustion on hot-reload) ───────
 const g = globalThis as unknown as { _prisma?: PrismaClient };
-export const prisma: PrismaClient = g._prisma ?? (g._prisma = new PrismaClient({ log: [] }));
+function makePrisma(): PrismaClient {
+  const url = process.env.TURSO_DATABASE_URL;
+  const authToken = process.env.TURSO_AUTH_TOKEN;
+  if (url && authToken) {
+    const libsql = createClient({ url, authToken });
+    const adapter = new PrismaLibSQL(libsql);
+    return new PrismaClient({ adapter } as any);
+  }
+  return new PrismaClient({ log: [] });
+}
+export const prisma: PrismaClient = g._prisma ?? (g._prisma = makePrisma());
 
 export const JWT_SECRET = process.env.JWT_SECRET ?? 'sge-dev-secret-change-in-prod';
 
