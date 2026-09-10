@@ -60,7 +60,7 @@ export async function PATCH(req: NextRequest) {
   if (!txn) return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
 
   if (action === 'approve') {
-    await prisma.$transaction([
+    await Promise.all([
       prisma.transaction.update({
         where: { id: txnId },
         data: { status: 'SUCCESS', coins: txn.amount },

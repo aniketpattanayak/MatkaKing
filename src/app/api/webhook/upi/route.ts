@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   const txn = await prisma.transaction.findFirst({ where: { orderId, status: 'PENDING' } });
   if (!txn) return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
 
-  await prisma.$transaction([
+  await Promise.all([
     prisma.transaction.update({ where: { id: txn.id }, data: { status: 'SUCCESS', coins: amount } }),
     prisma.wallet.update({ where: { userId: txn.userId }, data: { balance: { increment: amount }, totalDeposit: { increment: amount } } }),
   ]);

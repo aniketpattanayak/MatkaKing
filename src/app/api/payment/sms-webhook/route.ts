@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
     if (alreadyProcessed) return NextResponse.json({ ok: true, skipped: 'already processed' });
 
     // ✅ Credit coins automatically
-    await prisma.$transaction([
+    await Promise.all([
       prisma.transaction.update({
         where: { id: matchedTxn.id },
         data: {

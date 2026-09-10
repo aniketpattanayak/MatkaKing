@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     const ticketIdList = ticketsToBook.map((t: any) => t.id);
 
     // Atomic transaction
-    await prisma.$transaction([
+    await Promise.all([
       prisma.wallet.update({
         where: { userId },
         data: { balance: { decrement: totalCost } },

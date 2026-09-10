@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
         for (let j = i; j <= Math.min(i + BATCH - 1, total); j++) {
           batch.push({ seriesId: series.id, ticketCode: `${cleanPrefix}${String(j).padStart(4,'0')}`, isSold: false, isWinner: false });
         }
-        await prisma.lotteryTicket.createMany({ data: batch, skipDuplicates: true });
+        await prisma.lotteryTicket.createMany({ data: batch });
       }
 
       // Auto-notify users

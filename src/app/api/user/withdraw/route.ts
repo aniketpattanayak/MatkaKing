@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
                   : `BANK:${bankAccount}:${bankIfsc}`;
 
     // Deduct balance + create withdrawal transaction in one atomic operation
-    await prisma.$transaction([
+    await Promise.all([
       prisma.wallet.update({
         where: { userId: p.sub },
         data: { balance: { decrement: amount }, totalWithdraw: { increment: amount } },
