@@ -76,6 +76,18 @@ export default function AdminPage() {
   const [suggestLoading, setSuggestLoading] = useState(false);
   const [payoutPreview, setPayoutPreview] = useState<any>(null);
 
+  // Auto-switch declare stage based on market's current result
+  useEffect(() => {
+    if (!mResult.marketId) return;
+    const mkt = data.markets.find((m:any) => m.id === mResult.marketId);
+    const result = mkt?.results?.[0];
+    if (result?.openPatti && !result?.closePatti) {
+      setDeclareStage('CLOSE');
+    } else if (!result?.openPatti) {
+      setDeclareStage('OPEN');
+    }
+  }, [mResult.marketId, data.markets]);
+
   // Auto-check payout whenever pattis change
   useEffect(() => {
     if (mResult.openPatti?.length===3 && mResult.marketId) {

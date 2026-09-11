@@ -252,10 +252,14 @@ export async function POST(req: NextRequest) {
     if (!market) return NextResponse.json({ error: 'Market not found' }, { status: 404 });
 
     // Find today's result row (must exist with openPatti already)
-    const result = await prisma.matkaResult.findFirst({
-      where: { marketId, declaredAt: { gte: new Date(new Date().setHours(0,0,0,0)) } },
+    // Get today's results and filter in JS to avoid SQLite datetime issues
+    const allResults = await prisma.matkaResult.findMany({
+      where: { marketId },
       orderBy: { createdAt: 'desc' },
+      take: 5,
     });
+    const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+    const result = allResults.find(r => new Date(r.createdAt) >= todayStart) ?? allResults[0] ?? null;
     if (!result || !result.openPatti || result.openAnk === null) {
       return NextResponse.json({ error: 'Declare Open Patti first' }, { status: 400 });
     }
