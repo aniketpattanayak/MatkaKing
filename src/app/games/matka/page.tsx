@@ -236,8 +236,8 @@ export default function MatkaPage() {
       }).catch(()=>{});
       })
       .catch(() => {
-        setAllMarkets(FALLBACK_allMarkets.map(m => ({...m, open:m.openTime,close:m.closeTime,result:m.resultTime,status:m.isOpen?'OPEN':'CLOSED',patti:'???-?',jodi:'??'})));
-        setMarket({...FALLBACK_MARKETS[0], open:'09:30',close:'11:30',result:'12:00',status:'OPEN',patti:'???-?',jodi:'??'});
+        setAllMarkets([]);
+        setMarketsLoading(false);
       })
       .finally(() => setMarketsLoading(false));
   }, []);
