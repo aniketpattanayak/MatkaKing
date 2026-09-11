@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/api-helper';
+import { prisma, getCache, setCache } from '@/lib/api-helper';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
