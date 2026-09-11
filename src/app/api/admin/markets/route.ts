@@ -186,7 +186,7 @@ export async function POST(req: NextRequest) {
     } else {
       result = await prisma.matkaResult.update({
         where: { id: result.id },
-        data: { openPatti, openAnk, declaredAt: new Date() },
+        data: { openPatti, openAnk, declaredAt: new Date().toISOString() },
       });
     }
 
@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
 
     let totalPayout = 0;
 
-    try { await prisma.$transaction(async tx => {
+    await prisma.$transaction(async tx => {
       for (const bet of openBets) {
         let won = false;
         const bv = bet.betValue;
@@ -211,28 +211,28 @@ export async function POST(req: NextRequest) {
 
         const wonAmount = won ? bet.amount * (RATES[bt] ?? 0) : 0;
 
-        await tx.matkaBet.update({
+        await prisma.matkaBet.update({
           where: { id: bet.id },
           data: { status: won ? 'WON' : 'LOST', wonAmount, resultId: result!.id },
         });
 
         if (won && wonAmount > 0) {
           totalPayout += wonAmount;
-          await tx.wallet.update({
+          await prisma.wallet.update({
             where: { userId: bet.userId },
             data: { balance: { increment: wonAmount }, totalWon: { increment: wonAmount } },
           });
-          await tx.transaction.create({
+          await prisma.transaction.create({
             data: {
               userId: bet.userId, type: 'WIN_CREDIT', status: 'SUCCESS',
               coins: wonAmount, amount: 0,
-              orderId: `MKW-O-${Date.now()}-${bet.id.slice(-4)}`,
+              orderId: `MKW-O-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
             },
           });
         }
       }
 
-      await tx.matkaResult.update({
+      await prisma.matkaResult.update({
         where: { id: result!.id },
         data: { totalPayout: { increment: totalPayout } },
       });
@@ -286,8 +286,7 @@ export async function POST(req: NextRequest) {
 
     let totalPayout = 0;
 
-    await prisma.$transaction(async tx => {
-      for (const bet of remaining) {
+    for (const bet of remaining) {
         let won = false;
         const bv = bet.betValue;
         const bt = bet.betType;
@@ -320,46 +319,42 @@ export async function POST(req: NextRequest) {
 
         const wonAmount = won ? bet.amount * (RATES[bt] ?? 0) : 0;
 
-        await tx.matkaBet.update({
+        await prisma.matkaBet.update({
           where: { id: bet.id },
-          data: { status: won ? 'WON' : 'LOST', wonAmount, resultId: result.id },
+          data: { status: won ? 'WON' : 'LOST', wonAmount },
         });
 
         if (won && wonAmount > 0) {
           totalPayout += wonAmount;
-          await tx.wallet.update({
+          await prisma.wallet.update({
             where: { userId: bet.userId },
             data: { balance: { increment: wonAmount }, totalWon: { increment: wonAmount } },
           });
-          await tx.transaction.create({
+          await prisma.transaction.create({
             data: {
               userId: bet.userId, type: 'WIN_CREDIT', status: 'SUCCESS',
               coins: wonAmount, amount: 0,
-              orderId: `MKW-C-${Date.now()}-${bet.id.slice(-4)}`,
+              orderId: `MKW-C-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
             },
           });
         }
       }
 
-      await tx.matkaResult.update({
+      await prisma.matkaResult.update({
         where: { id: result.id },
         data: {
           closePatti, closeAnk, jodi,
-          totalPayout: { increment: totalPayout },
-          declaredAt: new Date(),
+          totalPayout: totalPayout,
+          declaredAt: new Date().toISOString(),
         },
       });
 
-      await tx.matkaMarket.update({
+      await prisma.matkaMarket.update({
         where: { id: marketId },
         data: { isResultDeclared: true, isOpen: false },
       });
     });
 
-    } catch(txErr: any) {
-      console.error('declare_close tx error:', txErr.message);
-      return NextResponse.json({ error: txErr.message }, { status: 500 });
-    }
     // Build breakdown by bet type
     const breakdown: Record<string,{count:number,payout:number}> = {};
     for (const bet of remaining) {
