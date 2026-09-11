@@ -6,7 +6,7 @@ export async function GET(req: NextRequest) {
   try {
     const today = new Date(); today.setHours(0,0,0,0);
     const [lotteryTicketsSold, matkaBetsToday, totalUsers, activeUsers] = await Promise.all([
-      prisma.lotteryTicket.count({ where: { isSold: true, updatedAt: { gte: today } } }),
+      prisma.lotteryTicket.count({ where: { isSold: true, createdAt: { gte: today } } }),
       prisma.matkaBet.count({ where: { placedAt: { gte: today } } }),
       prisma.user.count(),
       prisma.user.count({ where: { transactions: { some: { createdAt: { gte: today } } } } }),
