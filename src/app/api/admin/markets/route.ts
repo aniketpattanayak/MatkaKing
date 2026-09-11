@@ -340,19 +340,18 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      await prisma.matkaResult.update({
-        where: { id: result.id },
-        data: {
-          closePatti, closeAnk, jodi,
-          totalPayout: totalPayout,
-          declaredAt: new Date().toISOString(),
-        },
-      });
+    await prisma.matkaResult.update({
+      where: { id: result.id },
+      data: {
+        closePatti, closeAnk, jodi,
+        totalPayout: totalPayout,
+        declaredAt: new Date().toISOString(),
+      },
+    });
 
-      await prisma.matkaMarket.update({
-        where: { id: marketId },
-        data: { isResultDeclared: true, isOpen: false },
-      });
+    await prisma.matkaMarket.update({
+      where: { id: marketId },
+      data: { isResultDeclared: true, isOpen: false },
     });
 
     // Build breakdown by bet type
