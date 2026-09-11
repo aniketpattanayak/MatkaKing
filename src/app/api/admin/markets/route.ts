@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
 
     let totalPayout = 0;
 
-    await prisma.$transaction(async tx => {
+    try { await prisma.$transaction(async tx => {
       for (const bet of openBets) {
         let won = false;
         const bv = bet.betValue;
@@ -356,6 +356,10 @@ export async function POST(req: NextRequest) {
       });
     });
 
+    } catch(txErr: any) {
+      console.error('declare_close tx error:', txErr.message);
+      return NextResponse.json({ error: txErr.message }, { status: 500 });
+    }
     // Build breakdown by bet type
     const breakdown: Record<string,{count:number,payout:number}> = {};
     for (const bet of remaining) {
