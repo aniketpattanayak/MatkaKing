@@ -207,3 +207,7 @@ body {
 @media (min-width: 769px) {
   .mobile-drawer { display: none !important; }
 }
+
+/* mobile-button-hide */
+@media (min-width: 992px) { .mobile-button { display: none !important; } }
+@media (max-width: 991px) { .mobile-button { display: flex !important; align-items: center; justify-content: center; } }
