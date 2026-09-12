@@ -5,13 +5,9 @@ import HeroSlider from './components/HeroSlider';
 export default function Home() {
   return (
     <>
-      {/* ── Shared Header (auth-aware, hides admin from non-admins) ── */}
       <Header />
-
-      {/* ── Hero Slider (Swiper initialized client-side) ── */}
       <HeroSlider />
 
-      {/* ── Main Content ── */}
       <div className="main-content">
 
         {/* Choose Your Game */}
@@ -21,22 +17,21 @@ export default function Home() {
               <div className="col-lg-12">
                 <div className="heading-section mb-32">
                   <h1 className="title fw-9 fs-50">Choose Your Game</h1>
-                  <p className="sub-title fw-4 fs-14">3 exciting ways to win big!</p>
+                  <p className="sub-title fw-4 fs-14">2 exciting ways to win big!</p>
                 </div>
-
                 <div className="grid-column-3 grid-wg-game">
 
-                  {/* Lottery Card */}
+                  {/* Lucky Winner Card */}
                   <div className="wg-game style-1 hover-img">
                     <div className="wg-game-image image-wrap">
                       <img alt="Lottery" src="/images/item/wg-game-style-1-1.png" width={287} height={125} />
                     </div>
                     <div className="countdown-wrap style-color-1">
                       <div className="heading">
-                        <h3 className="title fs-26 fw-9 mb-8">🎟️ Lottery</h3>
+                        <h3 className="title fs-26 fw-9 mb-8">🎟️ Lucky Winner</h3>
                         <p className="sub-title fs-12 fw-6">Smart search · Bulk buy · Alphanumeric tickets</p>
                       </div>
-                      <p className="text fs-14 mb-8">Draw closes in 2 days</p>
+                      <p className="text fs-14 mb-8">Draw closes soon — buy your ticket now!</p>
                     </div>
                     <div className="box-winning">
                       <p className="heading fs-12 fw-6">Latest winning numbers</p>
@@ -45,7 +40,7 @@ export default function Home() {
                           <div key={session} className="winning-item">
                             <div className="time">
                               <p className="day fs-14 fw-6">{session}</p>
-                              <p className="date fw-4">(10/05/2026)</p>
+                              <p className="date fw-4">Draw</p>
                             </div>
                             <ul className="number-list">
                               {['AH','LI','MK','98'].map((n, j) => (
@@ -58,29 +53,29 @@ export default function Home() {
                       </div>
                     </div>
                     <Link className="tf-btn btn-past" href="/games/lottery">
-                      Play Lottery <i className="icon-right"></i>
+                      Buy Tickets <i className="icon-right"></i>
                     </Link>
                   </div>
 
-                  {/* Matka King Card */}
+                  {/* Money Bank Card */}
                   <div className="wg-game style-1 hover-img">
                     <div className="wg-game-image image-wrap">
-                      <img alt="Matka King" src="/images/item/wg-game-style-1-4.png" width={353} height={131} />
+                      <img alt="Money Bank" src="/images/item/wg-game-style-1-4.png" width={353} height={131} />
                     </div>
                     <div className="countdown-wrap style-color-4">
                       <div className="heading">
-                        <h3 className="title fs-26 fw-9 mb-8">🎰 Matka King</h3>
+                        <h3 className="title fs-26 fw-9 mb-8">🎰 Money Bank</h3>
                         <p className="sub-title fs-12 fw-6">Patti · Jodi · Sangam · Single Ank</p>
                       </div>
                       <p className="text fs-14 mb-8">Results declared twice daily</p>
                     </div>
                     <div className="box-winning">
-                      <p className="heading fs-12 fw-6">Today's results</p>
+                      <p className="heading fs-12 fw-6">Today&apos;s results</p>
                       <div className="winning-list">
-                        {['Milan Day', 'Kalyan'].map((market) => (
-                          <div key={market} className="winning-item">
+                        {['Open', 'Close'].map((session) => (
+                          <div key={session} className="winning-item">
                             <div className="time">
-                              <p className="day fs-14 fw-6">{market}</p>
+                              <p className="day fs-14 fw-6">{session}</p>
                               <p className="date fw-4">Patti-Ank</p>
                             </div>
                             <ul className="number-list">
@@ -93,10 +88,9 @@ export default function Home() {
                       </div>
                     </div>
                     <Link className="tf-btn btn-past" href="/games/matka">
-                      Play Matka <i className="icon-right"></i>
+                      Play Now <i className="icon-right"></i>
                     </Link>
                   </div>
-
 
                 </div>
               </div>
@@ -111,7 +105,7 @@ export default function Home() {
               <div className="col-lg-12">
                 <div className="heading-section mb-40">
                   <h1 className="title fw-9 fs-50 mb-8">Win up to ₹1 Crore</h1>
-                  <p className="sub-title fw-4">with our 3 Instant Win Games</p>
+                  <p className="sub-title fw-4">with our 2 Instant Win Games</p>
                 </div>
               </div>
               <div className="col-lg-12">
@@ -122,7 +116,7 @@ export default function Home() {
                         <div className="image-item mb-30">
                           <img alt="" src="/images/item/game-slot-1.png" width={243} height={150} />
                         </div>
-                        <h4 className="title fw-9 mb-16">🎟️ Lottery — Win up to</h4>
+                        <h4 className="title fw-9 mb-16">🎟️ Lucky Winner — Win up to</h4>
                         <p className="text-color-clip letter-space-0 fs-50 mb-30">
                           ₹20<span className="fs-40"> Lakh*</span>
                         </p>
@@ -141,10 +135,10 @@ export default function Home() {
                         <div className="image-item mb-16">
                           <img alt="" src="/images/item/game-slot-2.png" width={120} height={84} />
                         </div>
-                        <p className="title fw-9 fs-14">🎰 Matka King — Win up to</p>
+                        <p className="title fw-9 fs-14">🎰 Money Bank — Win up to</p>
                         <p className="text-color-clip fs-30 mb-16 letter-space-0">₹1 <span className="fs-20">Crore</span></p>
                         <Link className="btn-play tf-btn h-42 fs-13" href="/games/matka">
-                          Play Matka <i className="icon-right"></i>
+                          Play Now <i className="icon-right"></i>
                         </Link>
                       </div>
                       <div className="image">
@@ -172,7 +166,7 @@ export default function Home() {
                 { num: '01', img: '/images/section/get-started-1.png', color: 'color-4',
                   title: 'Add Coins to Wallet', desc: 'Deposit via UPI — 1 INR = 1 Coin. Secure, instant and verified.' },
                 { num: '02', img: '/images/section/get-started-2.png', color: 'color-1',
-                  title: 'Pick Your Game', desc: 'Choose from Lucky Winner or Money Bank and place your bet.' },
+                  title: 'Pick Your Game', desc: 'Choose Lucky Winner or Money Bank and place your bet.' },
                 { num: '03', img: '/images/section/get-start-3.png', color: 'color-1',
                   title: 'Collect Your Winnings', desc: 'Coins credited instantly after result. Withdraw anytime to your bank.' },
               ].map((item) => (
@@ -245,7 +239,7 @@ export default function Home() {
               <section className="section-dowload-app">
                 <div className="wrapper">
                   <div className="content">
-                    <div className="title">Play Lottery & Matka<br />anywhere, anytime</div>
+                    <div className="title">Play Lucky Winner &amp; Money Bank<br />anywhere, anytime</div>
                     <p>Two great games in one app. Download now and start winning!</p>
                   </div>
                   <div className="bottom">
@@ -261,9 +255,9 @@ export default function Home() {
           </div>
         </div>
 
-      </div>{/* end .main-content */}
+      </div>
 
-      {/* ── Footer ── */}
+      {/* Footer */}
       <footer id="footer">
         <div className="footer-about">
           <div className="tf-container">
@@ -275,16 +269,15 @@ export default function Home() {
                   </div>
                   <ul className="menu overflow-x-auto">
                     <li><Link href="/">HOME</Link></li>
-                    <li><Link href="/games/lottery">LOTTERY</Link></li>
-                    <li><Link href="/games/matka">MATKA KING</Link></li>
-                    
+                    <li><Link href="/games/lottery">LUCKY WINNER</Link></li>
+                    <li><Link href="/games/matka">MONEY BANK</Link></li>
                     <li><Link href="/contact">CONTACT</Link></li>
                   </ul>
                 </div>
                 <div className="content">
                   <p className="mb-20">
-                    Supreme Gaming Engine — India's most trusted online gaming platform.
-                    Play Lottery and Matka King with secure UPI payments. 1 INR = 1 Coin.
+                    Supreme Gaming Engine — India&apos;s most trusted online gaming platform.
+                    Play Lucky Winner and Money Bank with secure UPI payments. 1 INR = 1 Coin.
                   </p>
                   <div className="note">
                     <i className="icon-infor"></i>
@@ -303,8 +296,8 @@ export default function Home() {
                 <div className="widget-footer">
                   <div className="widget-title">Our Games</div>
                   <ul>
-                    <li><Link href="/games/lottery">🎟️ Lottery</Link></li>
-                    <li><Link href="/games/matka">🎰 Matka King</Link></li>
+                    <li><Link href="/games/lottery">🎟️ Lucky Winner</Link></li>
+                    <li><Link href="/games/matka">🎰 Money Bank</Link></li>
                   </ul>
                 </div>
               </div>
