@@ -311,6 +311,10 @@ export default function Header() {
                   }} className="mobile-menu-btn">
                     <Menu size={26}/>
                   </button>
+                  {/* Mobile menu button - theme class shows it on mobile */}
+                  <div className="mobile-button" onClick={()=>setMobileNav(v=>!v)}>
+                    <span></span>
+                  </div>
                 </div>
 
               </div>
@@ -318,6 +322,27 @@ export default function Header() {
           </div>
         </div>
       </header>
+
+      {/* Mobile Nav */}
+      <div className={mobileNav ? 'mobile-nav-wrap active' : 'mobile-nav-wrap'}>
+        <div className="overlay-mobile-nav" onClick={()=>setMobileNav(false)}/>
+        <nav className="mobile-nav">
+          <div className="close-mobile-nav" onClick={()=>setMobileNav(false)}>✕</div>
+          <ul>
+            <li><Link href="/" onClick={()=>setMobileNav(false)}>Home</Link></li>
+            <li>
+              <span style={{color:'var(--White)',padding:'10px 0',display:'block',fontWeight:700}}>Games</span>
+              <ul>
+                <li><Link href="/games/lottery" onClick={()=>setMobileNav(false)}>🎟 Lucky Winner</Link></li>
+                <li><Link href="/games/matka" onClick={()=>setMobileNav(false)}>🎲 Money Bank</Link></li>
+              </ul>
+            </li>
+            {user && <li><Link href="/dashboard" onClick={()=>setMobileNav(false)}>Dashboard</Link></li>}
+            {user && <li><Link href="/dashboard/wallet" onClick={()=>setMobileNav(false)}>My Wallet</Link></li>}
+            {user && (user.role==='ADMIN'||user.role==='SUPERADMIN') && <li><Link href="/admin" onClick={()=>setMobileNav(false)}>Admin Panel</Link></li>}
+          </ul>
+        </nav>
+      </div>
 
       {/* Mobile Nav Overlay */}
       {mobileNav && (
