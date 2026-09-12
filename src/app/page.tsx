@@ -97,41 +97,6 @@ export default function Home() {
                     </Link>
                   </div>
 
-                  {/* Spin Wheel Card - removed */}
-                  <div className="wg-game style-1 hover-img">
-                    <div className="wg-game-image image-wrap">
-                      <img alt="Spin Wheel" src="/images/item/wg-game-style-1-5.png" width={329} height={131} />
-                    </div>
-                    <div className="countdown-wrap style-color-5">
-                      <div className="heading">
-                        <h3 className="title fs-26 fw-9 mb-8">🌀 Spin Wheel</h3>
-                        <p className="sub-title fs-12 fw-6">Daily spins · Buy 5 get 1 free · Instant coins</p>
-                      </div>
-                      <p className="text fs-14 mb-8">Free spin resets daily at midnight</p>
-                    </div>
-                    <div className="box-winning">
-                      <p className="heading fs-12 fw-6">Today's top rewards</p>
-                      <div className="winning-list">
-                        {['Grand Prize', 'Daily Spin'].map((tier) => (
-                          <div key={tier} className="winning-item">
-                            <div className="time">
-                              <p className="day fs-14 fw-6">{tier}</p>
-                              <p className="date fw-4">Coins</p>
-                            </div>
-                            <ul className="number-list">
-                              {['5K','2K','1K','500'].map((n, j) => (
-                                <li key={j} className={`number-item ${j === 3 ? 'active' : ''}`}
-                                  style={{ fontSize: '10px', width: '38px' }}>{n}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <Link className="tf-btn btn-past" href="/games/spin">
-                      Spin Now <i className="icon-right"></i>
-                    </Link>
-                  </div>
 
                 </div>
               </div>
@@ -184,21 +149,6 @@ export default function Home() {
                       </div>
                       <div className="image">
                         <img alt="" src="/images/item/game-slot-2-1.png" width={300} height={180} />
-                      </div>
-                    </div>
-                    <div className="slot-game game-3">
-                      <div className="content">
-                        <div className="image-item mb-16">
-                          <img alt="" src="/images/item/game-slot-3.png" width={172} height={74} />
-                        </div>
-                        <p className="title fw-9 fs-14">🌀 Spin Wheel — Win up to</p>
-                        <p className="text-color-clip fs-30 mb-16 letter-space-0">₹5 <span className="fs-20">Thousand</span></p>
-                        <Link className="btn-play tf-btn h-42 fs-13" href="/games/spin">
-                          Spin Now <i className="icon-right"></i>
-                        </Link>
-                      </div>
-                      <div className="image">
-                        <img alt="" src="/images/item/game-slot-3-1.png" width={219} height={181} />
                       </div>
                     </div>
                   </div>
@@ -295,8 +245,8 @@ export default function Home() {
               <section className="section-dowload-app">
                 <div className="wrapper">
                   <div className="content">
-                    <div className="title">Play Lottery, Matka & Spin<br />anywhere, anytime</div>
-                    <p>All 3 games in one app. Download now and get a free spin on signup!</p>
+                    <div className="title">Play Lottery & Matka<br />anywhere, anytime</div>
+                    <p>Two great games in one app. Download now and start winning!</p>
                   </div>
                   <div className="bottom">
                     <div className="btn-dowload"><a href="#"><img alt="Android" src="/images/item/Android.jpg" width={519} height={174} /></a></div>
@@ -334,7 +284,7 @@ export default function Home() {
                 <div className="content">
                   <p className="mb-20">
                     Supreme Gaming Engine — India's most trusted online gaming platform.
-                    Play Lottery, Matka King and Spin Wheel with secure UPI payments. 1 INR = 1 Coin.
+                    Play Lottery and Matka King with secure UPI payments. 1 INR = 1 Coin.
                   </p>
                   <div className="note">
                     <i className="icon-infor"></i>
@@ -355,7 +305,6 @@ export default function Home() {
                   <ul>
                     <li><Link href="/games/lottery">🎟️ Lottery</Link></li>
                     <li><Link href="/games/matka">🎰 Matka King</Link></li>
-                    <li><Link href="/games/spin">🌀 Spin Wheel</Link></li>
                   </ul>
                 </div>
               </div>
