@@ -79,31 +79,6 @@ export default function HeroSlider() {
             </div>
           </div>
 
-          {/* Slide 3 — Spin Wheel */}
-          <div className="swiper-slide">
-            <div className="slide-title-home-3 style-3">
-              <div className="content">
-                <div className="image-title">
-                  <img alt="" src="/images/page-title/home-3/page-title-item-left.png" width={218} height={119} />
-                </div>
-                <h4 className="title fw-9 mb-16">🌀 Spin Wheel<br />Daily Free Spins!</h4>
-                <p className="text-color-clip fs-50">₹5,000*</p>
-                <div className="bot">
-                  <Link className="tf-btn btn-play" href="/games/spin">
-                    Spin Now <i className="icon-right"></i>
-                  </Link>
-                  <p className="sub fs-14 type-secondary text-center">*Per Spin Reward</p>
-                </div>
-              </div>
-              <div className="image">
-                <img alt="" src="/images/page-title/home-3/slide-left.png" width={620} height={424} />
-              </div>
-            </div>
-          </div>
-
-        </div>
-        <div className="swiper-pagination pagination-rectangle style-1"></div>
-      </div>
-    </div>
+          /div>
   );
 }

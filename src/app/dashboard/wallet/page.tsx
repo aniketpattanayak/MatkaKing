@@ -436,7 +436,7 @@ export default function WalletPage() {
               <div className="center"><ul style={{ display:'flex', gap:24 }}>
                 <li><Link href="/dashboard">Dashboard</Link></li>
                 <li><Link href="/games/lottery">Lottery</Link></li>
-                <li><Link href="/games/spin">Spin Wheel</Link></li>
+                
               </ul></div>
               <div className="right"><span>© 2025 Supreme Gaming Engine</span></div>
             </div>

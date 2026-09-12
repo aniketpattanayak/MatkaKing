@@ -1764,7 +1764,7 @@ export default function AdminPage() {
           {tab==='results' && (
             <div>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:12}}>
-                <div><h3 style={{fontWeight:900,fontSize:22}}>Game Results</h3><p style={{color:'var(--Secondary)',fontSize:13}}>Winners across Lottery, Matka and Spin Wheel</p></div>
+                <div><h3 style={{fontWeight:900,fontSize:22}}>Game Results</h3><p style={{color:'var(--Secondary)',fontSize:13}}>Winners across Lucky Winner and Money Bank</p></div>
                 <button onClick={()=>{setResultsLoading(true);authFetch('/api/admin/results').then(r=>r.json()).then(d=>{if(d.lottery)setResults(d);else toast.error(d.error??'Failed');}).finally(()=>setResultsLoading(false));}} disabled={resultsLoading} style={{padding:'8px 18px',borderRadius:999,border:'1px solid var(--Border)',background:'var(--Bg-2)',color:'var(--Secondary)',fontSize:13,cursor:'pointer',fontWeight:600}}>{resultsLoading?'Loading...':'↻ Load Results'}</button>
               </div>
               <div style={{display:'flex',gap:5,background:'var(--Bg-2)',borderRadius:12,padding:4,marginBottom:20,border:'1px solid var(--Border)',width:'fit-content'}}>

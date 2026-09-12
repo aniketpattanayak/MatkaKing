@@ -71,7 +71,7 @@ export default function ContactPage() {
                 <li><Link href="/">Home</Link></li>
                 <li><Link href="/games/lottery">Lottery</Link></li>
                 <li><Link href="/games/matka">Matka King</Link></li>
-                <li><Link href="/games/spin">Spin Wheel</Link></li>
+                
               </ul></div>
               <div className="right"><span>© 2025 Supreme Gaming Engine</span></div>
             </div>

@@ -198,7 +198,7 @@ export default function DashboardPage() {
                 {[
                   { href:'/games/lottery', Icon:Ticket,    label:'Buy Lottery Tickets', sub:'Search & pick your lucky numbers', color:'#3498DB' },
                   { href:'/games/matka',   Icon:Dices,     label:'Play Money Bank',      sub:"Place bets on today's markets",    color:'#9B59B6' },
-                  { href:'/games/spin',    Icon:RotateCcw, label:'Spin the Wheel',       sub:'Daily free spin available',        color:'#2ECC71' },
+                  
                   { href:'/dashboard/wallet', Icon:Wallet, label:'Add Coins',            sub:'Deposit via UPI — instant credit', color:'#ffcb52' },
                 ].map(item => (
                   <Link key={item.href} href={item.href} style={{ ...card, padding:'16px 20px', display:'flex', alignItems:'center', gap:14, textDecoration:'none' }}>

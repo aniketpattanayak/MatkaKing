@@ -97,7 +97,7 @@ export default function Home() {
                     </Link>
                   </div>
 
-                  {/* Spin Wheel Card */}
+                  {/* Spin Wheel Card - removed */}
                   <div className="wg-game style-1 hover-img">
                     <div className="wg-game-image image-wrap">
                       <img alt="Spin Wheel" src="/images/item/wg-game-style-1-5.png" width={329} height={131} />
@@ -222,7 +222,7 @@ export default function Home() {
                 { num: '01', img: '/images/section/get-started-1.png', color: 'color-4',
                   title: 'Add Coins to Wallet', desc: 'Deposit via UPI — 1 INR = 1 Coin. Secure, instant and verified.' },
                 { num: '02', img: '/images/section/get-started-2.png', color: 'color-1',
-                  title: 'Pick Your Game', desc: 'Choose from Lottery, Matka King, or Spin Wheel and place your bet.' },
+                  title: 'Pick Your Game', desc: 'Choose from Lucky Winner or Money Bank and place your bet.' },
                 { num: '03', img: '/images/section/get-start-3.png', color: 'color-1',
                   title: 'Collect Your Winnings', desc: 'Coins credited instantly after result. Withdraw anytime to your bank.' },
               ].map((item) => (
@@ -265,7 +265,7 @@ export default function Home() {
                   <div className="main-section">
                     {[
                       { img: '/images/section/play-ff-1.png', title: 'Understand the rules',
-                        desc: 'Know the odds for Lottery, Matka King and Spin Wheel before you play.' },
+                        desc: 'Know the odds for Lucky Winner and Money Bank before you play.' },
                       { img: '/images/section/play-ff-2.png', title: "Don't chase losses",
                         desc: 'Set a daily limit. If you lose, walk away — your next chance is tomorrow.' },
                       { img: '/images/section/play-ff-3.png', title: 'Real life comes first',
@@ -327,7 +327,7 @@ export default function Home() {
                     <li><Link href="/">HOME</Link></li>
                     <li><Link href="/games/lottery">LOTTERY</Link></li>
                     <li><Link href="/games/matka">MATKA KING</Link></li>
-                    <li><Link href="/games/spin">SPIN WHEEL</Link></li>
+                    
                     <li><Link href="/contact">CONTACT</Link></li>
                   </ul>
                 </div>
