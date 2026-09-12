@@ -146,8 +146,6 @@ export default function Header() {
                             <Gamepad2 size={15}/> Money Bank
                           </Link>
                         </li>
-                          </Link>
-                        </li>
                       </ul>
                     </li>
 
