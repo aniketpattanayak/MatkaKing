@@ -79,6 +79,8 @@ export default function HeroSlider() {
             </div>
           </div>
 
-          /div>
+        </div>
+      </div>
+    </div>
   );
 }
