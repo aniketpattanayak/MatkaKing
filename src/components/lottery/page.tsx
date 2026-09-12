@@ -24,7 +24,7 @@ export default function LotteryPage() {
                       <ul className="sub-menu">
                         <li className="current-item"><Link href="/games/lottery">🎟️ Lottery</Link></li>
                         <li><Link href="/games/matka">🎰 Matka King</Link></li>
-                        <li><Link href="/games/spin">🌀 Spin Wheel</Link></li>
+                        
                       </ul>
                     </li>
                     <li><Link href="/dashboard">MY ACCOUNT</Link></li>
@@ -180,7 +180,7 @@ export default function LotteryPage() {
                 <ul style={{ display: 'flex', gap: 24 }}>
                   <li><Link href="/">Home</Link></li>
                   <li><Link href="/games/matka">Matka King</Link></li>
-                  <li><Link href="/games/spin">Spin Wheel</Link></li>
+                  
                 </ul>
               </div>
               <div className="right"><span>2025 Supreme Gaming Engine</span></div>

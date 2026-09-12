@@ -1065,7 +1065,7 @@ export default function MatkaPage() {
               <div className="center"><ul style={{ display: 'flex', gap: 24 }}>
                 <li><Link href="/">Home</Link></li>
                 <li><Link href="/games/lottery">Lucky Winner</Link></li>
-                <li><Link href="/games/spin">Spin Wheel</Link></li>
+                
               </ul></div>
               <div className="right"><span>© 2025 Supreme Gaming Engine</span></div>
             </div>

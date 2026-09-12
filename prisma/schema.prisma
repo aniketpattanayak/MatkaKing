@@ -188,7 +188,8 @@ model MatkaMarket {
   name            String       @unique             // "Milan Day", "Kalyan"
   openTime        String                           // "09:30"
   closeTime       String                           // "11:30"
-  resultTime       String                           // "12:00"
+  resultTime      String   @default("12:00")        // kept for compatibility
+  saleTime        String   @default("09:00")          // when ticket sales open
   isOpen          Boolean      @default(false)
   isResultDeclared Boolean     @default(false)
   payoutSingle    Int          @default(90)        // x multiplier

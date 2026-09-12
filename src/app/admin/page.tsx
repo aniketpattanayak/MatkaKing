@@ -53,7 +53,7 @@ export default function AdminPage() {
   // ── Matka form ──────────────────────────────────────────────────────────────
   const [mResult,  setMResult]  = useState({ marketId:'', openPatti:'', closePatti:'' });
   const [settlementResult, setSettlementResult] = useState<any>(null); // after declare_close
-  const [mForm,    setMForm]    = useState({ name:'', openTime:'13:00', closeTime:'18:45', resultTime:'19:00' });
+  const [mForm,    setMForm]    = useState({ name:'', saleTime:'09:00', openTime:'13:00', closeTime:'18:45' });
   const [mCreate,  setMCreate]  = useState(false); // show create form
   const [mLoading, setMLoading] = useState(false);
 
@@ -337,7 +337,7 @@ export default function AdminPage() {
     setMLoading(true);
     const r = await authFetch('/api/admin/markets', { method:'POST', body: JSON.stringify({ action:'create_market', ...mForm }) });
     const d = await r.json();
-    if (r.ok) { toast.success(`✓ Market "${mForm.name}" created!`); load(); setMForm({ name:'', openTime:'13:00', closeTime:'18:45', resultTime:'19:00' }); setMCreate(false); }
+    if (r.ok) { toast.success(`✓ Market "${mForm.name}" created!`); load(); setMForm({ name:'', saleTime:'09:00', openTime:'13:00', closeTime:'18:45' }); setMCreate(false); }
     else toast.error(d.error ?? 'Failed');
     setMLoading(false);
   }
@@ -1110,9 +1110,9 @@ export default function AdminPage() {
                         <label style={label}>Market Name</label>
                         <input placeholder="e.g. Milan Day" value={mForm.name} onChange={e=>setMForm({...mForm,name:e.target.value})} style={inp}/>
                       </div>
-                      <div><label style={label}>Open Time</label><input type="time" value={mForm.openTime} onChange={e=>setMForm({...mForm,openTime:e.target.value})} style={inp}/></div>
-                      <div><label style={label}>Close Time</label><input type="time" value={mForm.closeTime} onChange={e=>setMForm({...mForm,closeTime:e.target.value})} style={inp}/></div>
-                      <div><label style={label}>Result Time</label><input type="time" value={mForm.resultTime} onChange={e=>setMForm({...mForm,resultTime:e.target.value})} style={inp}/></div>
+                      <div><label style={label}>🎟 Ticket Sale Time</label><input type="time" value={mForm.saleTime} onChange={e=>setMForm({...mForm,saleTime:e.target.value})} style={inp}/></div>
+                      <div><label style={label}>🟢 Open Time (Declare Open)</label><input type="time" value={mForm.openTime} onChange={e=>setMForm({...mForm,openTime:e.target.value})} style={inp}/></div>
+                      <div><label style={label}>🔴 Close Time (Declare Close)</label><input type="time" value={mForm.closeTime} onChange={e=>setMForm({...mForm,closeTime:e.target.value})} style={inp}/></div>
                     </div>
                     <button onClick={createMarket} disabled={mLoading} style={{ width:'100%', height:44, borderRadius:10, border:'none', cursor:'pointer', background:'linear-gradient(270deg,#fe8c45,#ca2826)', color:'#fff', fontWeight:700, fontSize:14, opacity:mLoading?0.6:1 }}>
                       {mLoading?'Creating...':'✓ Create Market'}
@@ -1138,7 +1138,7 @@ export default function AdminPage() {
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
                       <div>
                         <h4 style={{ fontWeight:700, fontSize:16 }}>{m.name}</h4>
-                        <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:2 }}>🟢 Open {m.openTime}  🔴 Close {m.closeTime}  🏁 Result {m.resultTime}</p>
+                        <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:2 }}>🎟 Sale {m.saleTime??m.resultTime}  🟢 Open {m.openTime}  🔴 Close {m.closeTime}</p>
                       </div>
                       <div style={{ display:'flex', gap:8, alignItems:'center' }}>
                         <span style={{ fontSize:11, fontWeight:700, padding:'2px 10px', borderRadius:999,
