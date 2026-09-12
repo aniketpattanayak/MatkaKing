@@ -146,10 +146,6 @@ export default function Header() {
                             <Gamepad2 size={15}/> Money Bank
                           </Link>
                         </li>
-                        <li className={act('/games/spin') ? 'current-item' : ''}>
-                          <Link href="/games/spin" style={{ display:'flex', alignItems:'center', gap:8 }}>
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
-                            Spin Wheel
                           </Link>
                         </li>
                       </ul>

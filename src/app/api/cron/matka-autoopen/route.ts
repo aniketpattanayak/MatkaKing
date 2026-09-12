@@ -35,9 +35,8 @@ export async function GET(req: NextRequest) {
       }
     }
 
-        // Reset isResultDeclared for all markets at midnight
-    const midnight = new Date(); midnight.setHours(0,0,0,0);
-    if (nowIST.getHours() < 1) {
+        // Reset isResultDeclared for all markets at midnight (between 12am-1am IST)
+    if (ist.getHours() < 1) {
       await prisma.matkaMarket.updateMany({ data: { isResultDeclared: false } });
       results.push({ action: 'RESET_ALL_DECLARED' });
     }
