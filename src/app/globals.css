@@ -198,3 +198,12 @@ body {
 ::-webkit-scrollbar-track { background: var(--color-surface); }
 ::-webkit-scrollbar-thumb { background: var(--color-surface-3); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(245,166,35,0.4); }
+
+/* Mobile hamburger menu */
+@media (max-width: 768px) {
+  .mobile-menu-btn { display: flex !important; }
+  .main-menu { display: none !important; }
+}
+@media (min-width: 769px) {
+  .mobile-drawer { display: none !important; }
+}

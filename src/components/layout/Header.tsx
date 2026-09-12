@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { getToken, setToken, clearToken, getCachedUser, setCachedUser, fetchCurrentUser, type SessionUser } from '@/lib/auth-client';
 
+// Mobile styles injected via className
 export default function Header() {
   const router      = useRouter();
   const path        = usePathname();
@@ -303,6 +304,13 @@ export default function Header() {
                   }}>
                     <Ticket size={15}/> Buy Tickets
                   </Link>
+                  {/* Mobile hamburger button */}
+                  <button onClick={()=>setMobileNav(v=>!v)} style={{
+                    display:'none', background:'transparent', border:'none',
+                    cursor:'pointer', color:'var(--White)', padding:8,
+                  }} className="mobile-menu-btn">
+                    <Menu size={26}/>
+                  </button>
                 </div>
 
               </div>
@@ -310,6 +318,83 @@ export default function Header() {
           </div>
         </div>
       </header>
+
+      {/* Mobile Nav Overlay */}
+      {mobileNav && (
+        <div style={{position:'fixed',inset:0,zIndex:99998,background:'rgba(0,0,0,0.7)'}} onClick={()=>setMobileNav(false)}/>
+      )}
+
+      {/* Mobile Nav Drawer */}
+      <div style={{
+        position:'fixed', top:0, left:0, bottom:0, width:280, zIndex:99999,
+        background:'var(--Bg-2)', borderRight:'1px solid var(--Border)',
+        transform: mobileNav ? 'translateX(0)' : 'translateX(-100%)',
+        transition:'transform 0.3s ease', overflowY:'auto', paddingTop:60,
+      }} className="mobile-drawer">
+        <button onClick={()=>setMobileNav(false)} style={{
+          position:'absolute', top:16, right:16, background:'none', border:'none',
+          color:'var(--Secondary)', cursor:'pointer',
+        }}><X size={24}/></button>
+
+        <div style={{padding:'0 16px 24px'}}>
+          {/* Games Section */}
+          <p style={{fontSize:10,fontWeight:700,color:'var(--Secondary)',textTransform:'uppercase',letterSpacing:1,marginBottom:8,paddingLeft:8}}>Games</p>
+          {[
+            { href:'/games/lottery', label:'🎟 Lucky Winner' },
+            { href:'/games/matka',   label:'🎲 Money Bank' },
+          ].map(({href,label})=>(
+            <Link key={href} href={href} onClick={()=>setMobileNav(false)} style={{
+              display:'block', padding:'12px 12px', borderRadius:10, fontSize:15, fontWeight:600,
+              color:'var(--White)', textDecoration:'none', marginBottom:4,
+              background:'var(--Bg-3)',
+            }}>{label}</Link>
+          ))}
+
+          <div style={{height:1,background:'var(--Border)',margin:'16px 0'}}/>
+
+          {/* Account Section */}
+          {user ? (
+            <>
+              <p style={{fontSize:10,fontWeight:700,color:'var(--Secondary)',textTransform:'uppercase',letterSpacing:1,marginBottom:8,paddingLeft:8}}>Account</p>
+              {[
+                { href:'/dashboard',        label:'📊 Dashboard' },
+                { href:'/dashboard/wallet', label:'💰 My Wallet' },
+              ].map(({href,label})=>(
+                <Link key={href} href={href} onClick={()=>setMobileNav(false)} style={{
+                  display:'block', padding:'12px 12px', borderRadius:10, fontSize:15, fontWeight:600,
+                  color:'var(--White)', textDecoration:'none', marginBottom:4,
+                  background:'var(--Bg-3)',
+                }}>{label}</Link>
+              ))}
+              {(user.role==='ADMIN'||user.role==='SUPERADMIN') && (
+                <Link href="/admin" onClick={()=>setMobileNav(false)} style={{
+                  display:'block', padding:'12px 12px', borderRadius:10, fontSize:15, fontWeight:600,
+                  color:'#fe8c45', textDecoration:'none', marginBottom:4, background:'var(--Bg-3)',
+                }}>⚙️ Admin Panel</Link>
+              )}
+              <div style={{height:1,background:'var(--Border)',margin:'16px 0'}}/>
+              <button onClick={()=>{logout();setMobileNav(false);}} style={{
+                display:'block', width:'100%', padding:'12px 12px', borderRadius:10, fontSize:15,
+                fontWeight:600, color:'#ef4444', background:'var(--Bg-3)', border:'none',
+                cursor:'pointer', textAlign:'left',
+              }}>🚪 Logout</button>
+            </>
+          ) : (
+            <>
+              <button onClick={()=>{setModal('login');setMobileNav(false);}} style={{
+                width:'100%', padding:'12px', borderRadius:10, fontSize:15, fontWeight:700,
+                color:'var(--White)', background:'var(--Bg-3)', border:'1px solid var(--Border)',
+                cursor:'pointer', marginBottom:8,
+              }}>Login</button>
+              <button onClick={()=>{setModal('register');setMobileNav(false);}} style={{
+                width:'100%', padding:'12px', borderRadius:10, fontSize:15, fontWeight:700,
+                color:'#fff', background:'linear-gradient(270deg,#fe8c45,#ca2826)',
+                border:'none', cursor:'pointer',
+              }}>Sign Up Free</button>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Auth Modal */}
       {modal && (
