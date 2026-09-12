@@ -39,9 +39,15 @@ export async function GET() {
         _count: { select: { tickets: true } },
       },
     });
-    const res = NextResponse.json({ series });
-    res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    return res;
+    // Filter out series not yet on sale
+    const now2 = new Date();
+    const onSale = series.filter((s: any) => {
+      if (!s.saleStartAt) return true;
+      return new Date(s.saleStartAt) <= now2;
+    });
+    const resp = { series: onSale };
+    setCache('lottery:series', resp, 20000);
+    return NextResponse.json(resp);
   } catch (e: any) {
     return NextResponse.json({ series: [], error: e.message });
   }

@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     if (!p) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const body = await req.json();
-    const { action, seriesId, name, prefix, ticketPrice, prizePool, firstPrize, secondPrize, thirdPrize, totalTickets, drawAt, status } = body;
+    const { action, seriesId, name, prefix, ticketPrice, prizePool, firstPrize, secondPrize, thirdPrize, totalTickets, drawAt, saleStartAt, status } = body;
 
     // ── Create series ────────────────────────────────────────────────────────
     if (action === 'create_series') {
@@ -62,6 +62,11 @@ export async function POST(req: NextRequest) {
           secondPrize: sp,
           thirdPrize:  tp,
           // drawAt from datetime-local is in local time (IST) - parse correctly
+          saleStartAt: saleStartAt
+            ? (saleStartAt.includes('T') && !saleStartAt.includes('Z') && !saleStartAt.includes('+')
+              ? new Date(saleStartAt + '+05:30').toISOString()
+              : new Date(saleStartAt).toISOString())
+            : new Date().toISOString(),
           drawAt: drawAt.includes('T') && !drawAt.includes('Z') && !drawAt.includes('+')
             ? new Date(drawAt + '+05:30')  // treat as IST
             : new Date(drawAt),

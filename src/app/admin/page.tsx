@@ -39,7 +39,7 @@ export default function AdminPage() {
   const [data,        setData]        = useState<any>({ upis:[], markets:[], series:[], users:[], spinConfig:null });
 
   // ── Lottery form ────────────────────────────────────────────────────────────
-  const [lForm, setLForm] = useState({ name:'', prefix:'', ticketPrice:'25', firstPrize:'100000', secondPrize:'50000', thirdPrize:'25000', totalTickets:'100', drawAt:'' });
+  const [lForm, setLForm] = useState({ name:'', prefix:'', ticketPrice:'25', firstPrize:'100000', secondPrize:'50000', thirdPrize:'25000', totalTickets:'100', saleStartAt:'', drawAt:'' });
   const [lLoading,   setLLoading]   = useState(false);
   const [drawSeries, setDrawSeries] = useState<any>(null);  // series being drawn
   const [drawInfo,   setDrawInfo]   = useState<any>(null);  // eligibility info from API
@@ -248,9 +248,9 @@ export default function AdminPage() {
   async function createSeries() {
     if (!lForm.name || !lForm.prefix || !lForm.drawAt) return toast.error('Fill all fields');
     setLLoading(true);
-    const r = await authFetch('/api/admin/lottery', { method:'POST', body: JSON.stringify({ action:'create_series', ...lForm, prizePool: Number(lForm.firstPrize||0)+Number(lForm.secondPrize||0)+Number(lForm.thirdPrize||0) }) });
+    const r = await authFetch('/api/admin/lottery', { method:'POST', body: JSON.stringify({ action:'create_series', ...lForm, prizePool: Number(lForm.firstPrize||0)+Number(lForm.secondPrize||0)+Number(lForm.thirdPrize||0), saleStartAt: lForm.saleStartAt||new Date().toISOString() }) });
     const d = await r.json();
-    if (r.ok) { toast.success(`✓ ${d.series.name} created with ${d.ticketsGenerated} tickets!`); load(); setLForm({ name:'', prefix:'', ticketPrice:'25', firstPrize:'100000', secondPrize:'50000', thirdPrize:'25000', totalTickets:'9999', drawAt:'' }); }
+    if (r.ok) { toast.success(`✓ ${d.series.name} created with ${d.ticketsGenerated} tickets!`); load(); setLForm({ name:'', prefix:'', ticketPrice:'25', firstPrize:'100000', secondPrize:'50000', thirdPrize:'25000', totalTickets:'9999', saleStartAt:'', drawAt:'' }); }
     else toast.error(d.error);
     setLLoading(false);
   }
@@ -929,7 +929,8 @@ export default function AdminPage() {
                       );
                     })()}
                   </div>
-                  <div><label style={label}>Draw Date &amp; Time</label><input type="datetime-local" value={lForm.drawAt} onChange={e=>setLForm({...lForm,drawAt:e.target.value})} style={inp}/></div>
+                  <div><label style={label}>🎟 Sale Start Date &amp; Time</label><input type="datetime-local" value={lForm.saleStartAt} onChange={e=>setLForm({...lForm,saleStartAt:e.target.value})} style={inp}/><p style={{fontSize:11,color:'var(--Secondary)',marginTop:4}}>Users can see & buy tickets from this time</p></div>
+                  <div><label style={label}>🏁 Draw Date &amp; Time</label><input type="datetime-local" value={lForm.drawAt} onChange={e=>setLForm({...lForm,drawAt:e.target.value})} style={inp}/></div>
 
                   <div style={{ background:'rgba(255,203,82,0.08)', border:'1px solid rgba(255,203,82,0.2)', borderRadius:10, padding:'10px 14px', fontSize:12, color:'var(--Secondary)' }}>
                      Creating <strong style={{ color:'#fff' }}>{lForm.totalTickets||'?'}</strong> tickets ({lForm.prefix||'XX'}0001 → {lForm.prefix||'XX'}{String(parseInt(lForm.totalTickets)||9999).padStart(4,'0')}) at <strong style={{ color:'#fff' }}>₹{lForm.ticketPrice||'?'}</strong> each
