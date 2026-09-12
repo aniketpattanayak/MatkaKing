@@ -237,6 +237,9 @@ export default function LotteryPage() {
           {loggedIn && (
             <div style={{ display: 'inline-flex', marginTop: 14, background: 'rgba(255,203,82,0.1)', border: '1px solid rgba(255,203,82,0.3)', borderRadius: 999, padding: '7px 22px' }}>
               <span style={{ color: '#ffcb52', fontWeight: 700 }}>💰 {balance.toLocaleString()} Coins available</span>
+              <Link href="/dashboard/wallet" style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:999, background:'linear-gradient(270deg,#2ECC71,#16a34a)', color:'#fff', fontWeight:700, fontSize:12, textDecoration:'none', whiteSpace:'nowrap' }}>
+                💳 Add Coins / Recharge
+              </Link>
             </div>
           )}
         </div>

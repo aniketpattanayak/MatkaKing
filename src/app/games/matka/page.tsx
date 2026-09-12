@@ -735,7 +735,12 @@ export default function MatkaPage() {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {loggedIn && <span style={{ color: '#ffcb52', fontWeight: 700, fontSize: 13 }}>💰 {balance.toLocaleString()}</span>}
+                {loggedIn && <>
+                  <span style={{ color: '#ffcb52', fontWeight: 700, fontSize: 13 }}>💰 {balance.toLocaleString()} Coins</span>
+                  <Link href="/dashboard/wallet" style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px', borderRadius:999, background:'linear-gradient(270deg,#2ECC71,#16a34a)', color:'#fff', fontWeight:700, fontSize:12, textDecoration:'none', whiteSpace:'nowrap' }}>
+                    💳 Add Coins
+                  </Link>
+                </>}
                 {/* OPEN / CLOSE toggle */}
                 <div style={{ display: 'flex', background: 'var(--Bg-3)', borderRadius: 999, padding: 3, border: '1px solid var(--Border)' }}>
                   {(['OPEN', 'CLOSE'] as const).map(s => {

@@ -41,7 +41,7 @@ export default function HeroSlider() {
                 <div className="image-title">
                   <img alt="" src="/images/page-title/home-3/page-title-item-left.png" width={218} height={119} />
                 </div>
-                <h4 className="title fw-9 mb-16">🎟️ Lottery<br />Only ₹25 per ticket!</h4>
+                <h4 className="title fw-9 mb-16">🎟️ Lucky Winner<br />Only ₹25 per ticket!</h4>
                 <p className="text-color-clip fs-50">₹20 Lakh*</p>
                 <div className="bot">
                   <Link className="tf-btn btn-play" href="/games/lottery">
@@ -64,11 +64,11 @@ export default function HeroSlider() {
                 <div className="image-title">
                   <img alt="" src="/images/page-title/home-3/page-title-item-right.png" width={166} height={104} />
                 </div>
-                <h4 className="title fw-9 mb-16">🎰 Matka King<br />Win up to 11,000x!</h4>
+                <h4 className="title fw-9 mb-16">🎰 Money Bank<br />Win up to 11,000x!</h4>
                 <p className="text-color-clip fs-50">₹1 Crore*</p>
                 <div className="bot">
                   <Link className="tf-btn btn-play" href="/games/matka">
-                    Play Matka <i className="icon-right"></i>
+                    Play Now <i className="icon-right"></i>
                   </Link>
                   <p className="sub fs-14 type-secondary text-center">*Full Sangam Payout</p>
                 </div>
