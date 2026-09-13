@@ -234,4 +234,38 @@ body {
 [data-theme="light"] footer { background: #1a1a2e !important; }
 [data-theme="light"] footer * { color: #ccc !important; }
 [data-theme="light"] footer .tf-btn { color: #fff !important; }
+
+/* Matka page light mode fixes */
+[data-theme="light"] .drum-col { background: #e8eaed !important; }
+[data-theme="light"] .digit-item { color: #111 !important; }
+[data-theme="light"] .digit-item.selected { color: #fff !important; }
+
+/* General light mode - fix dark backgrounds in game UI */
+[data-theme="light"] [style*="background: 'linear-gradient(180deg,#0d0b2a"] { background: #f0f2f5 !important; }
+[data-theme="light"] [style*="background:'linear-gradient(180deg,#0d0b2a"] { background: #f0f2f5 !important; }
+[data-theme="light"] [style*="rgba(0,0,0,0.2)"] { background: rgba(0,0,0,0.05) !important; }
+[data-theme="light"] [style*="rgba(0,0,0,0.15)"] { background: rgba(0,0,0,0.05) !important; }
+[data-theme="light"] [style*="rgba(255,255,255,0.04)"] { background: rgba(0,0,0,0.04) !important; }
+[data-theme="light"] [style*="rgba(255,255,255,0.05)"] { background: rgba(0,0,0,0.05) !important; }
+[data-theme="light"] [style*="rgba(255,255,255,0.08)"] { background: rgba(0,0,0,0.06) !important; }
+[data-theme="light"] [style*="rgba(255,255,255,0.1)"] { background: rgba(0,0,0,0.07) !important; }
+[data-theme="light"] [style*="color: 'rgba(255,255,255"] { color: #111 !important; }
+[data-theme="light"] [style*="color:'rgba(255,255,255"] { color: #111 !important; }
+
+/* Matka game area light mode */
+[data-theme="light"] .matka-game-area {
+  background: #f0f2f5 !important;
+}
+[data-theme="light"] .matka-game-area * {
+  color: #111111 !important;
+  border-color: rgba(0,0,0,0.15) !important;
+}
+[data-theme="light"] .matka-game-area .tf-btn,
+[data-theme="light"] .matka-game-area button[style*="linear-gradient"] {
+  color: #ffffff !important;
+}
+[data-theme="light"] .matka-game-area [style*="background:'rgba(0,0,0"],
+[data-theme="light"] .matka-game-area [style*="background: 'rgba(0,0,0"] {
+  background: rgba(0,0,0,0.06) !important;
+}
 /* ===== END LIGHT MODE ===== */

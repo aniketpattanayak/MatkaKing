@@ -604,7 +604,7 @@ export default function MatkaPage() {
       <Header />
 
       {/* bg */}
-      <div style={{ background: 'linear-gradient(180deg,#0d0b2a,var(--Bg))', paddingTop: 100 }}>
+      <div className="matka-game-area" style={{ background: 'linear-gradient(180deg,#0d0b2a,var(--Bg))', paddingTop: 100 }}>
         <div className="tf-container" style={{ paddingTop: 18 }}>
 
           {/* Markets */}
