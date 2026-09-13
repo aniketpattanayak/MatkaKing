@@ -303,4 +303,14 @@ body {
 [data-theme="light"] .market-grid [style*="rgba(254,140,69"] { color: #cc5500 !important; }
 /* Game rates sidebar */
 [data-theme="light"] [style*="'#ffcb52'"] { color: #b8860b !important; }
+/* Fix yellow text invisible on white background */
+[data-theme="light"] span[style*="color: '#ffcb52'"],
+[data-theme="light"] span[style*='color: "#ffcb52"'],
+[data-theme="light"] [style*="color:#ffcb52"],
+[data-theme="light"] [style*="color: #ffcb52"] { color: #996600 !important; }
+[data-theme="light"] [style*="color:'#ffcb52'"] { color: #996600 !important; }
+[data-theme="light"] [style*='color:"#ffcb52"'] { color: #996600 !important; }
+/* Game rate values in light mode */
+[data-theme="light"] .rate-value { color: #b8860b !important; }
+[data-theme="light"] .matka-game-area .rate-value { color: #b8860b !important; }
 /* ===== END LIGHT MODE ===== */

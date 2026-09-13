@@ -577,7 +577,7 @@ export default function MatkaPage() {
                       ['SP', m.payoutSP ?? 140],
                       ['DP', m.payoutDP ?? 280],
                     ].map(([label, val]) => (
-                      <span key={String(label)} style={{ background:'rgba(254,140,69,0.1)', border:'1px solid rgba(254,140,69,0.2)', borderRadius:8, padding:'4px 10px', fontSize:12, fontWeight:700, color:'var(--Main-color)', background:'rgba(254,140,69,0.1)', border:'1px solid rgba(254,140,69,0.2)' }}>
+                      <span key={String(label)} style={{ background:'rgba(254,140,69,0.1)', border:'1px solid rgba(254,140,69,0.2)', borderRadius:8, padding:'4px 10px', fontSize:12, fontWeight:700, color:'var(--Main-color)' }}>
                         {label} {val}x
                       </span>
                     ))}
@@ -1053,7 +1053,7 @@ export default function MatkaPage() {
                     border: `1px solid ${gameType.key === g.key ? 'rgba(254,140,69,0.3)' : 'transparent'}`,
                   }}>
                     <span style={{ fontSize: 12, fontWeight: gameType.key === g.key ? 700 : 400 }}>{g.label}</span>
-                    <span style={{ fontWeight: 900, color: '#ffcb52', fontSize: 12 }}>{g.payout}x</span>
+                    <span style={{ fontWeight: 900, color: 'var(--accent-color, #ffcb52)', fontSize: 12 }} className="rate-value">{g.payout}x</span>
                   </div>
                 ))}
               </div>
