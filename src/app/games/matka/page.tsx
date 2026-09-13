@@ -18,8 +18,8 @@ const FALLBACK_MARKETS = [
 
 // maxSelect = max columns user can select at once
 const GAME_TYPES = [
-  { key: 'ANK',          label: 'Ank',        payout: 90,    maxSelect: 1, desc: 'Pick 1 digit (0-9)', disableAfterOpen: false },
-  { key: 'JODI',         label: 'Jodi',        payout: 900,   maxSelect: 2, desc: 'Pick 2-digit jodi (00-99)', disableAfterOpen: true },
+  { key: 'ANK',          label: 'Ank',        payout: 9,     maxSelect: 1, desc: 'Pick 1 digit (0-9)', disableAfterOpen: false },
+  { key: 'JODI',         label: 'Jodi',        payout: 90,    maxSelect: 2, desc: 'Pick 2-digit jodi (00-99)', disableAfterOpen: true },
   { key: 'SINGLE_PATTI', label: 'SP',          payout: 140,   maxSelect: 3, desc: 'SP: All 3 digits different (e.g. 123, 456, 789) — Win ×140', disableAfterOpen: false, openSessionOnly: false },
   { key: 'DOUBLE_PATTI', label: 'DP',          payout: 280,   maxSelect: 3, desc: 'DP: Exactly 2 same digits (e.g. 112, 223, 344) — Win ×280', disableAfterOpen: false, openSessionOnly: false },
   { key: 'TRIPLE_PATTI', label: 'TP',          payout: 450,   maxSelect: 3, desc: 'TP: All 3 digits same (e.g. 111, 222, 333) — Win ×450', disableAfterOpen: false, openSessionOnly: false },

@@ -18,6 +18,8 @@ export default function WalletPage() {
   const [amount,       setAmount]       = useState(500);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [tab,          setTab]          = useState<'deposit'|'history'|'withdraw'>('deposit');
+  const [historyPage,  setHistoryPage]  = useState(1);
+  const HISTORY_PER_PAGE = 20;
   const [minWithdraw,  setMinWithdraw]  = useState(100);
   const [loading,      setLoading]      = useState(false);
   const [payment,      setPayment]      = useState<any>(null);
@@ -129,6 +131,7 @@ export default function WalletPage() {
   // ── QR Code URL (Google Charts API — free, no library needed) ────────────
   const qrUrl = (data: string, size = 200) =>
     `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}&bgcolor=1a1d27&color=ffffff&margin=2`;
+  const withdrawQR = true; // enables QR in withdraw section
 
   const txnColor = (t: string) => ['DEPOSIT','WIN_CREDIT','BONUS','SPIN_WIN'].includes(t) ? '#2ECC71' : '#ef4444';
   const txnSign  = (t: string) => ['DEPOSIT','WIN_CREDIT','BONUS','SPIN_WIN'].includes(t) ? '+' : '-';
@@ -395,6 +398,7 @@ export default function WalletPage() {
                   No transactions yet
                 </div>
               ) : (
+                <>
                 <table style={{ width:'100%', borderCollapse:'collapse' }}>
                   <thead><tr style={{ background:'rgba(0,0,0,0.2)' }}>
                     {['Type','Amount','Status','Date'].map(h=>(
@@ -402,7 +406,7 @@ export default function WalletPage() {
                     ))}
                   </tr></thead>
                   <tbody>
-                    {transactions.map(t=>(
+                    {transactions.slice((historyPage-1)*HISTORY_PER_PAGE, historyPage*HISTORY_PER_PAGE).map(t=>(
                       <tr key={t.id} style={{ borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
                         <td style={{ padding:'14px 20px', fontWeight:600, fontSize:14 }}>{t.type.replace(/_/g,' ')}</td>
                         <td style={{ padding:'14px 20px', fontWeight:700, color:txnColor(t.type), fontSize:16 }}>
@@ -422,6 +426,23 @@ export default function WalletPage() {
                     ))}
                   </tbody>
                 </table>
+                {/* Pagination */}
+                {transactions.length > HISTORY_PER_PAGE && (
+                  <div style={{display:'flex',justifyContent:'center',alignItems:'center',gap:8,padding:'16px',borderTop:'1px solid var(--Border)'}}>
+                    <button onClick={()=>setHistoryPage(p=>Math.max(1,p-1))} disabled={historyPage===1}
+                      style={{padding:'6px 14px',borderRadius:8,border:'1px solid var(--Border)',background:'var(--Bg-3)',color:'var(--Secondary)',cursor:historyPage===1?'not-allowed':'pointer',fontWeight:700}}>
+                      ← Prev
+                    </button>
+                    <span style={{color:'var(--Secondary)',fontSize:13}}>
+                      Page {historyPage} of {Math.ceil(transactions.length/HISTORY_PER_PAGE)}
+                    </span>
+                    <button onClick={()=>setHistoryPage(p=>Math.min(Math.ceil(transactions.length/HISTORY_PER_PAGE),p+1))} disabled={historyPage>=Math.ceil(transactions.length/HISTORY_PER_PAGE)}
+                      style={{padding:'6px 14px',borderRadius:8,border:'1px solid var(--Border)',background:'var(--Bg-3)',color:'var(--Secondary)',cursor:historyPage>=Math.ceil(transactions.length/HISTORY_PER_PAGE)?'not-allowed':'pointer',fontWeight:700}}>
+                      Next →
+                    </button>
+                  </div>
+                )}
+                </>
               )}
             </div>
           )}

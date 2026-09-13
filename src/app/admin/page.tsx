@@ -135,6 +135,7 @@ export default function AdminPage() {
   const [wdSaving,     setWdSaving]     = useState(false);
   const [dailyStats,   setDailyStats]   = useState<any>(null);
   const [historyStats, setHistoryStats] = useState<any[]>([]);
+  const [statsPeriod,  setStatsPeriod]  = useState<'daily'|'weekly'|'monthly'>('daily');
   const [msgTo,        setMsgTo]        = useState('');
   const [msgTitle,     setMsgTitle]     = useState('');
   const [msgBody,      setMsgBody]      = useState('');
@@ -728,6 +729,15 @@ export default function AdminPage() {
           )}
           {/* 10-Day History Charts */}
           {tab==='overview' && historyStats.length > 0 && (
+            <div style={{display:'flex',gap:6,background:'var(--Bg-2)',borderRadius:10,padding:4,marginBottom:16,border:'1px solid var(--Border)',width:'fit-content'}}>
+              {(['daily','weekly','monthly'] as const).map(p=>(
+                <button key={p} onClick={()=>setStatsPeriod(p)} style={{padding:'6px 16px',borderRadius:7,border:'none',cursor:'pointer',fontWeight:700,fontSize:12,background:statsPeriod===p?'linear-gradient(270deg,#fe8c45,#ca2826)':'transparent',color:statsPeriod===p?'#fff':'var(--Secondary)',textTransform:'capitalize'}}>
+                  {p==='daily'?'Last 10 Days':p==='weekly'?'Last 10 Weeks':'Last 10 Months'}
+                </button>
+              ))}
+            </div>
+          )}
+          {tab==='overview' && historyStats.length > 0 && (
             <div style={{marginBottom:24}}>
               {/* Lucky Winner - Last 10 Days */}
               <div style={{background:'var(--Bg-2)',borderRadius:16,border:'1px solid var(--Border)',padding:24,marginBottom:16}}>
@@ -838,7 +848,7 @@ export default function AdminPage() {
                 ) : (
                   <table style={{ width:'100%', borderCollapse:'collapse' }}>
                     <thead><tr style={{ background:'rgba(0,0,0,0.2)' }}>
-                      {['Name','Prefix','Price','Prize Pool','Tickets','Draw Date','Status','Actions'].map(h=>(
+                      {['Name','Prefix','Price','Prize Pool','Tickets','Sale Start','Draw Date','Status','Actions'].map(h=>(
                         <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:10, fontWeight:700, color:'var(--Secondary)', textTransform:'uppercase' }}>{h}</th>
                       ))}
                     </tr></thead>
@@ -850,6 +860,7 @@ export default function AdminPage() {
                           <td style={{ padding:'12px 14px', fontSize:13 }}>₹{s.ticketPrice}</td>
                           <td style={{ padding:'12px 14px', fontSize:13 }}>₹{(s.prizePool/100000).toFixed(1)}L</td>
                           <td style={{ padding:'12px 14px', fontSize:13 }}>{s._count?.tickets??0}</td>
+                          <td style={{ padding:'12px 14px', fontSize:12, color:'var(--Secondary)' }}>{s.saleStartAt ? new Date(s.saleStartAt).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'}) : '—'}</td>
                           <td style={{ padding:'12px 14px', fontSize:12, color:'var(--Secondary)' }}>{new Date(s.drawAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'})}</td>
                           <td style={{ padding:'12px 14px' }}>
                             <span style={{ padding:'2px 10px', borderRadius:999, fontSize:10, fontWeight:700,
@@ -1930,14 +1941,15 @@ export default function AdminPage() {
 
 
           {/* FESTIVALS TAB */}
+          {tab==='festivals' && festivals.length===0 && setFestivals(INDIAN_FESTIVALS)}
           {tab==='festivals' && (
             <div>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:12}}>
                 <div><h3 style={{fontWeight:900,fontSize:22}}>🎉 Upcoming Festivals</h3><p style={{color:'var(--Secondary)',fontSize:13}}>Create special lotteries for upcoming festivals</p></div>
-                <button onClick={()=>{setFestLoading(true);authFetch('/api/admin/festivals').then(r=>r.json()).then(d=>{if(d.festivals)setFestivals(d.festivals);}).finally(()=>setFestLoading(false));}} disabled={festLoading} style={{padding:'8px 18px',borderRadius:999,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontSize:13,cursor:'pointer',fontWeight:700}}>{festLoading?'Loading...':'↻ Load Festivals'}</button>
+                <button onClick={()=>setFestivals(INDIAN_FESTIVALS)} style={{padding:'8px 18px',borderRadius:999,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontSize:13,cursor:'pointer',fontWeight:700}}>↻ Load Festivals</button>
               </div>
               {festivals.length===0
-                ? <div style={{...card,padding:40,textAlign:'center',color:'var(--Secondary)'}}>Click "Load Festivals" to see upcoming Indian festivals</div>
+                ? <div style={{...card,padding:40,textAlign:'center',color:'var(--Secondary)'}}>No upcoming festivals</div>
                 : <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:16}}>
                     {festivals.map((f:any)=>(
                       <div key={f.name} style={{...card,padding:20,display:'flex',flexDirection:'column',gap:12}}>

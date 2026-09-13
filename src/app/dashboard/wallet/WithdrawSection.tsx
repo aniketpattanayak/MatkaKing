@@ -3,6 +3,9 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { authFetch } from '@/lib/auth-client';
 
+const qrUrl = (upiId: string, amount: string) =>
+  `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(`upi://pay?pa=${upiId}&am=${amount}&cu=INR`)}&bgcolor=ffffff&color=000000&margin=2`;
+
 const inp: any = {
   width:'100%', padding:'11px 14px', borderRadius:10,
   border:'1px solid var(--Border-2)', background:'var(--Bg-3)',

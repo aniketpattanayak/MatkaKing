@@ -235,9 +235,11 @@ export default function LotteryPage() {
           <h1 style={{ fontWeight: 900, fontSize: 44, marginBottom: 8 }}>🎟️ Lucky Winner</h1>
           <p style={{ color: 'var(--Secondary)', fontSize: 15 }}>Search · Bulk Buy · Alphanumeric series tickets</p>
           {loggedIn && (
-            <div style={{ display: 'inline-flex', marginTop: 14, background: 'rgba(255,203,82,0.1)', border: '1px solid rgba(255,203,82,0.3)', borderRadius: 999, padding: '7px 22px' }}>
-              <span style={{ color: '#ffcb52', fontWeight: 700 }}>💰 {balance.toLocaleString()} Coins available</span>
-              <Link href="/dashboard/wallet" style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 14px', borderRadius:999, background:'linear-gradient(270deg,#2ECC71,#16a34a)', color:'#fff', fontWeight:700, fontSize:12, textDecoration:'none', whiteSpace:'nowrap' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:14, flexWrap:'wrap', justifyContent:'center' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(255,203,82,0.1)', border:'1px solid rgba(255,203,82,0.3)', borderRadius:999, padding:'7px 18px' }}>
+                <span style={{ color:'#ffcb52', fontWeight:700 }}>💰 {balance.toLocaleString()} Coins</span>
+              </div>
+              <Link href="/dashboard/wallet" style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 18px', borderRadius:999, background:'linear-gradient(270deg,#2ECC71,#16a34a)', color:'#fff', fontWeight:700, fontSize:13, textDecoration:'none', whiteSpace:'nowrap' }}>
                 💳 Add Coins / Recharge
               </Link>
             </div>

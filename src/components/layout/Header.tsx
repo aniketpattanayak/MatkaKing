@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Gamepad2, Ticket, LayoutDashboard, Wallet, Settings,
-  LogOut, User, ChevronDown, X, Menu, Coins
+  LogOut, User, ChevronDown, X, Menu, Coins, Sun, Moon
 } from 'lucide-react';
 import { getToken, setToken, clearToken, getCachedUser, setCachedUser, fetchCurrentUser, type SessionUser } from '@/lib/auth-client';
 
@@ -182,6 +182,9 @@ export default function Header() {
                     <li className={path === '/' ? 'current-menu-item' : ''}>
                       <Link href="/" style={navLink}>Home</Link>
                     </li>
+                    <li className={act('/game-guide') ? 'current-menu-item' : ''}>
+                      <Link href="/game-guide" style={navLink}>Game Guide</Link>
+                    </li>
 
                   </ul>
                 </nav>
@@ -291,6 +294,21 @@ export default function Header() {
                       </button>
                     </>
                   )}
+
+                  {/* Theme toggle */}
+                  <button onClick={()=>{
+                    const cur = document.documentElement.getAttribute('data-theme')||'dark';
+                    const next = cur==='dark'?'light':'dark';
+                    document.documentElement.setAttribute('data-theme',next);
+                    localStorage.setItem('kh-theme',next);
+                  }} style={{
+                    width:36,height:36,borderRadius:'50%',border:'1px solid var(--Border)',
+                    background:'var(--Bg-2)',cursor:'pointer',display:'flex',
+                    alignItems:'center',justifyContent:'center',color:'var(--White)',
+                    flexShrink:0,
+                  }} title="Toggle Dark/Light mode">
+                    <Sun size={16}/>
+                  </button>
 
                   <Link className="tf-btn" href="/games/lottery" style={{
                     height:38, fontSize:13, padding:'0 16px',
