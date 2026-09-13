@@ -194,6 +194,18 @@ export default function AdminPage() {
       fetch('/api/cron/lottery-autodraw', { cache:'no-store' }).catch(()=>{});
       // Load daily stats
       authFetch('/api/admin/daily-stats').then(r=>r.json()).then(d=>{ if(!d.error) setDailyStats(d); }).catch(()=>{});
+      // Load withdrawal settings
+      Promise.all([
+        authFetch('/api/admin/settings?key=minWithdraw').then(r=>r.json()),
+        authFetch('/api/admin/settings?key=maxWithdraw').then(r=>r.json()),
+        authFetch('/api/admin/settings?key=withdrawPerDay').then(r=>r.json()),
+      ]).then(([min,max,perDay])=>{
+        setWdSettings({
+          minWithdraw: min.value??'100',
+          maxWithdraw: max.value??'50000',
+          withdrawPerDay: perDay.value??'1',
+        });
+      }).catch(()=>{});
       authFetch('/api/admin/history-stats').then(r=>r.json()).then(d=>{ if(d.days) setHistoryStats(d.days); }).catch(()=>{});
       if (sD.config) setSForm({ costPerSpin: String(sD.config.costPerSpin ?? 10), freeSpinInterval: String(sD.config.freeSpinInterval ?? 6) });
 
