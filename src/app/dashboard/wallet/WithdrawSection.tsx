@@ -23,10 +23,11 @@ function parseWithdrawDetails(orderId: string) {
 }
 
 export default function WithdrawSection({
-  balance, minWithdraw = 100, onSuccess
+  balance, minWithdraw = 1000, maxWithdraw = 5000, onSuccess
 }: {
   balance: number;
   minWithdraw?: number;
+  maxWithdraw?: number;
   onSuccess?: () => void;
 }) {
   const [method,    setMethod]    = useState<'UPI'|'PHONEPE'|'BANK'>('UPI');
@@ -48,11 +49,15 @@ export default function WithdrawSection({
 
   useEffect(() => { loadHistory(); }, []);
 
-  const presets = [minWithdraw, 200, 500, 1000, 2000, 5000].filter(a => a <= balance && a >= minWithdraw);
+  const presets = [minWithdraw, Math.round(minWithdraw*1.5), Math.round(minWithdraw*2), Math.round(minWithdraw*3), maxWithdraw]
+    .filter((a,i,arr) => arr.indexOf(a)===i) // unique
+    .filter(a => a <= balance && a >= minWithdraw && a <= maxWithdraw);
 
   const submit = async () => {
     const amt = parseInt(amount);
     if (!amt || amt < minWithdraw) return toast.error(`Minimum withdrawal is ₹${minWithdraw}`);
+    if (amt > maxWithdraw) return toast.error(`Maximum withdrawal is ₹${maxWithdraw}`);
+    if (amt > balance) return toast.error('Insufficient balance');
     if (amt > balance) return toast.error(`Insufficient balance. Available: ₹${balance}`);
     if (method === 'UPI'     && !upiId.trim())    return toast.error('Enter your UPI ID');
     if (method === 'PHONEPE' && phone.length < 10) return toast.error('Enter valid 10-digit number');
@@ -87,7 +92,7 @@ export default function WithdrawSection({
         <span style={{ fontSize:28 }}>💰</span>
         <div>
           <p style={{ fontWeight:800, fontSize:15, color:'#ffcb52', marginBottom:3 }}>Coin Withdrawal</p>
-          <p style={{ fontSize:12, color:'var(--Secondary)' }}>Min: <strong style={{ color:'#ffcb52' }}>₹{minWithdraw}</strong> · Processed within 24 hours · Balance: <strong style={{ color:'#ffcb52' }}>₹{balance.toLocaleString()}</strong></p>
+          <p style={{ fontSize:12, color:'var(--Secondary)' }}>Min: <strong style={{ color:'#ffcb52' }}>₹{minWithdraw}</strong> · Max: <strong style={{ color:'#ffcb52' }}>₹{maxWithdraw}</strong> · Balance: <strong style={{ color:'#ffcb52' }}>₹{balance.toLocaleString()}</strong></p>
         </div>
       </div>
 
@@ -112,7 +117,9 @@ export default function WithdrawSection({
           {/* Amount */}
           <div>
             <label style={{ fontSize:12, fontWeight:700, color:'var(--Secondary)', display:'block', marginBottom:8, textTransform:'uppercase' }}>Amount (1 Coin = ₹1)</label>
-            <input type="number" placeholder={`Min ₹${minWithdraw}`} value={amount} onChange={e => setAmount(e.target.value)} style={{ ...inp, fontSize:20, fontWeight:700 }}/>
+            <input type="number" placeholder={`Min ₹${minWithdraw} — Max ₹${maxWithdraw}`} value={amount} 
+    min={minWithdraw} max={maxWithdraw}
+    onChange={e => setAmount(e.target.value)} style={{ ...inp, fontSize:20, fontWeight:700 }}/>
             {presets.length > 0 && (
               <div style={{ display:'flex', gap:8, marginTop:10, flexWrap:'wrap' }}>
                 {presets.map(a => (

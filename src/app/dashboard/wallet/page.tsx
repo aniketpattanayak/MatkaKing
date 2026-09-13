@@ -383,7 +383,7 @@ export default function WalletPage() {
 
           {/* Transaction History */}
           {tab==='withdraw' && (
-            <WithdrawSection balance={balance} minWithdraw={minWithdraw} onSuccess={()=>{
+            <WithdrawSection balance={balance} minWithdraw={minWithdraw} maxWithdraw={maxWithdraw} onSuccess={()=>{
               refreshBalance().then(u=>{ if(u){ setUser(u); setBalance(u.balance); } });
             }}/>
           )}
