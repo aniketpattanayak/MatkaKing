@@ -123,6 +123,7 @@ model LotterySeries {
   startNumber   Int
   endNumber     Int
   ticketPrice   Int
+  saleStartAt   DateTime?
   drawAt        DateTime
   prizePool     Int
   firstPrize    Int           @default(0)
