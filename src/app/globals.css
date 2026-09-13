@@ -268,4 +268,34 @@ body {
 [data-theme="light"] .matka-game-area [style*="background: 'rgba(0,0,0"] {
   background: rgba(0,0,0,0.06) !important;
 }
+
+/* Matka game page - light mode fixes */
+[data-theme="light"] .matka-game-area,
+[data-theme="light"] .matka-game-area > div {
+  background: #f0f2f5 !important;
+}
+[data-theme="light"] .market-grid > div {
+  background: #ffffff !important;
+}
+
+/* Drum column digits */
+[data-theme="light"] .matka-game-area [style*="rgba(255,255,255,0.55)"] { color: #111 !important; }
+[data-theme="light"] .matka-game-area [style*="rgba(255,255,255,0.25)"] { color: #666 !important; }
+[data-theme="light"] .matka-game-area [style*="rgba(255,255,255,0.12)"] { color: #999 !important; }
+[data-theme="light"] .matka-game-area [style*="rgba(255,255,255,0.2)"] { color: #888 !important; }
+
+/* Game type buttons text */
+[data-theme="light"] .matka-game-area button { color: #111 !important; }
+[data-theme="light"] .matka-game-area button[style*="linear-gradient"] { color: #fff !important; }
+
+/* Dark backgrounds */
+[data-theme="light"] .matka-game-area [style*="rgba(0,0,0,0.15)"],
+[data-theme="light"] .matka-game-area [style*="rgba(0,0,0,0.1)"],
+[data-theme="light"] .matka-game-area [style*="rgba(0,0,0,0.2)"] {
+  background: rgba(0,0,0,0.04) !important;
+}
+
+/* Market card hover */
+[data-theme="light"] .market-grid > div:hover { background: #f5f5f5 !important; }
+
 /* ===== END LIGHT MODE ===== */

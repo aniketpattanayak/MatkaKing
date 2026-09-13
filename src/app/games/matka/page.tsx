@@ -143,8 +143,8 @@ function DrumColumn({
               color: d === shown && digit !== null
                 ? '#ffcb52'
                 : d === shown
-                ? 'rgba(255,255,255,0.55)'
-                : 'rgba(255,255,255,0.25)',
+                ? 'var(--White)'
+                : 'var(--Secondary)',
               cursor: 'pointer',
               fontFamily: 'monospace',
               transition: 'font-size 0.1s, color 0.1s',
@@ -723,7 +723,7 @@ export default function MatkaPage() {
                       padding: '7px 13px', borderRadius: 999, border: '1px solid',
                       borderColor: isLocked ? 'rgba(100,100,100,0.2)' : gameType.key === g.key ? '#fe8c45' : 'var(--Border)',
                       background: isLocked ? 'rgba(100,100,100,0.1)' : gameType.key === g.key ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'var(--Bg-3)',
-                      color: isLocked ? 'rgba(255,255,255,0.2)' : '#fff', fontWeight: 700, fontSize: 12,
+                      color: isLocked ? 'var(--Secondary)' : '#fff', fontWeight: 700, fontSize: 12,
                       cursor: isLocked ? 'not-allowed' : 'pointer', position:'relative',
                     }}>
                       {g.label}
@@ -751,7 +751,7 @@ export default function MatkaPage() {
                         cursor: isOpenLocked ? 'not-allowed' : 'pointer',
                         fontWeight: 700, fontSize: 13, transition: 'all 0.2s',
                         background: session === s ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'transparent',
-                        color: isOpenLocked ? 'rgba(255,255,255,0.2)' : session === s ? '#fff' : 'var(--Secondary)',
+                        color: isOpenLocked ? 'var(--Secondary)' : session === s ? '#fff' : 'var(--Secondary)',
                         opacity: isOpenLocked ? 0.4 : 1,
                         position: 'relative',
                       }}>
@@ -849,7 +849,7 @@ export default function MatkaPage() {
                     <button onClick={() => setDigits(prev => { const n = [...prev]; n[si] = null; return n; })} style={{
                       width: 36, height: 18, borderRadius: 5, border: 'none',
                       background: digits[si] !== null ? 'rgba(239,68,68,0.18)' : 'transparent',
-                      color: digits[si] !== null ? '#ef4444' : 'rgba(255,255,255,0.12)',
+                      color: digits[si] !== null ? '#ef4444' : 'var(--Border)',
                       fontSize: 9, fontWeight: 700, cursor: digits[si] !== null ? 'pointer' : 'default',
                     }}>CLR</button>
                   </div>
@@ -952,7 +952,7 @@ export default function MatkaPage() {
                   <div style={{ padding: '36px 14px', textAlign: 'center', color: 'var(--Secondary)', fontSize: 12 }}>
                     <div style={{ fontSize: 36, marginBottom: 8 }}>🛒</div>
                     0 Bids · ₹0
-                    <div style={{ marginTop: 6, color: 'rgba(255,255,255,0.2)', fontSize: 11 }}>Select digits → Add to Cart</div>
+                    <div style={{ marginTop: 6, color: 'var(--Secondary)', fontSize: 11 }}>Select digits → Add to Cart</div>
                   </div>
                 ) : (
                   <>
