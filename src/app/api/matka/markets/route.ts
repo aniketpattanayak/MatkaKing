@@ -36,9 +36,15 @@ export async function GET() {
       const open = m.isOpen || timeOpen; // DB flag OR time-based
       return { ...m, isOpen: open, status: open ? 'OPEN' : 'CLOSED' };
     });
-    const res = NextResponse.json({ markets: enriched });
-    res.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    return res;
+    // Sort: OPEN markets first, then by openTime
+    const sorted = [...enriched].sort((a:any, b:any) => {
+      if (a.isOpen && !b.isOpen) return -1;
+      if (!a.isOpen && b.isOpen) return 1;
+      return a.openTime.localeCompare(b.openTime);
+    });
+    const resp = { markets: sorted };
+    setCache(cacheKey, resp, 30000);
+    return NextResponse.json(resp);
   } catch (e: any) {
     return NextResponse.json({ markets: [], error: e.message });
   }
