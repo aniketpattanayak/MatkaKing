@@ -572,12 +572,12 @@ export default function MatkaPage() {
                   {/* Game rates quick view */}
                   <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                     {[
-                      ['Ank', m.payoutSingle ?? 90],
-                      ['Jodi', m.payoutJodi ?? 900],
+                      ['Ank', m.payoutSingle ?? 9],
+                      ['Jodi', m.payoutJodi ?? 90],
                       ['SP', m.payoutSP ?? 140],
                       ['DP', m.payoutDP ?? 280],
                     ].map(([label, val]) => (
-                      <span key={String(label)} style={{ background:'rgba(254,140,69,0.1)', border:'1px solid rgba(254,140,69,0.2)', borderRadius:8, padding:'4px 10px', fontSize:12, fontWeight:700, color:'var(--Main-color)' }}>
+                      <span key={String(label)} style={{ background:'rgba(254,140,69,0.1)', border:'1px solid rgba(254,140,69,0.2)', borderRadius:8, padding:'4px 10px', fontSize:12, fontWeight:700, color:'var(--Main-color)', background:'rgba(254,140,69,0.1)', border:'1px solid rgba(254,140,69,0.2)' }}>
                         {label} {val}x
                       </span>
                     ))}

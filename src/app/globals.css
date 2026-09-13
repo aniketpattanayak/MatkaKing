@@ -298,4 +298,9 @@ body {
 /* Market card hover */
 [data-theme="light"] .market-grid > div:hover { background: #f5f5f5 !important; }
 
+/* Market card rate badges */
+[data-theme="light"] .market-grid [style*="var(--Main-color)"] { color: #ca2826 !important; }
+[data-theme="light"] .market-grid [style*="rgba(254,140,69"] { color: #cc5500 !important; }
+/* Game rates sidebar */
+[data-theme="light"] [style*="'#ffcb52'"] { color: #b8860b !important; }
 /* ===== END LIGHT MODE ===== */
