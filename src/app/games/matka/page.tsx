@@ -186,9 +186,6 @@ export default function MatkaPage() {
   // Increments every time session flips → forces drums to re-scroll to correct digit
   const [scrollTrigger, setScrollTrigger]= useState(0);
 
-  // Auto-switch to CLOSE session if open is declared
-  const autoSession = openDeclared ? 'CLOSE' : session;
-
   // Clear only active columns when switching session
   const clearActiveDigits = () => {
     setDigits(prev => {
@@ -215,19 +212,33 @@ export default function MatkaPage() {
       .then(d => {
         const markets = d.markets?.length > 0 ? d.markets : FALLBACK_MARKETS;
         // Normalize DB fields to component fields
-        const normalized = markets.map((m: any) => ({
-          ...m,
-          open:   m.openTime   ?? m.open,
-          close:  m.closeTime  ?? m.close,
-          result: m.resultTime ?? m.result,
-          status: m.isOpen ? 'OPEN' : 'CLOSED',
-          openPatti:  m.results?.[0]?.openPatti ?? null,
-          closePatti: m.results?.[0]?.closePatti ?? null,
-          openAnk:    m.results?.[0]?.openAnk ?? null,
-          closeAnk:   m.results?.[0]?.closeAnk ?? null,
-          jodi:       m.results?.[0]?.jodi ?? null,
-          patti:  m.results?.[0]?.openPatti ? `${m.results[0].openPatti}-${m.results[0].openAnk}` : '???-?',
-        }));
+        const normalized = markets.map((m: any) => {
+          // Pick the most recent result within the 72-hour window returned by the API
+          const latestResult = m.results?.[0] ?? null;
+          // Check if this result is within 72 hours (extra guard for display)
+          const resultAge = latestResult?.declaredAt
+            ? Date.now() - new Date(latestResult.declaredAt).getTime()
+            : Infinity;
+          const resultVisible = latestResult && resultAge <= 72 * 60 * 60 * 1000;
+          return {
+            ...m,
+            open:   m.openTime   ?? m.open,
+            close:  m.closeTime  ?? m.close,
+            result: m.resultTime ?? m.result,
+            status: m.isOpen ? 'OPEN' : 'CLOSED',
+            // Only show result data if within 72-hour display window
+            openPatti:    resultVisible ? latestResult.openPatti  ?? null : null,
+            closePatti:   resultVisible ? latestResult.closePatti ?? null : null,
+            openAnk:      resultVisible ? latestResult.openAnk    ?? null : null,
+            closeAnk:     resultVisible ? latestResult.closeAnk   ?? null : null,
+            jodi:         resultVisible ? latestResult.jodi        ?? null : null,
+            isDummyResult:resultVisible ? latestResult.isDummyResult ?? false : false,
+            declaredAt:   resultVisible ? latestResult.declaredAt  ?? null : null,
+            patti: (resultVisible && latestResult?.openPatti)
+              ? `${latestResult.openPatti}-${latestResult.openAnk}`
+              : '???-?',
+          };
+        });
         setAllMarkets(normalized);
         setMarket(normalized[0]); // preselect but don't show game yet
       // Load today's bets
@@ -304,6 +315,8 @@ export default function MatkaPage() {
   const readyToAdd = selectedStateIndices.length === gameType.maxSelect;
   // Check if open has been declared for this market
   const openDeclared = !!(market?.openPatti);
+  // autoSession: once open is declared, always use CLOSE
+  const autoSession = openDeclared ? 'CLOSE' : session;
 
   // Auto-switch to CLOSE when open is declared
   useEffect(() => {
@@ -526,7 +539,27 @@ export default function MatkaPage() {
 
                   {/* Last result - show open/close/ank/jodi */}
                   <div style={{ background:'rgba(0,0,0,0.2)', borderRadius:14, padding:'14px 16px', marginBottom:20 }}>
-                    <p style={{ fontSize:10, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', marginBottom:10, letterSpacing:1 }}>Today's Result</p>
+                    {/* Label: show how long ago result was declared */}
+                    {(() => {
+                      if (!m.declaredAt) return (
+                        <p style={{ fontSize:10, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', marginBottom:10, letterSpacing:1 }}>Today's Result</p>
+                      );
+                      const hoursAgo = Math.floor((Date.now() - new Date(m.declaredAt).getTime()) / (1000 * 60 * 60));
+                      const minsAgo  = Math.floor((Date.now() - new Date(m.declaredAt).getTime()) / (1000 * 60));
+                      const label    = hoursAgo === 0
+                        ? `${minsAgo}m ago`
+                        : hoursAgo < 24
+                        ? `${hoursAgo}h ago (today)`
+                        : `${hoursAgo}h ago (yesterday)`;
+                      return (
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+                          <p style={{ fontSize:10, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', letterSpacing:1 }}>Latest Result</p>
+                          <span style={{ fontSize:10, color: hoursAgo >= 24 ? '#f59e0b' : '#2ECC71', fontWeight:600, background: hoursAgo >= 24 ? 'rgba(245,158,11,0.1)' : 'rgba(46,204,113,0.1)', borderRadius:999, padding:'2px 8px' }}>
+                            🕐 {label}
+                          </span>
+                        </div>
+                      );
+                    })()}
                     <div style={{ display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
                       {/* Open */}
                       <div style={{ textAlign:'center' }}>
@@ -564,18 +597,27 @@ export default function MatkaPage() {
                     {!m.openPatti && (
                       <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:8 }}>Result not declared yet</p>
                     )}
-                    {m.jodi && (
+                    {m.jodi && !m.isDummyResult && (
                       <p style={{ fontSize:11, color:'#2ECC71', marginTop:8, fontWeight:600 }}>✓ Result declared</p>
+                    )}
+                    {m.jodi && m.isDummyResult && (
+                      <p style={{ fontSize:11, color:'#f59e0b', marginTop:8, fontWeight:600 }}>🛡️ Result declared (house)</p>
+                    )}
+                    {/* Show when the result was declared and how long it will be visible */}
+                    {m.declaredAt && (
+                      <p style={{ fontSize:10, color:'var(--Secondary)', marginTop:4 }}>
+                        ⏱ Visible for {Math.max(0, 72 - Math.floor((Date.now() - new Date(m.declaredAt).getTime()) / (1000*60*60)))}h more
+                      </p>
                     )}
                   </div>
 
                   {/* Game rates quick view */}
                   <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
                     {[
-                      ['Ank', m.payoutSingle ?? 9],
-                      ['Jodi', m.payoutJodi ?? 90],
-                      ['SP', m.payoutSP ?? 140],
-                      ['DP', m.payoutDP ?? 280],
+                      ['Ank',  m.payoutSingle ?? 90],
+                      ['Jodi', m.payoutJodi   ?? 900],
+                      ['SP',   m.payoutSP     ?? 140],
+                      ['DP',   m.payoutDP     ?? 280],
                     ].map(([label, val]) => (
                       <span key={String(label)} style={{ background:'rgba(254,140,69,0.1)', border:'1px solid rgba(254,140,69,0.2)', borderRadius:8, padding:'4px 10px', fontSize:12, fontWeight:700, color:'var(--Main-color)' }}>
                         {label} {val}x
@@ -641,6 +683,9 @@ export default function MatkaPage() {
                   <div style={{ textAlign:'center' }}>
                     <p style={{ fontSize: 9, color: 'var(--Secondary)', marginBottom: 2, fontWeight: 700, textTransform: 'uppercase' }}>Jodi</p>
                     <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 20, color: m.jodi?'#ffcb52':'var(--Secondary)' }}>{m.jodi??'??'}</span>
+                    {m.isDummyResult && m.jodi && (
+                      <p style={{ fontSize: 8, color: '#f59e0b', fontWeight: 700, marginTop: 2 }}>🛡️ house</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -655,7 +700,21 @@ export default function MatkaPage() {
           {/* Results panel for CLOSED markets */}
           {market.status === 'CLOSED' && (market.openPatti || market.jodi) && (
             <div style={{ background:'var(--Bg-2)', borderRadius:20, border:'1px solid var(--Border)', padding:28, marginBottom:20 }}>
-              <h3 style={{ fontWeight:900, fontSize:20, marginBottom:20 }}>📊 {market.name} — Today's Result</h3>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8, marginBottom:20 }}>
+                <h3 style={{ fontWeight:900, fontSize:20, margin:0 }}>📊 {market.name} — Result</h3>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  {market.isDummyResult && (
+                    <span style={{ fontSize:11, background:'rgba(245,158,11,0.15)', border:'1px solid rgba(245,158,11,0.35)', color:'#f59e0b', borderRadius:999, padding:'3px 10px', fontWeight:700 }}>
+                      🛡️ House Result
+                    </span>
+                  )}
+                  {market.declaredAt && (
+                    <span style={{ fontSize:11, color:'var(--Secondary)', background:'var(--Bg-3)', borderRadius:999, padding:'3px 10px' }}>
+                      🕐 {new Date(market.declaredAt).toLocaleString('en-IN', { timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit', day:'numeric', month:'short' })} IST
+                    </span>
+                  )}
+                </div>
+              </div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:16, marginBottom:20 }}>
                 {/* Open Patti */}
                 <div style={{ background:'rgba(46,204,113,0.06)', border:'1px solid rgba(46,204,113,0.25)', borderRadius:14, padding:'18px 20px', textAlign:'center' }}>
@@ -723,7 +782,7 @@ export default function MatkaPage() {
                       padding: '7px 13px', borderRadius: 999, border: '1px solid',
                       borderColor: isLocked ? 'rgba(100,100,100,0.2)' : gameType.key === g.key ? '#fe8c45' : 'var(--Border)',
                       background: isLocked ? 'rgba(100,100,100,0.1)' : gameType.key === g.key ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'var(--Bg-3)',
-                      color: isLocked ? 'var(--Secondary)' : '#fff', fontWeight: 700, fontSize: 12,
+                      color: isLocked ? 'var(--Secondary)' : gameType.key === g.key ? '#fff' : 'var(--White)', fontWeight: 700, fontSize: 12,
                       cursor: isLocked ? 'not-allowed' : 'pointer', position:'relative',
                     }}>
                       {g.label}
@@ -766,7 +825,7 @@ export default function MatkaPage() {
 
             <p style={{ marginTop: 8, fontSize: 11, color: 'var(--Secondary)' }}>
               <strong style={{ color: 'var(--Main-color)' }}>{gameType.label}</strong> — {gameType.desc} &nbsp;·&nbsp;
-              Select <strong style={{ color: '#fff' }}>{gameType.maxSelect}</strong> column{gameType.maxSelect > 1 ? 's' : ''} &nbsp;·&nbsp;
+              Select <strong style={{ color: 'var(--White)' }}>{gameType.maxSelect}</strong> column{gameType.maxSelect > 1 ? 's' : ''} &nbsp;·&nbsp;
               {session === 'OPEN'
                 ? <span style={{ color: '#2ECC71' }}>← Open: columns read left to right</span>
                 : <span style={{ color: '#3498DB' }}>Close: columns read right to left →</span>}
@@ -923,8 +982,8 @@ export default function MatkaPage() {
                   <button id="add-to-cart-btn" onClick={addToCart} disabled={!readyToAdd} style={{
                     width: '100%', height: 50, borderRadius: 13, border: 'none',
                     background: readyToAdd ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'var(--Bg-3)',
-                    color: '#fff', fontWeight: 900, fontSize: 16, cursor: readyToAdd ? 'pointer' : 'not-allowed',
-                    opacity: readyToAdd ? 1 : 0.45, transition: 'all 0.2s',
+                    color: readyToAdd ? '#fff' : 'var(--White)', fontWeight: 900, fontSize: 16, cursor: readyToAdd ? 'pointer' : 'not-allowed',
+                    opacity: readyToAdd ? 1 : 0.6, transition: 'all 0.2s',
                   }}>
                     {readyToAdd
                       ? `🛒 Add to Cart — ${gameType.label} ${betValue} · Win ₹${(amount * gameType.payout).toLocaleString()}`

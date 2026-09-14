@@ -22,11 +22,15 @@ export async function GET() {
       where: { isActive: true },
       orderBy: { openTime: 'asc' },
       include: {
-        results: { 
-          where: { createdAt: { gte: new Date(new Date().setHours(0,0,0,0)) } },
-          orderBy: { createdAt: 'desc' }, 
-          take: 1, 
-          select: { id:true, openPatti:true, closePatti:true, openAnk:true, closeAnk:true, jodi:true, declaredAt:true, totalPayout:true } 
+        results: {
+          // ── Fix: use last 72 hours so results remain visible after midnight
+          // and for admin/user views the same day the market was drawn.
+          // Previously used "today midnight" which caused results to vanish
+          // if the market opened+closed on the same calendar day or after midnight.
+          where: { createdAt: { gte: new Date(Date.now() - 72 * 60 * 60 * 1000) } },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { id:true, openPatti:true, closePatti:true, openAnk:true, closeAnk:true, jodi:true, declaredAt:true, totalPayout:true, isDummyResult:true },
         },
       },
     });
@@ -43,7 +47,8 @@ export async function GET() {
       return a.openTime.localeCompare(b.openTime);
     });
     const resp = { markets: sorted };
-    setCache(cacheKey, resp, 30000);
+    // 10 s cache — short enough that a freshly declared result appears quickly
+    setCache(cacheKey, resp, 10000);
     return NextResponse.json(resp);
   } catch (e: any) {
     return NextResponse.json({ markets: [], error: e.message });

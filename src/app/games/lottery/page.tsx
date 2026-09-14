@@ -300,10 +300,10 @@ export default function LotteryPage() {
                   <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)' }}>🔍</span>
                   <input type="text" placeholder={`Search tickets... type 98 → ${series.prefix}0098`} className="lottery-search"
                     value={query} onChange={e => setQuery(e.target.value)}
-                    style={{ width: '100%', padding: '13px 16px 13px 44px', borderRadius: 999, background: 'var(--Bg-3)', border: '1px solid var(--Border-2)', color: 'var(--White)', fontSize: 14, outline: 'none' }} />
+                    style={{ width: '100%', padding: '13px 16px 13px 44px', borderRadius: 999, background: 'var(--Bg-3)', border: '1px solid var(--Border-2)', fontSize: 14, outline: 'none' }} />
                 </div>
                 <input placeholder="Lucky # (e.g. 7)" value={lucky} onChange={e => setLucky(e.target.value)} className="lottery-search"
-                  style={{ width: 130, padding: '13px 16px', borderRadius: 999, background: 'var(--Bg-3)', border: '1px solid var(--Border-2)', color: 'var(--White)', fontSize: 13, outline: 'none' }} />
+                  style={{ width: 130, padding: '13px 16px', borderRadius: 999, background: 'var(--Bg-3)', border: '1px solid var(--Border-2)', fontSize: 13, outline: 'none' }} />
                 <button onClick={applyFilter} className="tf-btn" style={{ height: 48, padding: '0 22px', fontSize: 14 }}>Filter</button>
               </div>
 

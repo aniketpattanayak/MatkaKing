@@ -18,7 +18,7 @@ export default function ProfitGuardDashboard() {
   const [liabilities, setLiabilities] = useState<LiabilityItem[]>([]);
   const [declaring, setDeclaring] = useState(false);
   const [lastResult, setLastResult] = useState<{
-    result: { display: string };
+    result: { display: string; declaredAt?: string };
     profitGuard: { houseProfitPct: string; isDummyResult: boolean; totalBets: number; payout: number };
   } | null>(null);
 
@@ -105,15 +105,17 @@ export default function ProfitGuardDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-gray-500 mb-2 block">Select Market</label>
+            {/* input-field class + explicit style ensures readable text on Windows & Mac in both themes */}
             <select
               className="input-field"
+              style={{ color: 'inherit', appearance: 'none', WebkitAppearance: 'none' }}
               value={selectedMarket}
               onChange={(e) => setSelectedMarket(e.target.value)}
             >
               <option value="">Choose market…</option>
               {markets.map((m) => (
                 <option key={m.id} value={m.id} disabled={m.isResultDeclared}>
-                  {m.name} {m.isResultDeclared ? '(declared)' : m.isOpen ? '(open)' : '(closed)'}
+                  {m.name} {m.isResultDeclared ? '✓ declared' : m.isOpen ? '● open' : '○ closed'}
                 </option>
               ))}
             </select>
@@ -184,10 +186,16 @@ export default function ProfitGuardDashboard() {
               </div>
               {lastResult.profitGuard.isDummyResult && (
                 <div className="mt-3 text-xs text-red-400 bg-red-500/10 rounded-lg px-3 py-2">
-                  ⚠️ No real result achieved ≥30% margin. A zero-bet result was published. 
+                  ⚠️ No real result achieved ≥30% margin. A zero-bet result was published.
                   All user bets marked LOST. Payout assigned to house dummy account.
                 </div>
               )}
+              {/* Fix 4: show declared-at time and 72h visibility window */}
+              <div className="mt-3 text-xs text-gray-500 flex items-center gap-2">
+                <span>🕐 Declared at: <strong className="text-gray-300">{new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })} IST</strong></span>
+                <span className="text-gray-600">·</span>
+                <span>Visible to users & admin for <strong className="text-amber-400">72 hours</strong></span>
+              </div>
             </div>
           </div>
         </div>

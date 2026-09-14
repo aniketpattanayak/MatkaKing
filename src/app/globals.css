@@ -83,11 +83,32 @@ body {
   @apply w-full px-4 py-3 rounded-lg text-sm text-gray-100 outline-none transition-all;
   background: var(--color-surface-3);
   border: 1px solid var(--color-border);
+  color: #f3f4f6; /* explicit so ::placeholder has a clear base */
 }
 .input-field:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(245,166,35,0.12);
 }
+/* Dark mode placeholder — white/light — ALL vendor prefixes to beat theme CSS */
+.input-field::-webkit-input-placeholder { color: rgba(255,255,255,0.45) !important; opacity:1 !important; }
+.input-field::-moz-placeholder           { color: rgba(255,255,255,0.45) !important; opacity:1 !important; }
+.input-field:-ms-input-placeholder       { color: rgba(255,255,255,0.45) !important; opacity:1 !important; }
+.input-field::placeholder                { color: rgba(255,255,255,0.45) !important; opacity:1 !important; }
+/* Light mode placeholder — grey */
+[data-theme="light"] .input-field::-webkit-input-placeholder { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
+[data-theme="light"] .input-field::-moz-placeholder           { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
+[data-theme="light"] .input-field:-ms-input-placeholder       { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
+[data-theme="light"] .input-field::placeholder                { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
+/* Also fix bare input tags (e.g. matka page amount input uses inline style)
+   ALL vendor prefixes needed — theme CSS sets ::-webkit-input-placeholder {color:#171412} */
+input::-webkit-input-placeholder { color: rgba(255,255,255,0.45) !important; opacity:1 !important; }
+input::-moz-placeholder           { color: rgba(255,255,255,0.45) !important; opacity:1 !important; }
+input:-ms-input-placeholder       { color: rgba(255,255,255,0.45) !important; opacity:1 !important; }
+input::placeholder                { color: rgba(255,255,255,0.45) !important; opacity:1 !important; }
+[data-theme="light"] input::-webkit-input-placeholder { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
+[data-theme="light"] input::-moz-placeholder           { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
+[data-theme="light"] input:-ms-input-placeholder       { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
+[data-theme="light"] input::placeholder                { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
 
 /* ─── Tables ────────────────────────────────────────────────────────────── */
 .data-table {
@@ -313,25 +334,91 @@ body {
 /* Game rate values in light mode */
 [data-theme="light"] .rate-value { color: #b8860b !important; }
 [data-theme="light"] .matka-game-area .rate-value { color: #b8860b !important; }
-/* Lottery search placeholder */
-.lottery-search::placeholder { color: rgba(255,255,255,0.4) !important; }
-[data-theme="light"] .lottery-search::placeholder { color: #888 !important; }
+/* ── Fix 1: lottery-search — typed text + placeholder both themed correctly ── */
+/* Dark mode (default): typed text white, placeholder light grey */
+.lottery-search {
+  color: var(--White, #ffffff) !important;
+}
+/* Must target ALL browser-vendor placeholder pseudo-elements individually
+   because the theme CSS (4b0b69904f7263ad.css) sets:
+   ::-webkit-input-placeholder { color: #171412 } (near black)
+   which loads AFTER globals.css and wins without !important on each vendor prefix */
+.lottery-search::-webkit-input-placeholder { color: rgba(255,255,255,0.5) !important; opacity:1 !important; }
+.lottery-search::-moz-placeholder           { color: rgba(255,255,255,0.5) !important; opacity:1 !important; }
+.lottery-search:-ms-input-placeholder       { color: rgba(255,255,255,0.5) !important; opacity:1 !important; }
+.lottery-search::placeholder                { color: rgba(255,255,255,0.5) !important; opacity:1 !important; }
+/* Light mode: typed text dark, placeholder grey */
+[data-theme="light"] .lottery-search { color: #1a1a2e !important; }
+[data-theme="light"] .lottery-search::-webkit-input-placeholder { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
+[data-theme="light"] .lottery-search::-moz-placeholder           { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
+[data-theme="light"] .lottery-search:-ms-input-placeholder       { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
+[data-theme="light"] .lottery-search::placeholder                { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
 
-/* Matka game type buttons payout text */
+/* Apply the same fix globally for all inputs — the theme CSS poisons ALL placeholders */
+input::-webkit-input-placeholder { color: rgba(255,255,255,0.45) !important; opacity:1 !important; }
+input::-moz-placeholder           { color: rgba(255,255,255,0.45) !important; opacity:1 !important; }
+input:-ms-input-placeholder       { color: rgba(255,255,255,0.45) !important; opacity:1 !important; }
+input::placeholder                { color: rgba(255,255,255,0.45) !important; opacity:1 !important; }
+[data-theme="light"] input::-webkit-input-placeholder { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
+[data-theme="light"] input::-moz-placeholder           { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
+[data-theme="light"] input:-ms-input-placeholder       { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
+[data-theme="light"] input::placeholder                { color: rgba(0,0,0,0.4) !important; opacity:1 !important; }
+
+/* ── Fix 2: Matka game type buttons & game rates sidebar — light mode ── */
+/* payout badge on game type buttons (90x next to Jodi etc.) */
 [data-theme="light"] .payout-badge { color: #333 !important; opacity: 1 !important; }
-[data-theme="light"] .rate-value { color: #333 !important; }
-/* All payout numbers in light mode */
+[data-theme="light"] .rate-value { color: #222 !important; }
+/* Game rates panel rows: Ank, Jodi, SP, DP, TP, Half Sangam, Full Sangam */
 [data-theme="light"] .matka-game-area span { color: #111 !important; }
 [data-theme="light"] .matka-game-area span[style*="linear-gradient"],
 [data-theme="light"] .matka-game-area span.tf-btn { color: #fff !important; }
 [data-theme="light"] .matka-game-area button span { color: inherit !important; }
+/* The rate multiplier values (fontWeight 900, color var(--White)) in the sidebar rows */
+[data-theme="light"] .matka-game-area [style*="fontWeight: 900"],
+[data-theme="light"] .matka-game-area [style*="fontWeight:900"] { color: #111 !important; }
+/* Catch all remaining white-coloured text in the game area in light mode */
+[data-theme="light"] .matka-game-area [style*="color: 'var(--White)'"] { color: #111 !important; }
+[data-theme="light"] .matka-game-area [style*="color:'var(--White)'"] { color: #111 !important; }
 
-/* Admin select dropdown */
-[data-theme="light"] select { color: #111 !important; background: #e8eaed !important; }
-[data-theme="dark"] select { color: #fff !important; background: var(--Bg-3) !important; }
-select option { color: #111 !important; background: #fff !important; }
-[data-theme="dark"] select option { color: #fff !important; background: #1a1a2e !important; }
+/* ── Fix 3: Admin "Select Market" dropdown — cross-platform (Mac + Windows) ── */
+/* Base select — always render with explicit colours so Windows doesn't use white-on-white */
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px !important;
+}
+/* Dark mode (default) */
+select {
+  color: #f0f0f0 !important;
+  background-color: #22263a !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+}
+select option {
+  color: #f0f0f0 !important;
+  background-color: #1a1d27 !important;
+}
+/* Light mode */
+[data-theme="light"] select {
+  color: #111 !important;
+  background-color: #e8eaed !important;
+  border: 1px solid rgba(0,0,0,0.2) !important;
+}
+[data-theme="light"] select option {
+  color: #111 !important;
+  background-color: #ffffff !important;
+}
+/* input-field class applied to selects (admin panels) */
+select.input-field {
+  color: #f0f0f0 !important;
+  background-color: #22263a !important;
+}
+[data-theme="light"] select.input-field {
+  color: #111 !important;
+  background-color: #e8eaed !important;
+}
 
-input::placeholder { color: rgba(255,255,255,0.45) !important; }
-[data-theme="light"] input::placeholder { color: #999 !important; }
 /* ===== END LIGHT MODE ===== */
