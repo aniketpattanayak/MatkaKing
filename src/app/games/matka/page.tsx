@@ -611,7 +611,7 @@ export default function MatkaPage() {
                     )}
                   </div>
 
-                  {/* Result values — show actual game result data in standard Matka format */}
+                  {/* Result values — vertical stacked: label on top, value below */}
                   <div style={{ marginTop:12, background:'rgba(0,0,0,0.2)', borderRadius:12, overflow:'hidden', border:'1px solid rgba(255,255,255,0.06)' }}>
                     <p style={{ fontSize:9, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', letterSpacing:1, padding:'8px 12px 4px', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
                       {m.openPatti ? 'Latest Result' : 'Result Pending'}
@@ -620,39 +620,39 @@ export default function MatkaPage() {
 
                       {/* Row 1: Open Ank & Open Patti */}
                       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 10px', borderRadius:8, background:'rgba(46,204,113,0.06)', border:'1px solid rgba(46,204,113,0.12)' }}>
-                          <span style={{ fontSize:10, color:'#2ECC71', fontWeight:700 }}>● Open Ank</span>
-                          <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:16, color: m.openAnk != null ? '#2ECC71' : 'var(--Secondary)' }}>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 10px', borderRadius:8, background:'rgba(46,204,113,0.06)', border:'1px solid rgba(46,204,113,0.12)' }}>
+                          <span style={{ fontSize:10, color:'#2ECC71', fontWeight:700, marginBottom:4 }}>● Open Ank</span>
+                          <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color: m.openAnk != null ? '#2ECC71' : 'var(--Secondary)' }}>
                             {m.openAnk ?? '?'}
                           </span>
                         </div>
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 10px', borderRadius:8, background:'rgba(46,204,113,0.06)', border:'1px solid rgba(46,204,113,0.12)' }}>
-                          <span style={{ fontSize:10, color:'#2ECC71', fontWeight:700 }}>● Open Patti</span>
-                          <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:16, color: m.openPatti ? '#2ECC71' : 'var(--Secondary)' }}>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 10px', borderRadius:8, background:'rgba(46,204,113,0.06)', border:'1px solid rgba(46,204,113,0.12)' }}>
+                          <span style={{ fontSize:10, color:'#2ECC71', fontWeight:700, marginBottom:4 }}>● Open Patti</span>
+                          <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color: m.openPatti ? '#2ECC71' : 'var(--Secondary)' }}>
                             {m.openPatti ?? '???'}
                           </span>
                         </div>
                       </div>
 
                       {/* Row 2: Jodi — full width */}
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 12px', borderRadius:8, background:'rgba(255,203,82,0.07)', border:'1px solid rgba(255,203,82,0.2)' }}>
-                        <span style={{ fontSize:10, color:'#ffcb52', fontWeight:700 }}>● Jodi</span>
-                        <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color: m.jodi ? '#ffcb52' : 'var(--Secondary)' }}>
+                      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 12px', borderRadius:8, background:'rgba(255,203,82,0.07)', border:'1px solid rgba(255,203,82,0.2)' }}>
+                        <span style={{ fontSize:10, color:'#ffcb52', fontWeight:700, marginBottom:4 }}>● Jodi</span>
+                        <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:24, color: m.jodi ? '#ffcb52' : 'var(--Secondary)' }}>
                           {m.jodi ?? '??'}
                         </span>
                       </div>
 
                       {/* Row 3: Close Ank & Close Patti */}
                       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 10px', borderRadius:8, background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.12)' }}>
-                          <span style={{ fontSize:10, color:'#ef4444', fontWeight:700 }}>● Close Ank</span>
-                          <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:16, color: m.closeAnk != null ? '#ef4444' : 'var(--Secondary)' }}>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 10px', borderRadius:8, background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.12)' }}>
+                          <span style={{ fontSize:10, color:'#ef4444', fontWeight:700, marginBottom:4 }}>● Close Ank</span>
+                          <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color: m.closeAnk != null ? '#ef4444' : 'var(--Secondary)' }}>
                             {m.closeAnk ?? '?'}
                           </span>
                         </div>
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 10px', borderRadius:8, background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.12)' }}>
-                          <span style={{ fontSize:10, color:'#ef4444', fontWeight:700 }}>● Close Patti</span>
-                          <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:16, color: m.closePatti ? '#3498DB' : 'var(--Secondary)' }}>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 10px', borderRadius:8, background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.12)' }}>
+                          <span style={{ fontSize:10, color:'#ef4444', fontWeight:700, marginBottom:4 }}>● Close Patti</span>
+                          <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color: m.closePatti ? '#3498DB' : 'var(--Secondary)' }}>
                             {m.closePatti ?? '???'}
                           </span>
                         </div>
@@ -660,24 +660,24 @@ export default function MatkaPage() {
 
                       {/* Row 4: Half Sangam Open & Half Sangam Close */}
                       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 10px', borderRadius:8, background:'rgba(46,204,113,0.04)', border:'1px solid rgba(46,204,113,0.1)' }}>
-                          <span style={{ fontSize:10, color:'#2ECC71', fontWeight:700 }}>½ Sangam Open</span>
-                          <span style={{ fontFamily:'monospace', fontWeight:800, fontSize:13, color: m.openPatti && m.closeAnk != null ? '#2ECC71' : 'var(--Secondary)' }}>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 10px', borderRadius:8, background:'rgba(46,204,113,0.04)', border:'1px solid rgba(46,204,113,0.1)' }}>
+                          <span style={{ fontSize:10, color:'#2ECC71', fontWeight:700, marginBottom:4 }}>½ Sangam Open</span>
+                          <span style={{ fontFamily:'monospace', fontWeight:800, fontSize:15, color: m.openPatti && m.closeAnk != null ? '#2ECC71' : 'var(--Secondary)' }}>
                             {m.openPatti && m.closeAnk != null ? `${m.openPatti}-${m.closeAnk}` : '???-?'}
                           </span>
                         </div>
-                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 10px', borderRadius:8, background:'rgba(239,68,68,0.04)', border:'1px solid rgba(239,68,68,0.1)' }}>
-                          <span style={{ fontSize:10, color:'#ef4444', fontWeight:700 }}>½ Sangam Close</span>
-                          <span style={{ fontFamily:'monospace', fontWeight:800, fontSize:13, color: m.openAnk != null && m.closePatti ? '#ef4444' : 'var(--Secondary)' }}>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 10px', borderRadius:8, background:'rgba(239,68,68,0.04)', border:'1px solid rgba(239,68,68,0.1)' }}>
+                          <span style={{ fontSize:10, color:'#ef4444', fontWeight:700, marginBottom:4 }}>½ Sangam Close</span>
+                          <span style={{ fontFamily:'monospace', fontWeight:800, fontSize:15, color: m.openAnk != null && m.closePatti ? '#ef4444' : 'var(--Secondary)' }}>
                             {m.openAnk != null && m.closePatti ? `${m.openAnk}-${m.closePatti}` : '?-???'}
                           </span>
                         </div>
                       </div>
 
                       {/* Row 5: Full Sangam — full width */}
-                      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'6px 12px', borderRadius:8, background:'rgba(167,139,250,0.07)', border:'1px solid rgba(167,139,250,0.2)' }}>
-                        <span style={{ fontSize:10, color:'#a78bfa', fontWeight:700 }}>● Full Sangam</span>
-                        <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:14, color: m.openPatti && m.closePatti ? '#a78bfa' : 'var(--Secondary)' }}>
+                      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 12px', borderRadius:8, background:'rgba(167,139,250,0.07)', border:'1px solid rgba(167,139,250,0.2)' }}>
+                        <span style={{ fontSize:10, color:'#a78bfa', fontWeight:700, marginBottom:4 }}>● Full Sangam</span>
+                        <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:16, color: m.openPatti && m.closePatti ? '#a78bfa' : 'var(--Secondary)' }}>
                           {m.openPatti && m.closePatti ? `${m.openPatti}-${m.closePatti}` : '???-???'}
                         </span>
                       </div>

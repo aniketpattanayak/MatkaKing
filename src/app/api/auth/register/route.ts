@@ -10,7 +10,7 @@ const REFEREE_EXTRA_COINS = 10;         // new user who used a code gets 10 extr
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password, referralCode } = await req.json();
+    const { name, email, password, referralCode, securityQuestions } = await req.json();
 
     if (!email || !password || password.length < 6)
       return NextResponse.json({ error: 'Valid email and password (min 6 chars) required' }, { status: 400 });
@@ -32,6 +32,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Hash security question answers (lowercase, trimmed for consistency)
+    const hashAnswer = async (ans: string) => bcrypt.hash(ans.toLowerCase().trim(), 10);
+    const sq = securityQuestions ?? [];
+    const secData: any = {};
+    if (sq[0]) { secData.securityQ1 = sq[0].question; secData.securityA1 = await hashAnswer(sq[0].answer); }
+    if (sq[1]) { secData.securityQ2 = sq[1].question; secData.securityA2 = await hashAnswer(sq[1].answer); }
+    if (sq[2]) { secData.securityQ3 = sq[2].question; secData.securityA3 = await hashAnswer(sq[2].answer); }
+
     const initialBalance = SIGNUP_BONUS_COINS + (referrer ? REFEREE_EXTRA_COINS : 0);
     const passwordHash = await bcrypt.hash(password, 12);
 
@@ -43,6 +51,7 @@ export async function POST(req: NextRequest) {
           email: email.toLowerCase(),
           passwordHash,
           referredBy: referrer?.id,
+          ...secData,
           wallet: { create: { balance: initialBalance } },
         },
         include: { wallet: true },

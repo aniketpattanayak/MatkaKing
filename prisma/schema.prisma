@@ -26,6 +26,13 @@ model User {
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  // Security questions for password recovery
+  securityQ1    String?   // question key e.g. "pet_name"
+  securityA1    String?   // hashed answer
+  securityQ2    String?
+  securityA2    String?
+  securityQ3    String?
+  securityA3    String?
 
   wallet        Wallet?
   transactions  Transaction[]

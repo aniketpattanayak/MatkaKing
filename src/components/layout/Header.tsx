@@ -15,12 +15,19 @@ export default function Header() {
   const path        = usePathname();
   const [user,    setUser]    = useState<SessionUser | null>(null);
   const [modal,   setModal]   = useState<'login'|'register'|'forgot'|null>(null);
-  const [forgotStep, setForgotStep] = useState<'email'|'reset'>('email');
+  const [forgotStep, setForgotStep] = useState<'email'|'answers'|'reset'>('email');
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotNew,   setForgotNew]   = useState('');
   const [forgotName,  setForgotName]  = useState('');
+  const [forgotQuestions, setForgotQuestions] = useState<string[]>([]);
+  const [forgotAnswers,   setForgotAnswers]   = useState<string[]>(['','','']);
   const [loading, setLoading] = useState(false);
   const [form,    setForm]    = useState({ name:'', email:'', password:'', confirm:'', referralCode:'' });
+  const [securityQs, setSecurityQs] = useState([
+    { question:'', answer:'' },
+    { question:'', answer:'' },
+    { question:'', answer:'' },
+  ]);
   const [dropdown,setDropdown]= useState(false);
   const [mobileNav,setMobileNav]=useState(false);
   const [topBar,setTopBar]=useState(true);
@@ -39,37 +46,65 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  const SECURITY_QUESTIONS = [
+    { key:'pet_name',      label:"What was your first pet's name?" },
+    { key:'mother_maiden', label:"What is your mother's maiden name?" },
+    { key:'birth_city',    label:"In what city were you born?" },
+    { key:'school_name',   label:"What was the name of your first school?" },
+    { key:'fav_food',      label:"What is your favourite food?" },
+  ];
+
+  const resetForgot = () => { setForgotStep('email'); setForgotEmail(''); setForgotNew(''); setForgotName(''); setForgotQuestions([]); setForgotAnswers(['','','']); };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Forgot password flow
+    // ── Forgot password flow ──────────────────────────────────────────────
     if (modal === 'forgot') {
       setLoading(true);
       try {
         if (forgotStep === 'email') {
           const r = await fetch('/api/auth/forgot-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'check_email', email: forgotEmail }) });
           const d = await r.json();
-          if (d.ok) { setForgotName(d.name); setForgotStep('reset'); }
+          if (d.ok) {
+            setForgotName(d.name);
+            setForgotQuestions(d.questions ?? []);
+            // If no security questions set (legacy account), skip straight to reset
+            setForgotStep(d.noSecurityQuestions || (d.questions ?? []).length === 0 ? 'reset' : 'answers');
+          }
           else toast.error(d.error ?? 'Email not found');
-        } else {
-          const r = await fetch('/api/auth/forgot-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'reset_password', email: forgotEmail, newPassword: forgotNew }) });
+        } else if (forgotStep === 'answers') {
+          const r = await fetch('/api/auth/forgot-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'verify_answers', email: forgotEmail, answers: forgotAnswers.slice(0, forgotQuestions.length) }) });
           const d = await r.json();
-          if (d.ok) { toast.success('Password reset! Please login.'); setModal('login'); setForgotStep('email'); setForgotEmail(''); setForgotNew(''); }
+          if (d.ok) { setForgotStep('reset'); }
+          else toast.error(d.error ?? 'Incorrect answers');
+        } else {
+          const r = await fetch('/api/auth/forgot-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ action:'reset_password', email: forgotEmail, newPassword: forgotNew, answers: forgotAnswers.slice(0, forgotQuestions.length) }) });
+          const d = await r.json();
+          if (d.ok) { toast.success('Password reset! Please login.'); setModal('login'); resetForgot(); }
           else toast.error(d.error ?? 'Reset failed');
         }
       } finally { setLoading(false); }
       return;
     }
+    // ── Register / Login ───────────────────────────────────────────────────
     if (modal === 'register' && form.password !== form.confirm) return toast.error('Passwords do not match');
+    if (modal === 'register') {
+      const filled = securityQs.filter(q => q.question && q.answer);
+      if (filled.length < 3) return toast.error('Please set all 3 security questions for account recovery');
+    }
     setLoading(true);
     try {
+      const body: any = { name: form.name, email: form.email, password: form.password, referralCode: form.referralCode || undefined };
+      if (modal === 'register') body.securityQuestions = securityQs.map(q => ({ question: q.question, answer: q.answer }));
       const res = await fetch(`/api/auth/${modal}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: form.name, email: form.email, password: form.password, referralCode: form.referralCode || undefined }),
+        body: JSON.stringify(body),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error);
       setToken(d.token); setCachedUser(d.user); setUser(d.user); setModal(null);
       setForm({ name:'', email:'', password:'', confirm:'', referralCode:'' });
+      setSecurityQs([{ question:'', answer:'' },{ question:'', answer:'' },{ question:'', answer:'' }]);
       toast.success(modal === 'login' ? `Welcome back, ${d.user.name}!` : `Welcome ${d.user.name}! +50 free coins!`);
     } catch (e: any) { toast.error(e.message); } finally { setLoading(false); }
   };
@@ -364,9 +399,9 @@ export default function Header() {
 
       {/* Auth Modal */}
       {modal && (
-        <div style={{ position:'fixed', inset:0, zIndex:99999, background:'rgba(0,0,0,0.85)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}
+        <div style={{ position:'fixed', inset:0, zIndex:99999, background:'rgba(0,0,0,0.85)', backdropFilter:'blur(8px)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'20px 20px 40px', overflowY:'auto' }}
           onClick={()=>setModal(null)}>
-          <div style={{ background:'var(--Bg-2)', borderRadius:24, width:'100%', maxWidth:420, border:'1px solid var(--Border)', overflow:'hidden' }}
+          <div style={{ background:'var(--Bg-2)', borderRadius:24, width:'100%', maxWidth:420, border:'1px solid var(--Border)', overflow:'visible', marginTop:'auto', marginBottom:'auto', flexShrink:0 }}
             onClick={e=>e.stopPropagation()}>
 
             <div style={{ display:'flex', background:'var(--Bg)', padding:4 }}>
@@ -394,24 +429,42 @@ export default function Header() {
                 {modal==='forgot' && forgotStep==='email' && (
                   <input placeholder="Enter your registered email" type="email" value={forgotEmail}
                     onChange={e=>setForgotEmail(e.target.value)}
-                    style={{width:'100%',padding:'13px 16px',borderRadius:12,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:15,outline:'none',marginBottom:12}}/>
+                    style={{width:'100%',padding:'13px 16px',borderRadius:12,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:15,outline:'none',marginBottom:4}}/>
+                )}
+                {modal==='forgot' && forgotStep==='answers' && (
+                  <div style={{display:'flex',flexDirection:'column',gap:12}}>
+                    <p style={{color:'#2ECC71',fontSize:13,fontWeight:600}}>✓ Account found: {forgotName}</p>
+                    <p style={{color:'var(--Secondary)',fontSize:12}}>Answer your security questions to continue:</p>
+                    {forgotQuestions.map((q, i) => (
+                      <div key={i}>
+                        <p style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',marginBottom:6}}>{i+1}. {q}</p>
+                        <input placeholder={`Answer ${i+1}`} value={forgotAnswers[i]}
+                          onChange={e=>{ const a=[...forgotAnswers]; a[i]=e.target.value; setForgotAnswers(a); }}
+                          style={{width:'100%',padding:'11px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none'}}/>
+                      </div>
+                    ))}
+                  </div>
                 )}
                 {modal==='forgot' && forgotStep==='reset' && (
                   <div>
-                    <p style={{color:'#2ECC71',fontSize:13,marginBottom:12,fontWeight:600}}>✓ Account found: {forgotName}</p>
+                    <p style={{color:'#2ECC71',fontSize:13,marginBottom:12,fontWeight:600}}>✓ Identity verified! Set your new password:</p>
                     <input placeholder="Enter new password (min 6 chars)" type="password" value={forgotNew}
                       onChange={e=>setForgotNew(e.target.value)}
-                      style={{width:'100%',padding:'13px 16px',borderRadius:12,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:15,outline:'none',marginBottom:12}}/>
+                      style={{width:'100%',padding:'13px 16px',borderRadius:12,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:15,outline:'none',marginBottom:4}}/>
                   </div>
                 )}
                 {modal==='register' && (
                   <input placeholder="Full Name" value={form.name}
                     onChange={e=>setForm({...form,name:e.target.value})} style={inp}/>
                 )}
-                <input type="email" placeholder="Email address" required value={form.email}
-                  onChange={e=>setForm({...form,email:e.target.value})} style={inp}/>
-                <input type="password" placeholder="Password" required value={form.password}
-                  onChange={e=>setForm({...form,password:e.target.value})} style={inp}/>
+                {modal !== 'forgot' && (
+                  <input type="email" placeholder="Email address" required value={form.email}
+                    onChange={e=>setForm({...form,email:e.target.value})} style={inp}/>
+                )}
+                {modal !== 'forgot' && (
+                  <input type="password" placeholder="Password" required value={form.password}
+                    onChange={e=>setForm({...form,password:e.target.value})} style={inp}/>
+                )}
                 {modal==='register' && (
                   <>
                     <input type="password" placeholder="Confirm password" required value={form.confirm}
@@ -420,12 +473,35 @@ export default function Header() {
                       onChange={e=>setForm({...form,referralCode:e.target.value.toUpperCase()})}
                       style={{...inp, fontFamily:'monospace', letterSpacing:1, textTransform:'uppercase'}}/>
                     <p style={{fontSize:11,color:'var(--Secondary)',marginTop:-8}}>Enter a friend's referral code to get +10 bonus coins</p>
+
+                    {/* Security Questions */}
+                    <div style={{background:'rgba(254,140,69,0.06)',border:'1px solid rgba(254,140,69,0.2)',borderRadius:12,padding:'14px 16px'}}>
+                      <p style={{fontWeight:700,fontSize:13,color:'var(--Main-color)',marginBottom:4}}>🔐 Security Questions</p>
+                      <p style={{fontSize:11,color:'var(--Secondary)',marginBottom:14}}>Used to verify your identity if you forget your password</p>
+                      {securityQs.map((sq, i) => (
+                        <div key={i} style={{marginBottom: i < 2 ? 12 : 0}}>
+                          <p style={{fontSize:11,fontWeight:700,color:'var(--Secondary)',marginBottom:6}}>Question {i+1}</p>
+                          <select value={sq.question} onChange={e=>{const s=[...securityQs];s[i]={...s[i],question:e.target.value};setSecurityQs(s);}}
+                            style={{width:'100%',padding:'9px 12px',borderRadius:9,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color: sq.question ? 'var(--White)' : 'var(--Secondary)',fontSize:13,outline:'none',marginBottom:6,cursor:'pointer'}}>
+                            <option value="">— Select a question —</option>
+                            {SECURITY_QUESTIONS.filter(q => !securityQs.some((s,j) => j!==i && s.question===q.label)).map(q=>(
+                              <option key={q.key} value={q.label}>{q.label}</option>
+                            ))}
+                          </select>
+                          <input placeholder={`Your answer to question ${i+1}`} value={sq.answer}
+                            onChange={e=>{const s=[...securityQs];s[i]={...s[i],answer:e.target.value};setSecurityQs(s);}}
+                            style={{width:'100%',padding:'9px 12px',borderRadius:9,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:13,outline:'none'}}/>
+                        </div>
+                      ))}
+                    </div>
                   </>
                 )}
                 <button type="submit" disabled={loading} className="tf-btn" style={{
                   width:'100%', justifyContent:'center', height:50, fontSize:15, marginTop:4, opacity:loading?0.6:1
                 }}>
-                  {loading?'Please wait...':modal==='login'?'Login':modal==='forgot'?'Reset Password':'Create Free Account'}
+                  {loading?'Please wait...':modal==='login'?'Login':modal==='forgot'?
+                    (forgotStep==='email'?'Find My Account':forgotStep==='answers'?'Verify Answers':'Reset Password')
+                    :'Create Free Account'}
                 </button>
               </form>
 
@@ -446,7 +522,7 @@ export default function Header() {
               )}
               {modal==='forgot' && (
                 <p style={{ textAlign:'center', fontSize:13, marginTop:8 }}>
-                  <a href="#" onClick={e=>{e.preventDefault();setModal('login');}}
+                  <a href="#" onClick={e=>{e.preventDefault();setModal('login');resetForgot();}}
                     style={{ color:'var(--Secondary)', textDecoration:'none' }}>
                     ← Back to login
                   </a>

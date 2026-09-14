@@ -763,8 +763,11 @@ export default function AdminPage() {
           {tab==='overview' && historyStats.length > 0 && (
             <div style={{display:'flex',gap:6,background:'var(--Bg-2)',borderRadius:10,padding:4,marginBottom:16,border:'1px solid var(--Border)',width:'fit-content'}}>
               {(['daily','weekly','monthly'] as const).map(p=>(
-                <button key={p} onClick={()=>setStatsPeriod(p)} style={{padding:'6px 16px',borderRadius:7,border:'none',cursor:'pointer',fontWeight:700,fontSize:12,background:statsPeriod===p?'linear-gradient(270deg,#fe8c45,#ca2826)':'transparent',color:statsPeriod===p?'#fff':'var(--Secondary)',textTransform:'capitalize'}}>
-                  {p==='daily'?'Last 10 Days':p==='weekly'?'Last 10 Weeks':'Last 10 Months'}
+                <button key={p} onClick={()=>{
+                  setStatsPeriod(p);
+                  authFetch(`/api/admin/history-stats?period=${p}`).then(r=>r.json()).then(d=>{ if(d.days) setHistoryStats(d.days); }).catch(()=>{});
+                }} style={{padding:'6px 16px',borderRadius:7,border:'none',cursor:'pointer',fontWeight:700,fontSize:12,background:statsPeriod===p?'linear-gradient(270deg,#fe8c45,#ca2826)':'transparent',color:statsPeriod===p?'#fff':'var(--Secondary)',textTransform:'capitalize'}}>
+                  {p==='daily'?'Last 10 Days':p==='weekly'?'Last 1 Week':'Last 1 Month'}
                 </button>
               ))}
             </div>
@@ -1643,36 +1646,36 @@ export default function AdminPage() {
                     <div style={{ fontSize:40, marginBottom:12 }}></div>No UPIs yet — add one →
                   </div>
                 ) : (
-                  <table style={{ width:'100%', borderCollapse:'collapse' }}>
+                  <table style={{ width:'100%', borderCollapse:'collapse', tableLayout:'fixed' }}>
                     <thead><tr style={{ background:'rgba(0,0,0,0.2)' }}>
-                      {['UPI ID','Label','Txns','Priority','Status','Actions'].map(h=>(
-                        <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:10, fontWeight:700, color:'var(--Secondary)', textTransform:'uppercase' }}>{h}</th>
+                      {[['UPI ID','40%'],['Label','20%'],['Txns','10%'],['Priority','10%'],['Status','10%'],['Actions','10%']].map(([h,w])=>(
+                        <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:10, fontWeight:700, color:'var(--Secondary)', textTransform:'uppercase', width:w, overflow:'hidden' }}>{h}</th>
                       ))}
                     </tr></thead>
                     <tbody>
                       {data.upis.map((u:any)=>(
                         <React.Fragment key={u.id}>
                         <tr style={{ borderBottom: editUpi?.id===u.id?'none':'1px solid rgba(255,255,255,0.03)' }}>
-                          <td style={{ padding:'12px 14px', fontFamily:'monospace', fontWeight:700, fontSize:13 }}>{u.upiId}</td>
-                          <td style={{ padding:'12px 14px', color:'var(--Secondary)', fontSize:13 }}>{u.label}</td>
-                          <td style={{ padding:'12px 14px', fontSize:13 }}>
+                          <td style={{ padding:'12px 14px', fontFamily:'monospace', fontWeight:700, fontSize:12, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:0 }} title={u.upiId}>{u.upiId}</td>
+                          <td style={{ padding:'12px 14px', color:'var(--Secondary)', fontSize:12, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:0 }} title={u.label}>{u.label}</td>
+                          <td style={{ padding:'12px 14px', fontSize:12 }}>
                             <span style={{ color:(u.currentTxnCount??0)>=u.transactionLimit?'#ef4444':'#fff' }}>{u.currentTxnCount??0}/{u.transactionLimit}</span>
                           </td>
-                          <td style={{ padding:'12px 14px', fontSize:13 }}>{u.priority}</td>
+                          <td style={{ padding:'12px 14px', fontSize:12 }}>{u.priority}</td>
                           <td style={{ padding:'12px 14px' }}>
-                            <span style={{ padding:'2px 10px', borderRadius:999, fontSize:10, fontWeight:700,
+                            <span style={{ padding:'2px 8px', borderRadius:999, fontSize:10, fontWeight:700,
                               background:u.isActive?'rgba(46,204,113,0.15)':'rgba(239,68,68,0.15)',
                               color:u.isActive?'#2ECC71':'#ef4444'}}>{u.isActive?'ACTIVE':'PAUSED'}</span>
                           </td>
-                          <td style={{ padding:'12px 14px' }}>
-                            <div style={{ display:'flex', gap:6 }}>
-                              <button onClick={()=>setEditUpi(editUpi?.id===u.id?null:{...u})} style={{ padding:'4px 10px', borderRadius:6, border:`1px solid ${editUpi?.id===u.id?'#fe8c45':'var(--Border)'}`, background:editUpi?.id===u.id?'rgba(254,140,69,0.1)':'transparent', color:editUpi?.id===u.id?'#fe8c45':'var(--Secondary)', fontSize:11, cursor:'pointer' }}>
+                          <td style={{ padding:'8px 14px' }}>
+                            <div style={{ display:'flex', gap:4, flexWrap:'wrap' }}>
+                              <button onClick={()=>setEditUpi(editUpi?.id===u.id?null:{...u})} style={{ padding:'3px 8px', borderRadius:6, border:`1px solid ${editUpi?.id===u.id?'#fe8c45':'var(--Border)'}`, background:editUpi?.id===u.id?'rgba(254,140,69,0.1)':'transparent', color:editUpi?.id===u.id?'#fe8c45':'var(--Secondary)', fontSize:10, cursor:'pointer', whiteSpace:'nowrap' }}>
                                 {editUpi?.id===u.id?'Cancel':'Edit'}
                               </button>
-                              <button onClick={()=>toggleUpi(u.id,u.isActive)} style={{ padding:'4px 10px', borderRadius:6, border:'1px solid var(--Border)', background:'transparent', color:'var(--Secondary)', fontSize:11, cursor:'pointer' }}>
+                              <button onClick={()=>toggleUpi(u.id,u.isActive)} style={{ padding:'3px 8px', borderRadius:6, border:'1px solid var(--Border)', background:'transparent', color:'var(--Secondary)', fontSize:10, cursor:'pointer', whiteSpace:'nowrap' }}>
                                 {u.isActive?'Pause':'Resume'}
                               </button>
-                              <button onClick={()=>deleteUpi(u.id)} style={{ padding:'4px 10px', borderRadius:6, border:'1px solid rgba(239,68,68,0.3)', background:'rgba(239,68,68,0.1)', color:'#ef4444', fontSize:11, cursor:'pointer' }}>Del</button>
+                              <button onClick={()=>deleteUpi(u.id)} style={{ padding:'3px 8px', borderRadius:6, border:'1px solid rgba(239,68,68,0.3)', background:'rgba(239,68,68,0.1)', color:'#ef4444', fontSize:10, cursor:'pointer' }}>Del</button>
                             </div>
                           </td>
                         </tr>
