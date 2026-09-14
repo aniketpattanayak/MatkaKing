@@ -1053,7 +1053,7 @@ export default function MatkaPage() {
                     border: `1px solid ${gameType.key === g.key ? 'rgba(254,140,69,0.3)' : 'transparent'}`,
                   }}>
                     <span style={{ fontSize: 12, fontWeight: gameType.key === g.key ? 700 : 400 }}>{g.label}</span>
-                    <span style={{ fontWeight: 900, color: 'var(--accent-color, #ffcb52)', fontSize: 12 }} className="rate-value">{g.payout}x</span>
+                    <span style={{ fontWeight: 900, color: 'var(--White)', fontSize: 12 }}>{g.payout}x</span>
                   </div>
                 ))}
               </div>

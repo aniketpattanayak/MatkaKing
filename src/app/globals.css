@@ -332,4 +332,6 @@ body {
 select option { color: #111 !important; background: #fff !important; }
 [data-theme="dark"] select option { color: #fff !important; background: #1a1a2e !important; }
 
+input::placeholder { color: rgba(255,255,255,0.45) !important; }
+[data-theme="light"] input::placeholder { color: #999 !important; }
 /* ===== END LIGHT MODE ===== */
