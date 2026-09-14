@@ -23,11 +23,12 @@ function parseWithdrawDetails(orderId: string) {
 }
 
 export default function WithdrawSection({
-  balance, minWithdraw = 1000, maxWithdraw = 5000, onSuccess
+  balance, minWithdraw = 1000, maxWithdraw = 5000, withdrawPerDay = 1, onSuccess
 }: {
   balance: number;
   minWithdraw?: number;
   maxWithdraw?: number;
+  withdrawPerDay?: number;
   onSuccess?: () => void;
 }) {
   const [method,    setMethod]    = useState<'UPI'|'PHONEPE'|'BANK'>('UPI');
@@ -39,26 +40,35 @@ export default function WithdrawSection({
   const [bankNm,    setBankNm]    = useState('');
   const [loading,   setLoading]   = useState(false);
   const [history,   setHistory]   = useState<any[]>([]);
-  const [showHist,  setShowHist]  = useState(false);
+  const [usedToday, setUsedToday] = useState(0);
+  const [limitPerDay, setLimitPerDay] = useState(withdrawPerDay);
 
   const loadHistory = async () => {
     const r = await authFetch('/api/user/withdraw');
     const d = await r.json();
     if (d.withdrawals) setHistory(d.withdrawals);
+    if (typeof d.usedToday   === 'number') setUsedToday(d.usedToday);
+    if (typeof d.limitPerDay === 'number') setLimitPerDay(d.limitPerDay);
   };
 
   useEffect(() => { loadHistory(); }, []);
 
+  // Keep limitPerDay in sync if parent prop changes
+  useEffect(() => { setLimitPerDay(withdrawPerDay); }, [withdrawPerDay]);
+
+  const remainingToday = Math.max(0, limitPerDay - usedToday);
+  const dailyLimitReached = remainingToday <= 0;
+
   const presets = [minWithdraw, Math.round(minWithdraw*1.5), Math.round(minWithdraw*2), Math.round(minWithdraw*3), maxWithdraw]
-    .filter((a,i,arr) => arr.indexOf(a)===i) // unique
+    .filter((a,i,arr) => arr.indexOf(a)===i)
     .filter(a => a <= balance && a >= minWithdraw && a <= maxWithdraw);
 
   const submit = async () => {
+    if (dailyLimitReached) return toast.error(`Daily withdrawal limit reached (${limitPerDay}/day). Resets at midnight.`);
     const amt = parseInt(amount);
     if (!amt || amt < minWithdraw) return toast.error(`Minimum withdrawal is ₹${minWithdraw}`);
     if (amt > maxWithdraw) return toast.error(`Maximum withdrawal is ₹${maxWithdraw}`);
     if (amt > balance) return toast.error('Insufficient balance');
-    if (amt > balance) return toast.error(`Insufficient balance. Available: ₹${balance}`);
     if (method === 'UPI'     && !upiId.trim())    return toast.error('Enter your UPI ID');
     if (method === 'PHONEPE' && phone.length < 10) return toast.error('Enter valid 10-digit number');
     if (method === 'BANK'    && (!bankAcc || !ifsc)) return toast.error('Enter bank account and IFSC');
@@ -73,12 +83,16 @@ export default function WithdrawSection({
       const r = await authFetch('/api/user/withdraw', { method: 'POST', body: JSON.stringify(body) });
       const d = await r.json();
       if (d.ok) {
-        toast.success(d.message ?? 'Withdrawal request submitted!');
+        const msg = d.remainingToday === 0
+          ? `Withdrawal submitted! You've used all ${limitPerDay} withdrawal${limitPerDay !== 1 ? 's' : ''} for today.`
+          : `Withdrawal submitted! ${d.remainingToday} more allowed today.`;
+        toast.success(msg);
         setAmount(''); setUpiId(''); setPhone(''); setBankAcc(''); setIfsc(''); setBankNm('');
         onSuccess?.();
-        loadHistory();
+        loadHistory(); // reloads usedToday count too
       } else {
         toast.error(d.error ?? 'Withdrawal failed');
+        if (d.limitReached) loadHistory(); // refresh count in case it was stale
       }
     } finally {
       setLoading(false);
@@ -88,11 +102,34 @@ export default function WithdrawSection({
   return (
     <div>
       {/* Info banner */}
-      <div style={{ background:'rgba(255,203,82,0.08)', border:'1px solid rgba(255,203,82,0.25)', borderRadius:14, padding:'14px 20px', marginBottom:20, display:'flex', gap:14, alignItems:'center' }}>
+      <div style={{ background:'rgba(255,203,82,0.08)', border:'1px solid rgba(255,203,82,0.25)', borderRadius:14, padding:'14px 20px', marginBottom:16, display:'flex', gap:14, alignItems:'center' }}>
         <span style={{ fontSize:28 }}>💰</span>
         <div>
           <p style={{ fontWeight:800, fontSize:15, color:'#ffcb52', marginBottom:3 }}>Coin Withdrawal</p>
-          <p style={{ fontSize:12, color:'var(--Secondary)' }}>Min: <strong style={{ color:'#ffcb52' }}>₹{minWithdraw}</strong> · Max: <strong style={{ color:'#ffcb52' }}>₹{maxWithdraw}</strong> · Balance: <strong style={{ color:'#ffcb52' }}>₹{balance.toLocaleString()}</strong></p>
+          <p style={{ fontSize:12, color:'var(--Secondary)' }}>
+            Min: <strong style={{ color:'#ffcb52' }}>₹{minWithdraw}</strong> · Max: <strong style={{ color:'#ffcb52' }}>₹{maxWithdraw}</strong> · Balance: <strong style={{ color:'#ffcb52' }}>₹{balance.toLocaleString()}</strong>
+          </p>
+        </div>
+      </div>
+
+      {/* Daily limit status bar */}
+      <div style={{ background: dailyLimitReached ? 'rgba(239,68,68,0.08)' : 'rgba(46,204,113,0.08)', border: `1px solid ${dailyLimitReached ? 'rgba(239,68,68,0.3)' : 'rgba(46,204,113,0.25)'}`, borderRadius:14, padding:'12px 20px', marginBottom:20, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <span style={{ fontSize:20 }}>{dailyLimitReached ? '🚫' : '📅'}</span>
+          <div>
+            <p style={{ fontWeight:700, fontSize:13, color: dailyLimitReached ? '#ef4444' : '#2ECC71', marginBottom:2 }}>
+              {dailyLimitReached ? 'Daily limit reached' : `${remainingToday} withdrawal${remainingToday !== 1 ? 's' : ''} remaining today`}
+            </p>
+            <p style={{ fontSize:11, color:'var(--Secondary)' }}>
+              Used {usedToday} of {limitPerDay} allowed today · Resets at midnight IST
+            </p>
+          </div>
+        </div>
+        {/* Dot indicators */}
+        <div style={{ display:'flex', gap:4 }}>
+          {Array.from({ length: limitPerDay }).map((_, i) => (
+            <div key={i} style={{ width:10, height:10, borderRadius:'50%', background: i < usedToday ? '#ef4444' : '#2ECC71', opacity: i < usedToday ? 1 : 0.3 }} />
+          ))}
         </div>
       </div>
 
@@ -167,8 +204,8 @@ export default function WithdrawSection({
             </div>
           </>)}
 
-          <button onClick={submit} disabled={loading || !amount} style={{ height:54, borderRadius:14, border:'none', cursor:(loading||!amount)?'not-allowed':'pointer', background:'linear-gradient(270deg,#fe8c45,#ca2826)', color:'#fff', fontWeight:900, fontSize:16, opacity:(loading||!amount)?0.6:1 }}>
-            {loading ? 'Submitting...' : `Withdraw ₹${amount||'0'} Coins`}
+          <button onClick={submit} disabled={loading || !amount || dailyLimitReached} style={{ height:54, borderRadius:14, border:'none', cursor:(loading||!amount||dailyLimitReached)?'not-allowed':'pointer', background: dailyLimitReached ? 'rgba(100,100,100,0.2)' : 'linear-gradient(270deg,#fe8c45,#ca2826)', color: dailyLimitReached ? 'var(--Secondary)' : '#fff', fontWeight:900, fontSize:16, opacity:(loading||!amount||dailyLimitReached)?0.7:1 }}>
+            {dailyLimitReached ? `🚫 Daily limit reached (${limitPerDay}/day)` : loading ? 'Submitting...' : `Withdraw ₹${amount||'0'} Coins`}
           </button>
 
           <div style={{ background:'var(--Bg-3)', borderRadius:12, padding:'14px 16px' }}>

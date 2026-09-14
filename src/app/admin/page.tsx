@@ -12,7 +12,7 @@ import {
   TrendingUp, Activity, Settings, Eye, Bell, Calendar, Star, Gift, Send, Pin, Trophy, ArrowDownUp
 } from 'lucide-react';
 
-type Tab = 'overview'|'lottery'|'matka'|'upi'|'users'|'payments'|'notifications'|'results'|'transactions'|'festivals';
+type Tab = 'overview'|'lottery'|'matka'|'upi'|'users'|'payments'|'notifications'|'results'|'transactions'|'festivals'|'withdrawals';
 
 const TABS: { key: Tab; icon: string; label: string }[] = [
   { key: 'overview', icon: '', label: 'Overview'   },
@@ -20,6 +20,7 @@ const TABS: { key: Tab; icon: string; label: string }[] = [
   { key: 'matka',    icon: '', label: 'Money Bank' },
   { key: 'upi',      icon: '', label: 'UPI Pool'   },
   { key: 'users',    icon: '', label: 'Users'      },
+  { key: 'withdrawals',    icon: '', label: '💸 Withdrawals' },
   { key: 'payments',      icon: '', label: 'Payments'      },
   { key: 'notifications', icon: '', label: 'Notifications' },
   { key: 'results',      icon: '', label: 'Results'      },
@@ -148,6 +149,12 @@ export default function AdminPage() {
   const [txnType,        setTxnType]        = useState('ALL');
   const [upiStats,       setUpiStats]       = useState<any[]>([]);
   const [txnLoading,     setTxnLoading]     = useState(false);
+  // Withdrawals tab state
+  const [withdrawals,    setWithdrawals]    = useState<any[]>([]);
+  const [wdTotal,        setWdTotal]        = useState(0);
+  const [wdFilter,       setWdFilter]       = useState<'ALL'|'PENDING'|'SUCCESS'>('PENDING');
+  const [wdLoading,      setWdLoading]      = useState(false);
+  const [wdMarkingId,    setWdMarkingId]    = useState<string|null>(null);
   const [allUsers,       setAllUsers]       = useState<any[]>([]);
   const [userTotal,      setUserTotal]      = useState(0);
   const [userSearch,     setUserSearch]     = useState('');
@@ -1864,11 +1871,182 @@ export default function AdminPage() {
                         })() : t.upiPool ? <div><p style={{fontFamily:'monospace',fontWeight:700,fontSize:12,color:'#ffcb52'}}>{t.upiPool.upiId}</p><p style={{fontSize:11,color:'var(--Secondary)'}}>{t.upiPool.label}</p></div> : <span style={{color:'var(--Secondary)',fontSize:12}}>—</span>}
                       </td>
                     <td style={{padding:'12px 14px',fontSize:12,color:'var(--Secondary)'}}>{new Date(t.createdAt).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td>
+                    <td style={{padding:'12px 14px'}}>
+                      <span style={{padding:'3px 10px',borderRadius:999,fontSize:10,fontWeight:700,background:t.status==='SUCCESS'?'rgba(46,204,113,0.15)':t.status==='PENDING'?'rgba(245,158,11,0.15)':'rgba(239,68,68,0.15)',color:t.status==='SUCCESS'?'#2ECC71':t.status==='PENDING'?'#f59e0b':'#ef4444'}}>
+                        {t.status}
+                      </span>
+                    </td>
+                    <td style={{padding:'12px 14px'}}>
+                      {t.type==='WITHDRAWAL' && t.status==='PENDING' && (
+                        <button onClick={async()=>{
+                          const r=await authFetch('/api/admin/transactions',{method:'PATCH',body:JSON.stringify({txnId:t.id,status:'SUCCESS'})});
+                          const d=await r.json();
+                          if(d.ok){toast.success('Marked paid!');setAllTxns(p=>p.map(x=>x.id===t.id?{...x,status:'SUCCESS'}:x));}else toast.error(d.error??'Failed');
+                        }} style={{padding:'5px 12px',borderRadius:7,border:'none',cursor:'pointer',background:'linear-gradient(270deg,#2ECC71,#16a34a)',color:'#fff',fontWeight:700,fontSize:11}}>
+                          ✓ Mark Paid
+                        </button>
+                      )}
+                    </td>
                   </tr>))}</tbody>
                 </table></div>
               )}
             </div>
           )}
+
+          {/* ── WITHDRAWALS ── */}
+          {tab==='withdrawals' && (() => {
+            const loadWd = (filter: 'ALL'|'PENDING'|'SUCCESS' = wdFilter) => {
+              setWdLoading(true);
+              const url = filter === 'ALL'
+                ? '/api/admin/transactions?type=WITHDRAWAL&limit=200'
+                : `/api/admin/transactions?type=WITHDRAWAL&limit=200`;
+              authFetch(url).then(r=>r.json()).then(d=>{
+                const txns = (d.transactions ?? []).filter((t:any) =>
+                  filter === 'ALL' ? true : t.status === filter
+                );
+                setWithdrawals(txns);
+                setWdTotal(d.total ?? txns.length);
+              }).catch(()=>toast.error('Failed to load')).finally(()=>setWdLoading(false));
+            };
+            if (withdrawals.length === 0 && !wdLoading) loadWd();
+
+            const markPaid = async (txnId: string) => {
+              setWdMarkingId(txnId);
+              try {
+                const r = await authFetch('/api/admin/transactions', {
+                  method: 'PATCH',
+                  body: JSON.stringify({ txnId, status: 'SUCCESS' }),
+                });
+                const d = await r.json();
+                if (d.ok) {
+                  toast.success('Withdrawal marked as paid!');
+                  setWithdrawals(prev => prev.map(w => w.id === txnId ? { ...w, status: 'SUCCESS' } : w));
+                } else toast.error(d.error ?? 'Failed');
+              } finally { setWdMarkingId(null); }
+            };
+
+            const pending   = withdrawals.filter(w => w.status === 'PENDING');
+            const paid      = withdrawals.filter(w => w.status === 'SUCCESS');
+            const displayed = wdFilter === 'PENDING' ? pending : wdFilter === 'SUCCESS' ? paid : withdrawals;
+            const totalAmt  = displayed.reduce((s:number, w:any) => s + (w.coins || 0), 0);
+
+            return (
+              <div>
+                {/* Header */}
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:12}}>
+                  <div>
+                    <h3 style={{fontWeight:900,fontSize:22}}>💸 Withdrawal Requests</h3>
+                    <p style={{color:'var(--Secondary)',fontSize:13,marginTop:4}}>Review and process user withdrawal requests</p>
+                  </div>
+                  <button onClick={()=>loadWd(wdFilter)} disabled={wdLoading} style={{padding:'8px 18px',borderRadius:999,border:'1px solid var(--Border)',background:'var(--Bg-2)',color:'var(--Secondary)',fontSize:13,cursor:'pointer',fontWeight:600}}>
+                    {wdLoading ? 'Loading...' : '↻ Refresh'}
+                  </button>
+                </div>
+
+                {/* Summary cards */}
+                <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:12,marginBottom:20}}>
+                  {[
+                    { label:'Pending',  value: pending.length,  amount: pending.reduce((s:number,w:any)=>s+(w.coins||0),0),  color:'#f59e0b', bg:'rgba(245,158,11,0.08)' },
+                    { label:'Paid',     value: paid.length,     amount: paid.reduce((s:number,w:any)=>s+(w.coins||0),0),     color:'#2ECC71', bg:'rgba(46,204,113,0.08)' },
+                    { label:'Total',    value: withdrawals.length, amount: withdrawals.reduce((s:number,w:any)=>s+(w.coins||0),0), color:'#3498DB', bg:'rgba(52,152,219,0.08)' },
+                  ].map(s=>(
+                    <div key={s.label} style={{background:s.bg,border:`1px solid ${s.color}30`,borderRadius:14,padding:'16px 20px'}}>
+                      <p style={{fontSize:11,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:6}}>{s.label}</p>
+                      <p style={{fontWeight:900,fontSize:24,color:s.color}}>{s.value}</p>
+                      <p style={{fontSize:12,color:'var(--Secondary)',marginTop:2}}>₹{s.amount.toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Filter tabs */}
+                <div style={{display:'flex',gap:6,background:'var(--Bg-2)',borderRadius:12,padding:4,marginBottom:16,border:'1px solid var(--Border)',width:'fit-content'}}>
+                  {(['PENDING','ALL','SUCCESS'] as const).map(f=>(
+                    <button key={f} onClick={()=>{ setWdFilter(f); loadWd(f); }} style={{padding:'7px 18px',borderRadius:8,border:'none',cursor:'pointer',fontWeight:700,fontSize:12,background:wdFilter===f?'linear-gradient(270deg,#fe8c45,#ca2826)':'transparent',color:wdFilter===f?'#fff':'var(--Secondary)'}}>
+                      {f==='PENDING'?`⏳ Pending (${pending.length})`:f==='SUCCESS'?`✅ Paid (${paid.length})`:`All (${withdrawals.length})`}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Table */}
+                {displayed.length === 0 ? (
+                  <div style={{...card,padding:60,textAlign:'center',color:'var(--Secondary)'}}>
+                    <p style={{fontSize:40,marginBottom:12}}>{wdFilter==='PENDING'?'🎉':'📭'}</p>
+                    <p style={{fontWeight:700,fontSize:16}}>{wdFilter==='PENDING'?'No pending withdrawals!':'No withdrawals found'}</p>
+                    <p style={{fontSize:13,marginTop:6}}>Click Refresh if you just processed one</p>
+                  </div>
+                ) : (
+                  <div style={card}>
+                    <table style={{width:'100%',borderCollapse:'collapse'}}>
+                      <thead>
+                        <tr style={{background:'rgba(0,0,0,0.2)'}}>
+                          {['User','Amount','Method & Details','Status','Requested','Action'].map(h=>(
+                            <th key={h} style={{padding:'12px 16px',textAlign:'left',fontSize:10,fontWeight:700,color:'var(--Secondary)',textTransform:'uppercase'}}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {displayed.map((w:any) => {
+                          const oid = w.orderId ?? '';
+                          const upi = oid.match(/UPI:([^-]+@[^-]+)/)?.[1];
+                          const ph  = oid.match(/PHONEPE:(\d+)/)?.[1];
+                          const bk  = oid.match(/BANK:([^:]+):([^-]+)/);
+                          const isPending = w.status === 'PENDING';
+                          return (
+                            <tr key={w.id} style={{borderBottom:'1px solid rgba(255,255,255,0.04)',background:isPending?'rgba(245,158,11,0.03)':'transparent'}}>
+                              {/* User */}
+                              <td style={{padding:'14px 16px'}}>
+                                <p style={{fontWeight:700,fontSize:13}}>{w.user?.name ?? '—'}</p>
+                                <p style={{fontSize:11,color:'var(--Secondary)',marginTop:2}}>{w.user?.email}</p>
+                              </td>
+                              {/* Amount */}
+                              <td style={{padding:'14px 16px'}}>
+                                <p style={{fontWeight:900,fontSize:18,color:'#ef4444'}}>₹{(w.coins||0).toLocaleString()}</p>
+                              </td>
+                              {/* Method & Details */}
+                              <td style={{padding:'14px 16px'}}>
+                                {upi && <div><span style={{fontSize:10,fontWeight:700,color:'#ffcb52',background:'rgba(255,203,82,0.1)',padding:'2px 8px',borderRadius:6}}>UPI</span><p style={{fontFamily:'monospace',fontSize:13,color:'var(--White)',marginTop:4}}>{upi}</p></div>}
+                                {ph  && <div><span style={{fontSize:10,fontWeight:700,color:'#3498DB',background:'rgba(52,152,219,0.1)',padding:'2px 8px',borderRadius:6}}>PhonePe</span><p style={{fontFamily:'monospace',fontSize:13,color:'var(--White)',marginTop:4}}>{ph}</p></div>}
+                                {bk  && <div><span style={{fontSize:10,fontWeight:700,color:'#2ECC71',background:'rgba(46,204,113,0.1)',padding:'2px 8px',borderRadius:6}}>Bank</span><p style={{fontSize:12,color:'var(--White)',marginTop:4}}>{bk[1]}</p><p style={{fontSize:11,color:'var(--Secondary)'}}>{bk[2]}</p></div>}
+                                {!upi && !ph && !bk && <span style={{color:'var(--Secondary)',fontSize:12}}>—</span>}
+                              </td>
+                              {/* Status */}
+                              <td style={{padding:'14px 16px'}}>
+                                <span style={{padding:'4px 12px',borderRadius:999,fontSize:11,fontWeight:700,background:isPending?'rgba(245,158,11,0.15)':'rgba(46,204,113,0.15)',color:isPending?'#f59e0b':'#2ECC71'}}>
+                                  {isPending ? '⏳ Pending' : '✅ Paid'}
+                                </span>
+                              </td>
+                              {/* Date */}
+                              <td style={{padding:'14px 16px',fontSize:12,color:'var(--Secondary)'}}>
+                                {new Date(w.createdAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+                              </td>
+                              {/* Action */}
+                              <td style={{padding:'14px 16px'}}>
+                                {isPending ? (
+                                  <button
+                                    onClick={()=>markPaid(w.id)}
+                                    disabled={wdMarkingId === w.id}
+                                    style={{padding:'8px 16px',borderRadius:8,border:'none',cursor:wdMarkingId===w.id?'not-allowed':'pointer',background:'linear-gradient(270deg,#2ECC71,#16a34a)',color:'#fff',fontWeight:700,fontSize:12,opacity:wdMarkingId===w.id?0.6:1}}
+                                  >
+                                    {wdMarkingId===w.id ? 'Marking...' : '✓ Mark Paid'}
+                                  </button>
+                                ) : (
+                                  <span style={{fontSize:12,color:'#2ECC71',fontWeight:600}}>✅ Done</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    <div style={{padding:'12px 16px',borderTop:'1px solid var(--Border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <p style={{fontSize:12,color:'var(--Secondary)'}}>Showing {displayed.length} withdrawal{displayed.length!==1?'s':''}</p>
+                      <p style={{fontSize:13,fontWeight:700,color:'#ef4444'}}>Total: ₹{totalAmt.toLocaleString()}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* ── PAYMENTS ── */}
           {tab==='payments' && (

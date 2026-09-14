@@ -22,6 +22,7 @@ export default function WalletPage() {
   const HISTORY_PER_PAGE = 20;
   const [minWithdraw,  setMinWithdraw]  = useState(1000);
   const [maxWithdraw,  setMaxWithdraw]  = useState(5000);
+  const [withdrawPerDay, setWithdrawPerDay] = useState(1);
   const [loading,      setLoading]      = useState(false);
   const [payment,      setPayment]      = useState<any>(null);
   const [utr,          setUtr]          = useState('');
@@ -38,7 +39,15 @@ export default function WalletPage() {
     if (u) { setUser(u); setBalance(u.balance); }
     refreshBalance().then(u => { if (u) { setUser(u); setBalance(u.balance); } });
     // Fetch withdrawal settings
-    fetch('/api/admin/settings?key=minWithdraw').then(r=>r.json()).then(d=>{ if(d.value) setMinWithdraw(Number(d.value)); }).catch(()=>{});
+    Promise.all([
+      fetch('/api/admin/settings?key=minWithdraw').then(r=>r.json()),
+      fetch('/api/admin/settings?key=maxWithdraw').then(r=>r.json()),
+      fetch('/api/admin/settings?key=withdrawPerDay').then(r=>r.json()),
+    ]).then(([min, max, perDay]) => {
+      if (min.value)    setMinWithdraw(Number(min.value));
+      if (max.value)    setMaxWithdraw(Number(max.value));
+      if (perDay.value) setWithdrawPerDay(Number(perDay.value));
+    }).catch(() => {});
     loadHistory();
   }, []);
 
@@ -384,7 +393,7 @@ export default function WalletPage() {
 
           {/* Transaction History */}
           {tab==='withdraw' && (
-            <WithdrawSection balance={balance} minWithdraw={minWithdraw} maxWithdraw={maxWithdraw} onSuccess={()=>{
+            <WithdrawSection balance={balance} minWithdraw={minWithdraw} maxWithdraw={maxWithdraw} withdrawPerDay={withdrawPerDay} onSuccess={()=>{
               refreshBalance().then(u=>{ if(u){ setUser(u); setBalance(u.balance); } });
             }}/>
           )}
