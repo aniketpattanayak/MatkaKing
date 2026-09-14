@@ -314,13 +314,17 @@ body {
 [data-theme="light"] .rate-value { color: #b8860b !important; }
 [data-theme="light"] .matka-game-area .rate-value { color: #b8860b !important; }
 /* Lottery search placeholder */
-.lottery-search::placeholder { color: #888 !important; }
-[data-theme="dark"] .lottery-search::placeholder { color: rgba(255,255,255,0.4) !important; }
+.lottery-search::placeholder { color: rgba(255,255,255,0.4) !important; }
 [data-theme="light"] .lottery-search::placeholder { color: #888 !important; }
 
-/* Matka payout badge in light mode */
-[data-theme="light"] .payout-badge { color: #555 !important; }
-[data-theme="light"] .rate-value { color: #996600 !important; }
+/* Matka game type buttons payout text */
+[data-theme="light"] .payout-badge { color: #333 !important; opacity: 1 !important; }
+[data-theme="light"] .rate-value { color: #333 !important; }
+/* All payout numbers in light mode */
+[data-theme="light"] .matka-game-area span { color: #111 !important; }
+[data-theme="light"] .matka-game-area span[style*="linear-gradient"],
+[data-theme="light"] .matka-game-area span.tf-btn { color: #fff !important; }
+[data-theme="light"] .matka-game-area button span { color: inherit !important; }
 
 /* Admin select dropdown */
 [data-theme="light"] select { color: #111 !important; background: #e8eaed !important; }
