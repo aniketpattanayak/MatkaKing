@@ -54,7 +54,8 @@ export default function AdminPage() {
   // ── Matka form ──────────────────────────────────────────────────────────────
   const [mResult,  setMResult]  = useState({ marketId:'', openPatti:'', closePatti:'' });
   const [settlementResult, setSettlementResult] = useState<any>(null); // after declare_close
-  const [mForm,    setMForm]    = useState({ name:'', saleTime:'09:00', openTime:'13:00', closeTime:'18:45' });
+  const todayDate = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const [mForm,    setMForm]    = useState({ name:'', saleTime:`${todayDate}T09:00`, openTime:`${todayDate}T13:00`, closeTime:`${todayDate}T18:45` });
   const [mCreate,  setMCreate]  = useState(false); // show create form
   const [mLoading, setMLoading] = useState(false);
 
@@ -78,6 +79,8 @@ export default function AdminPage() {
   const [payoutPreview, setPayoutPreview] = useState<any>(null);
 
   // Auto-switch declare stage based on market's current result
+  const [checkLoading, setCheckLoading] = useState(false);
+
   useEffect(() => {
     if (!mResult.marketId) return;
     const mkt = data.markets.find((m:any) => m.id === mResult.marketId);
@@ -122,7 +125,6 @@ export default function AdminPage() {
       setPayoutPreview(null);
     }
   }, [mResult.openPatti, mResult.closePatti, mResult.marketId]);
-  const [checkLoading, setCheckLoading] = useState(false);
   // Notifications state
   const [notifs,       setNotifs]       = useState<any[]>([]);
   const [festivals,    setFestivals]    = useState<any[]>([]);
@@ -355,9 +357,18 @@ export default function AdminPage() {
   async function createMarket() {
     if (!mForm.name) return toast.error('Market name required');
     setMLoading(true);
-    const r = await authFetch('/api/admin/markets', { method:'POST', body: JSON.stringify({ action:'create_market', ...mForm }) });
+    // Extract HH:MM from datetime-local "YYYY-MM-DDThh:mm" — DB stores time-only strings
+    const toTime = (v: string) => v.includes('T') ? v.slice(11, 16) : v;
+    const r = await authFetch('/api/admin/markets', { method:'POST', body: JSON.stringify({
+      action: 'create_market',
+      name:      mForm.name,
+      saleTime:  toTime(mForm.saleTime),
+      openTime:  toTime(mForm.openTime),
+      closeTime: toTime(mForm.closeTime),
+    }) });
     const d = await r.json();
-    if (r.ok) { toast.success(`✓ Market "${mForm.name}" created!`); load(); setMForm({ name:'', saleTime:'09:00', openTime:'13:00', closeTime:'18:45' }); setMCreate(false); }
+    const td = new Date().toISOString().slice(0, 10);
+    if (r.ok) { toast.success(`✓ Market "${mForm.name}" created!`); load(); setMForm({ name:'', saleTime:`${td}T09:00`, openTime:`${td}T13:00`, closeTime:`${td}T18:45` }); setMCreate(false); }
     else toast.error(d.error ?? 'Failed');
     setMLoading(false);
   }
@@ -609,28 +620,30 @@ export default function AdminPage() {
   }
 
   // ── Upcoming Indian festivals (static calendar) ────────────────────────────
-  const INDIAN_FESTIVALS = [
-    { name:'Eid ul-Adha',      emoji:'🌙', date:'2025-06-07', gameType:'ALL' },
-    { name:'Independence Day', emoji:'🇮🇳', date:'2025-08-15', gameType:'LOTTERY' },
-    { name:'Raksha Bandhan',   emoji:'🪢', date:'2025-08-09', gameType:'SPIN' },
-    { name:'Janmashtami',      emoji:'🦚', date:'2025-08-16', gameType:'ALL' },
-    { name:'Onam',             emoji:'🌸', date:'2025-09-05', gameType:'ALL' },
-    { name:'Navratri',         emoji:'💃', date:'2025-09-22', gameType:'SPIN' },
-    { name:'Dussehra',         emoji:'🏹', date:'2025-10-02', gameType:'ALL' },
-    { name:'Karva Chauth',     emoji:'🌕', date:'2025-10-10', gameType:'LOTTERY' },
-    { name:'Dhanteras',        emoji:'💰', date:'2025-10-20', gameType:'ALL' },
-    { name:'Diwali',           emoji:'🪔', date:'2025-10-21', gameType:'ALL' },
-    { name:'Bhai Dooj',        emoji:'🤝', date:'2025-10-23', gameType:'SPIN' },
-    { name:'Guru Nanak Jayanti', emoji:'🙏', date:'2025-11-05', gameType:'LOTTERY' },
-    { name:'Christmas',        emoji:'🎄', date:'2025-12-25', gameType:'ALL' },
-    { name:'New Year',         emoji:'🎆', date:'2026-01-01', gameType:'ALL' },
-    { name:'Makar Sankranti',  emoji:'🪁', date:'2026-01-14', gameType:'SPIN' },
-    { name:'Republic Day',     emoji:'🇮🇳', date:'2026-01-26', gameType:'LOTTERY' },
-    { name:'Maha Shivratri',   emoji:'🔱', date:'2026-02-26', gameType:'ALL' },
-    { name:'Holi',             emoji:'🎨', date:'2026-03-20', gameType:'ALL' },
-    { name:'Eid ul-Fitr',      emoji:'🌙', date:'2026-03-21', gameType:'ALL' },
-  ].filter(f => new Date(f.date) >= new Date(Date.now() - 3 * 24 * 60 * 60 * 1000))
-   .slice(0, 12);
+  // ── Upcoming Indian festivals (2026-2027 calendar) ───────────────────────
+  const ALL_FESTIVALS = [
+    { name:'Navratri',           emoji:'💃', date:'2026-10-02', gameType:'SPIN' },
+    { name:'Dussehra',           emoji:'🏹', date:'2026-10-12', gameType:'ALL' },
+    { name:'Karva Chauth',       emoji:'🌕', date:'2026-10-28', gameType:'LOTTERY' },
+    { name:'Dhanteras',          emoji:'💰', date:'2026-11-07', gameType:'ALL' },
+    { name:'Diwali',             emoji:'🪔', date:'2026-11-08', gameType:'ALL' },
+    { name:'Bhai Dooj',          emoji:'🤝', date:'2026-11-10', gameType:'SPIN' },
+    { name:'Guru Nanak Jayanti', emoji:'🙏', date:'2026-11-23', gameType:'LOTTERY' },
+    { name:'Christmas',          emoji:'🎄', date:'2026-12-25', gameType:'ALL' },
+    { name:'New Year',           emoji:'🎆', date:'2027-01-01', gameType:'ALL' },
+    { name:'Makar Sankranti',    emoji:'🪁', date:'2027-01-14', gameType:'SPIN' },
+    { name:'Republic Day',       emoji:'🇮🇳', date:'2027-01-26', gameType:'LOTTERY' },
+    { name:'Maha Shivratri',     emoji:'🔱', date:'2027-02-17', gameType:'ALL' },
+    { name:'Holi',               emoji:'🎨', date:'2027-03-09', gameType:'ALL' },
+    { name:'Eid ul-Fitr',        emoji:'🌙', date:'2027-03-10', gameType:'ALL' },
+    { name:'Ram Navami',         emoji:'🪷', date:'2027-03-27', gameType:'ALL' },
+    { name:'Eid ul-Adha',        emoji:'🌙', date:'2027-05-27', gameType:'ALL' },
+    { name:'Independence Day',   emoji:'🇮🇳', date:'2027-08-15', gameType:'LOTTERY' },
+  ].map(f => ({
+    ...f,
+    daysLeft: Math.ceil((new Date(f.date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+  })).filter(f => f.daysLeft >= -1) // include today + past 1 day
+    .slice(0, 12);
 
   return (
     <>
@@ -1141,9 +1154,9 @@ export default function AdminPage() {
                         <label style={label}>Market Name</label>
                         <input placeholder="e.g. Milan Day" value={mForm.name} onChange={e=>setMForm({...mForm,name:e.target.value})} style={inp}/>
                       </div>
-                      <div><label style={label}>🎟 Ticket Sale Time</label><input type="time" value={mForm.saleTime} onChange={e=>setMForm({...mForm,saleTime:e.target.value})} style={inp}/></div>
-                      <div><label style={label}>🟢 Open Time (Declare Open)</label><input type="time" value={mForm.openTime} onChange={e=>setMForm({...mForm,openTime:e.target.value})} style={inp}/></div>
-                      <div><label style={label}>🔴 Close Time (Declare Close)</label><input type="time" value={mForm.closeTime} onChange={e=>setMForm({...mForm,closeTime:e.target.value})} style={inp}/></div>
+                      <div><label style={label}>🎟 Ticket Sale Date &amp; Time</label><input type="datetime-local" value={mForm.saleTime} onChange={e=>setMForm({...mForm,saleTime:e.target.value})} style={inp}/></div>
+                      <div><label style={label}>🟢 Open Date &amp; Time (Declare Open)</label><input type="datetime-local" value={mForm.openTime} onChange={e=>setMForm({...mForm,openTime:e.target.value})} style={inp}/></div>
+                      <div style={{gridColumn:'1/-1'}}><label style={label}>🔴 Close Date &amp; Time (Declare Close)</label><input type="datetime-local" value={mForm.closeTime} onChange={e=>setMForm({...mForm,closeTime:e.target.value})} style={inp}/></div>
                     </div>
                     <button onClick={createMarket} disabled={mLoading} style={{ width:'100%', height:44, borderRadius:10, border:'none', cursor:'pointer', background:'linear-gradient(270deg,#fe8c45,#ca2826)', color:'#fff', fontWeight:700, fontSize:14, opacity:mLoading?0.6:1 }}>
                       {mLoading?'Creating...':'✓ Create Market'}
@@ -1817,7 +1830,7 @@ export default function AdminPage() {
               {resultsTab==='matka' && (results.matka.length===0?<div style={{...card,padding:40,textAlign:'center',color:'var(--Secondary)'}}>Click Load Results</div>:results.matka.map((r:any)=>(
                 <div key={r.id} style={{...card,marginBottom:12}}>
                   <div style={{padding:'14px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10,borderBottom:'1px solid var(--Border)',background:'rgba(0,0,0,0.1)'}}>
-                    <div><h4 style={{fontWeight:800,fontSize:16}}>{r.market?.name}</h4><p style={{fontSize:12,color:'var(--Secondary)',marginTop:3}}>{r.declaredAt?new Date(r.declaredAt).toLocaleString('en-IN'):'Pending'}</p></div>
+                    <div><h4 style={{fontWeight:800,fontSize:16}}>{r.market?.name}</h4><p style={{fontSize:12,color:'var(--Secondary)',marginTop:3}}>{r.declaredAt ? new Date(r.declaredAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'}) : 'Pending'}</p></div>
                     <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap'}}>
                       <div style={{textAlign:'center'}}><p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700}}>OPEN</p><p style={{fontFamily:'monospace',fontWeight:900,fontSize:18,color:'#fe8c45'}}>{r.openPatti??'???'}</p></div>
                       <span style={{color:'var(--Secondary)'}}>—</span>
@@ -2131,38 +2144,74 @@ export default function AdminPage() {
 
 
           {/* FESTIVALS TAB */}
-          {tab==='festivals' && festivals.length===0 && setFestivals(INDIAN_FESTIVALS)}
           {tab==='festivals' && (
             <div>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:12}}>
-                <div><h3 style={{fontWeight:900,fontSize:22}}>🎉 Upcoming Festivals</h3><p style={{color:'var(--Secondary)',fontSize:13}}>Create special lotteries for upcoming festivals</p></div>
-                <button onClick={()=>setFestivals(INDIAN_FESTIVALS)} style={{padding:'8px 18px',borderRadius:999,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontSize:13,cursor:'pointer',fontWeight:700}}>↻ Load Festivals</button>
+                <div>
+                  <h3 style={{fontWeight:900,fontSize:22}}>🎉 Upcoming Festivals</h3>
+                  <p style={{color:'var(--Secondary)',fontSize:13}}>Create special lotteries &amp; promotions for upcoming Indian festivals</p>
+                </div>
               </div>
-              {festivals.length===0
-                ? <div style={{...card,padding:40,textAlign:'center',color:'var(--Secondary)'}}>No upcoming festivals</div>
-                : <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:16}}>
-                    {festivals.map((f:any)=>(
-                      <div key={f.name} style={{...card,padding:20,display:'flex',flexDirection:'column',gap:12}}>
-                        <div style={{display:'flex',alignItems:'center',gap:10}}>
-                          <span style={{fontSize:32}}>{f.emoji}</span>
-                          <div>
-                            <p style={{fontWeight:900,fontSize:16}}>{f.name}</p>
-                            <p style={{fontSize:12,color:'var(--Secondary)'}}>{new Date(f.date).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}</p>
+
+              {ALL_FESTIVALS.length === 0
+                ? <div style={{...card,padding:40,textAlign:'center',color:'var(--Secondary)'}}>
+                    <p style={{fontSize:36,marginBottom:12}}>📅</p>
+                    <p style={{fontWeight:700,fontSize:16}}>No upcoming festivals in the next 12 months</p>
+                  </div>
+                : <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:16}}>
+                    {ALL_FESTIVALS.map((f:any) => (
+                      <div key={f.name} style={{...card,padding:20,display:'flex',flexDirection:'column',gap:14}}>
+                        {/* Header */}
+                        <div style={{display:'flex',alignItems:'center',gap:12}}>
+                          <span style={{fontSize:36}}>{f.emoji}</span>
+                          <div style={{flex:1,minWidth:0}}>
+                            <p style={{fontWeight:900,fontSize:16,marginBottom:2}}>{f.name}</p>
+                            <p style={{fontSize:12,color:'var(--Secondary)'}}>
+                              {new Date(f.date).toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}
+                            </p>
                           </div>
-                          <div style={{marginLeft:'auto',textAlign:'center',background:f.daysLeft<=7?'rgba(239,68,68,0.1)':'rgba(255,203,82,0.1)',border:`1px solid ${f.daysLeft<=7?'rgba(239,68,68,0.3)':'rgba(255,203,82,0.3)'}`,borderRadius:10,padding:'6px 12px'}}>
-                            <p style={{fontWeight:900,fontSize:20,color:f.daysLeft<=7?'#ef4444':'#ffcb52'}}>{f.daysLeft}</p>
-                            <p style={{fontSize:10,color:'var(--Secondary)'}}>days left</p>
+                          {/* Days left badge */}
+                          <div style={{
+                            textAlign:'center',flexShrink:0,
+                            background: f.daysLeft <= 7 ? 'rgba(239,68,68,0.1)' : f.daysLeft <= 30 ? 'rgba(245,158,11,0.1)' : 'rgba(255,203,82,0.08)',
+                            border:`1px solid ${f.daysLeft<=7?'rgba(239,68,68,0.35)':f.daysLeft<=30?'rgba(245,158,11,0.35)':'rgba(255,203,82,0.25)'}`,
+                            borderRadius:10,padding:'8px 12px',minWidth:60,
+                          }}>
+                            <p style={{fontWeight:900,fontSize:22,color:f.daysLeft<=7?'#ef4444':f.daysLeft<=30?'#f59e0b':'#ffcb52',lineHeight:1}}>
+                              {f.daysLeft <= 0 ? 'TODAY' : f.daysLeft}
+                            </p>
+                            {f.daysLeft > 0 && <p style={{fontSize:10,color:'var(--Secondary)',marginTop:2}}>days left</p>}
                           </div>
                         </div>
-                        <button onClick={()=>{
-                          setTab('lottery');
-                          setTimeout(()=>{
-                            setLForm((p:any)=>({...p,name:`${f.name} Special Lottery`,drawAt:`${f.date}T20:00`}));
-                            toast.success(`Pre-filled lottery for ${f.name}!`);
-                          }, 300);
-                        }} style={{padding:'9px 0',borderRadius:9,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontWeight:700,fontSize:13,cursor:'pointer'}}>
-                          🎟 Create {f.name} Lottery
-                        </button>
+
+                        {/* Game type badge */}
+                        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                          <span style={{fontSize:10,fontWeight:700,color:'var(--Secondary)',textTransform:'uppercase'}}>Best for:</span>
+                          {(f.gameType==='ALL'?['Lottery','Money Bank','Spin']:f.gameType==='LOTTERY'?['Lottery']:f.gameType==='SPIN'?['Spin']:['Money Bank']).map((g:string)=>(
+                            <span key={g} style={{fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:6,background:'rgba(254,140,69,0.12)',color:'var(--Main-color)',border:'1px solid rgba(254,140,69,0.25)'}}>
+                              {g}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div style={{display:'flex',gap:8,marginTop:'auto'}}>
+                          <button onClick={()=>{
+                            setTab('lottery');
+                            setTimeout(()=>{
+                              setLForm((p:any)=>({...p,name:`${f.name} Special Lottery`,drawAt:`${f.date}T20:00`}));
+                              toast.success(`Pre-filled lottery for ${f.name}!`);
+                            }, 300);
+                          }} style={{flex:1,padding:'9px 0',borderRadius:9,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontWeight:700,fontSize:12,cursor:'pointer'}}>
+                            🎟 Create Lottery
+                          </button>
+                          <button onClick={()=>{
+                            setTab('matka');
+                            toast.info(`Switch to Money Bank tab and open your market for ${f.name}!`);
+                          }} style={{flex:1,padding:'9px 0',borderRadius:9,border:'1px solid var(--Border)',background:'var(--Bg-3)',color:'var(--Secondary)',fontWeight:700,fontSize:12,cursor:'pointer'}}>
+                            🎲 Money Bank
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
