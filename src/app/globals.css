@@ -313,4 +313,19 @@ body {
 /* Game rate values in light mode */
 [data-theme="light"] .rate-value { color: #b8860b !important; }
 [data-theme="light"] .matka-game-area .rate-value { color: #b8860b !important; }
+/* Lottery search placeholder */
+.lottery-search::placeholder { color: #888 !important; }
+[data-theme="dark"] .lottery-search::placeholder { color: rgba(255,255,255,0.4) !important; }
+[data-theme="light"] .lottery-search::placeholder { color: #888 !important; }
+
+/* Matka payout badge in light mode */
+[data-theme="light"] .payout-badge { color: #555 !important; }
+[data-theme="light"] .rate-value { color: #996600 !important; }
+
+/* Admin select dropdown */
+[data-theme="light"] select { color: #111 !important; background: #e8eaed !important; }
+[data-theme="dark"] select { color: #fff !important; background: var(--Bg-3) !important; }
+select option { color: #111 !important; background: #fff !important; }
+[data-theme="dark"] select option { color: #fff !important; background: #1a1a2e !important; }
+
 /* ===== END LIGHT MODE ===== */

@@ -1238,7 +1238,7 @@ export default function AdminPage() {
                 <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
                   <div>
                     <label style={label}>Select Market</label>
-                    <select value={mResult.marketId} onChange={e=>{
+                    <select value={mResult.marketId} style={{width:'100%',padding:'11px 14px',borderRadius:10,background:'var(--Bg-3)',border:'1px solid var(--Border-2)',color:'var(--White)',fontSize:14,outline:'none',appearance:'auto'}} onChange={e=>{
                       const mid = e.target.value;
                       // Find market's today result and auto-fill open patti if declared
                       const mkt = data.markets.find((m:any)=>m.id===mid);

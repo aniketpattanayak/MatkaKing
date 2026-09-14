@@ -283,7 +283,7 @@ export default function LotteryPage() {
                 <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
                   {[
                     { label: 'Prize Pool', value: `₹${(series.prizePool).toLocaleString('en-IN')}`, color: '#ffcb52' },
-                    { label: 'Per Ticket',  value: `₹${series.ticketPrice}`,                           color: '#fff' },
+                    { label: 'Per Ticket',  value: `₹${series.ticketPrice}`,                           color: 'var(--White)' },
                     { label: 'Draw Date & Time', value: new Date(series.drawAt).toLocaleString('en-IN', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Kolkata' })+' IST', color: '#ffcb52' },
                   ].map(({ label, value, color }) => (
                     <div key={label} style={{ textAlign: 'right' }}>
@@ -298,11 +298,11 @@ export default function LotteryPage() {
               <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 240, position: 'relative' }}>
                   <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)' }}>🔍</span>
-                  <input type="text" placeholder={`Search tickets... type 98 → ${series.prefix}0098`}
+                  <input type="text" placeholder={`Search tickets... type 98 → ${series.prefix}0098`} className="lottery-search"
                     value={query} onChange={e => setQuery(e.target.value)}
                     style={{ width: '100%', padding: '13px 16px 13px 44px', borderRadius: 999, background: 'var(--Bg-3)', border: '1px solid var(--Border-2)', color: 'var(--White)', fontSize: 14, outline: 'none' }} />
                 </div>
-                <input placeholder="Lucky # (e.g. 7)" value={lucky} onChange={e => setLucky(e.target.value)}
+                <input placeholder="Lucky # (e.g. 7)" value={lucky} onChange={e => setLucky(e.target.value)} className="lottery-search"
                   style={{ width: 130, padding: '13px 16px', borderRadius: 999, background: 'var(--Bg-3)', border: '1px solid var(--Border-2)', color: 'var(--White)', fontSize: 13, outline: 'none' }} />
                 <button onClick={applyFilter} className="tf-btn" style={{ height: 48, padding: '0 22px', fontSize: 14 }}>Filter</button>
               </div>

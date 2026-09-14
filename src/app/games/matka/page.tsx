@@ -727,7 +727,7 @@ export default function MatkaPage() {
                       cursor: isLocked ? 'not-allowed' : 'pointer', position:'relative',
                     }}>
                       {g.label}
-                      <span style={{ fontSize: 9, opacity: 0.7, marginLeft: 3 }}>{g.payout}x</span>
+                      <span className="payout-badge" style={{ fontSize: 9, opacity: 0.7, marginLeft: 3 }}>{g.payout}x</span>
                       {isLocked && <span style={{position:'absolute',top:-4,right:-4,fontSize:8,background:'#ef4444',color:'#fff',borderRadius:4,padding:'0 3px',fontWeight:700}}>🔒</span>}
                     </button>
                   );
