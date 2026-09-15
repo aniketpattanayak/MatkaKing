@@ -357,18 +357,21 @@ export default function AdminPage() {
   async function createMarket() {
     if (!mForm.name) return toast.error('Market name required');
     setMLoading(true);
-    // Extract HH:MM from datetime-local "YYYY-MM-DDThh:mm" — DB stores time-only strings for display
+    // Extract HH:MM from datetime-local "YYYY-MM-DDThh:mm"
     const toTime = (v: string) => v.includes('T') ? v.slice(11, 16) : v;
+    // Convert datetime-local (browser local time = IST) to UTC ISO string
+    // new Date("2026-09-15T23:30") parses as LOCAL time, .toISOString() converts to UTC
+    const toUTC = (v: string) => v ? new Date(v).toISOString() : null;
     const r = await authFetch('/api/admin/markets', { method:'POST', body: JSON.stringify({
       action: 'create_market',
       name:          mForm.name,
       saleTime:      toTime(mForm.saleTime),
       openTime:      toTime(mForm.openTime),
       closeTime:     toTime(mForm.closeTime),
-      // Pass full datetimes for auto-declare
-      saleDatetime:  mForm.saleTime,
-      openDatetime:  mForm.openTime,
-      closeDatetime: mForm.closeTime,
+      // Pass as proper UTC ISO strings — browser converts local (IST) to UTC correctly
+      saleDatetime:  toUTC(mForm.saleTime),
+      openDatetime:  toUTC(mForm.openTime),
+      closeDatetime: toUTC(mForm.closeTime),
     }) });
     const d = await r.json();
     const td = new Date().toISOString().slice(0, 10);
