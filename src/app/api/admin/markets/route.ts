@@ -66,17 +66,25 @@ export async function GET(req: NextRequest) {
     let totalPayout = 0; let winnerCount = 0;
     for (const bet of bets) {
       const bt = bet.betType?.toUpperCase();
+      const bv = bet.betValue ?? '';
       let won = false;
-      if ((bt==='ANK'||bt==='SINGLE_ANK') && (bet.session==='OPEN'?String(openAnk):String(closeAnk))===bet.betValue) won=true;
-      if (bt==='JODI' && bet.betValue===jodi) won=true;
-      // SP/DP/TP: match exact patti by session
-      if ((bt==='SINGLE_PATTI'||bt==='SP') && bet.session==='OPEN'  && bet.betValue===openPatti)  won=true;
-      if ((bt==='SINGLE_PATTI'||bt==='SP') && bet.session==='CLOSE' && bet.betValue===closePatti) won=true;
-      if ((bt==='DOUBLE_PATTI'||bt==='DP') && bet.session==='OPEN'  && bet.betValue===openPatti)  won=true;
-      if ((bt==='DOUBLE_PATTI'||bt==='DP') && bet.session==='CLOSE' && bet.betValue===closePatti) won=true;
-      if ((bt==='TRIPLE_PATTI'||bt==='TP') && bet.session==='OPEN'  && bet.betValue===openPatti)  won=true;
-      if ((bt==='TRIPLE_PATTI'||bt==='TP') && bet.session==='CLOSE' && bet.betValue===closePatti) won=true;
-      if (won) { totalPayout += bet.amount*(PAYOUT[bet.betType??'']??0); winnerCount++; }
+      if ((bt==='ANK'||bt==='SINGLE_ANK') && (bet.session==='OPEN'?String(openAnk):String(closeAnk))===bv) won=true;
+      if (bt==='JODI' && bv===jodi) won=true;
+      if ((bt==='SINGLE_PATTI'||bt==='SP') && bet.session==='OPEN'  && bv===openPatti)  won=true;
+      if ((bt==='SINGLE_PATTI'||bt==='SP') && bet.session==='CLOSE' && bv===closePatti) won=true;
+      if ((bt==='DOUBLE_PATTI'||bt==='DP') && bet.session==='OPEN'  && bv===openPatti)  won=true;
+      if ((bt==='DOUBLE_PATTI'||bt==='DP') && bet.session==='CLOSE' && bv===closePatti) won=true;
+      if ((bt==='TRIPLE_PATTI'||bt==='TP') && bet.session==='OPEN'  && bv===openPatti)  won=true;
+      if ((bt==='TRIPLE_PATTI'||bt==='TP') && bet.session==='CLOSE' && bv===closePatti) won=true;
+      // Half Sangam: OpenPatti-CloseAnk only (e.g. "145-5")
+      if (bt==='HALF_SANGAM') {
+        const parts = bv.split('-');
+        if (parts.length===2 && parts[0].length===3 && parts[1].length===1) {
+          if (parts[0]===openPatti && parts[1]===String(closeAnk)) won=true;
+        }
+      }
+      if (bt==='FULL_SANGAM' && bv===`${openPatti}-${closePatti}`) won=true;
+      if (won) { totalPayout += bet.amount*(PAYOUT[bt??'']??0); winnerCount++; }
     }
     return json({ winnerCount, totalPayout, totalBets, jodi, openAnk, closeAnk, isSafe: totalPayout <= totalBets * 1.3 });
   }
@@ -311,18 +319,14 @@ export async function POST(req: NextRequest) {
         if (bt === 'JODI' && bv === jodi) won = true;
         if ((bt === 'SINGLE_PATTI' || bt === 'DOUBLE_PATTI' || bt === 'TRIPLE_PATTI') && bet.session === 'CLOSE' && bv === closePatti) won = true;
 
-        // Half Sangam variants: bet value stored as either "openAnk-closePatti" or "openPatti-closeAnk"
+        // Half Sangam: only format is OpenPatti-CloseAnk (e.g. "145-5")
+        // Player bets in OPEN session — wins when openPatti matches AND closeAnk matches
         if (bt === 'HALF_SANGAM') {
           const parts = bv.split('-');
           if (parts.length === 2) {
-            const [a, b] = parts;
-            // OPEN format: openPatti-openAnk (e.g. "123-6") — 3digits-1digit
-            if (a.length === 3 && b.length === 1 && bet.session === 'OPEN') {
-              if (a === openPatti && b === String(openAnk)) won = true;
-            }
-            // CLOSE format: closeAnk-closePatti (e.g. "6-321") — 1digit-3digits
-            if (a.length === 1 && b.length === 3 && bet.session === 'CLOSE') {
-              if (a === String(closeAnk) && b === closePatti) won = true;
+            const [patti, ank] = parts;
+            if (patti.length === 3 && ank.length === 1) {
+              if (patti === openPatti && ank === String(closeAnk)) won = true;
             }
           }
         }

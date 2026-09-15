@@ -23,7 +23,7 @@ const GAME_TYPES = [
   { key: 'SINGLE_PATTI', label: 'SP',          payout: 140,   maxSelect: 3, desc: 'SP: All 3 digits different (e.g. 123, 456, 789) — Win ×140', disableAfterOpen: false, openSessionOnly: false },
   { key: 'DOUBLE_PATTI', label: 'DP',          payout: 280,   maxSelect: 3, desc: 'DP: Exactly 2 same digits (e.g. 112, 223, 344) — Win ×280', disableAfterOpen: false, openSessionOnly: false },
   { key: 'TRIPLE_PATTI', label: 'TP',          payout: 450,   maxSelect: 3, desc: 'TP: All 3 digits same (e.g. 111, 222, 333) — Win ×450', disableAfterOpen: false, openSessionOnly: false },
-  { key: 'HALF_SANGAM',  label: 'Half Sangam', payout: 1500,  maxSelect: 4, desc: 'Ank + Patti combination', disableAfterOpen: false },
+  { key: 'HALF_SANGAM',  label: 'Half Sangam', payout: 1500,  maxSelect: 4, desc: 'Open Patti + Close Ank (e.g. 145-5) — Open session only', disableAfterOpen: true, openSessionOnly: true },
   { key: 'FULL_SANGAM',  label: 'Full Sangam', payout: 11000, maxSelect: 6, desc: 'Open Patti + Close Patti', disableAfterOpen: true },
 ];
 
@@ -302,10 +302,9 @@ export default function MatkaPage() {
     const vals = selectedStateIndices.map(x => x.d!);
     if (vals.length === 0) return '—';
     if (gameType.key === 'HALF_SANGAM' && vals.length === 4) {
-      // OPEN: openPatti-openAnk = 3 digits + 1 digit (e.g. 123-6)
-      if (session === 'OPEN') return `${vals[0]}${vals[1]}${vals[2]}-${vals[3]}`;
-      // CLOSE: closeAnk-closePatti = 1 digit + 3 digits (e.g. 6-321)
-      return `${vals[0]}-${vals[1]}${vals[2]}${vals[3]}`;
+      // Only format: OpenPatti-CloseAnk = 3 digits - 1 digit (e.g. 145-5)
+      // First 3 selections = open patti digits, 4th = close ank guess
+      return `${vals[0]}${vals[1]}${vals[2]}-${vals[3]}`;
     }
     if (gameType.key === 'FULL_SANGAM' && vals.length === 6)
       return `${vals[0]}${vals[1]}${vals[2]}-${vals[3]}${vals[4]}${vals[5]}`;
@@ -433,8 +432,9 @@ export default function MatkaPage() {
         // OPEN=cols1,2,3(si=0,1,2), CLOSE=cols6,7,8(si=5,6,7)
         return session === 'OPEN' ? si <= 2 : si >= 5;
       case 'HALF_SANGAM':
-        // OPEN=cols1,2,3,4(si=0,1,2,3), CLOSE=cols5,6,7,8(si=4,5,6,7)
-        return session === 'OPEN' ? si <= 3 : si >= 4;
+        // Always OPEN: cols 1,2,3 = open patti, col 4 = close ank guess
+        // Format: 3 digits (patti) + 1 digit (ank) — always open session only
+        return si <= 3;
       case 'FULL_SANGAM':
         // cols1,2,3 + cols6,7,8 (si=0,1,2 + si=5,6,7)
         return si <= 2 || si >= 5;
@@ -658,20 +658,13 @@ export default function MatkaPage() {
                         </div>
                       </div>
 
-                      {/* Row 4: Half Sangam Open & Half Sangam Close */}
-                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
-                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 10px', borderRadius:8, background:'rgba(46,204,113,0.04)', border:'1px solid rgba(46,204,113,0.1)' }}>
-                          <span style={{ fontSize:10, color:'#2ECC71', fontWeight:700, marginBottom:4 }}>½ Sangam Open</span>
-                          <span style={{ fontFamily:'monospace', fontWeight:800, fontSize:15, color: m.openPatti && m.closeAnk != null ? '#2ECC71' : 'var(--Secondary)' }}>
-                            {m.openPatti && m.closeAnk != null ? `${m.openPatti}-${m.closeAnk}` : '???-?'}
-                          </span>
-                        </div>
-                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 10px', borderRadius:8, background:'rgba(239,68,68,0.04)', border:'1px solid rgba(239,68,68,0.1)' }}>
-                          <span style={{ fontSize:10, color:'#ef4444', fontWeight:700, marginBottom:4 }}>½ Sangam Close</span>
-                          <span style={{ fontFamily:'monospace', fontWeight:800, fontSize:15, color: m.openAnk != null && m.closePatti ? '#ef4444' : 'var(--Secondary)' }}>
-                            {m.openAnk != null && m.closePatti ? `${m.openAnk}-${m.closePatti}` : '?-???'}
-                          </span>
-                        </div>
+
+                      {/* Row 4: Half Sangam — only OpenPatti-CloseAnk */}
+                      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 10px', borderRadius:8, background:'rgba(46,204,113,0.04)', border:'1px solid rgba(46,204,113,0.1)' }}>
+                        <span style={{ fontSize:10, color:'#2ECC71', fontWeight:700, marginBottom:4 }}>½ Sangam (Patti-Ank)</span>
+                        <span style={{ fontFamily:'monospace', fontWeight:800, fontSize:15, color: m.openPatti && m.closeAnk != null ? '#2ECC71' : 'var(--Secondary)' }}>
+                          {m.openPatti && m.closeAnk != null ? `${m.openPatti}-${m.closeAnk}` : '???-?'}
+                        </span>
                       </div>
 
                       {/* Row 5: Full Sangam — full width */}

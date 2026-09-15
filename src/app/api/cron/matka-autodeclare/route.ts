@@ -166,8 +166,13 @@ export async function GET() {
               if ((bt === 'SP' || bt === 'SINGLE_PATTI') && bet.session === 'CLOSE' && bv === closePatti) won = true;
               if ((bt === 'DP' || bt === 'DOUBLE_PATTI') && bet.session === 'CLOSE' && bv === closePatti) won = true;
               if ((bt === 'TP' || bt === 'TRIPLE_PATTI') && bet.session === 'CLOSE' && bv === closePatti) won = true;
-              if (bt === 'HALF_SANGAM' && bet.session === 'OPEN'  && bv === `${result.openPatti}-${closeAnk}`) won = true;
-              if (bt === 'HALF_SANGAM' && bet.session === 'CLOSE' && bv === `${openAnk}-${closePatti}`) won = true;
+              // Half Sangam: OpenPatti-CloseAnk only (e.g. "145-5")
+              if (bt === 'HALF_SANGAM') {
+                const parts = bv.split('-');
+                if (parts.length === 2 && parts[0].length === 3 && parts[1].length === 1) {
+                  if (parts[0] === result.openPatti && parts[1] === String(closeAnk)) won = true;
+                }
+              }
               if (bt === 'FULL_SANGAM' && bv === `${result.openPatti}-${closePatti}`) won = true;
               const wonAmount = won ? bet.amount * (RATES[bt] ?? 0) : 0;
               await prisma.matkaBet.update({ where: { id: bet.id }, data: { status: won ? 'WON' : 'LOST', wonAmount, resultId: result.id } });
