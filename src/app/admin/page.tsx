@@ -357,18 +357,22 @@ export default function AdminPage() {
   async function createMarket() {
     if (!mForm.name) return toast.error('Market name required');
     setMLoading(true);
-    // Extract HH:MM from datetime-local "YYYY-MM-DDThh:mm" — DB stores time-only strings
+    // Extract HH:MM from datetime-local "YYYY-MM-DDThh:mm" — DB stores time-only strings for display
     const toTime = (v: string) => v.includes('T') ? v.slice(11, 16) : v;
     const r = await authFetch('/api/admin/markets', { method:'POST', body: JSON.stringify({
       action: 'create_market',
-      name:      mForm.name,
-      saleTime:  toTime(mForm.saleTime),
-      openTime:  toTime(mForm.openTime),
-      closeTime: toTime(mForm.closeTime),
+      name:          mForm.name,
+      saleTime:      toTime(mForm.saleTime),
+      openTime:      toTime(mForm.openTime),
+      closeTime:     toTime(mForm.closeTime),
+      // Pass full datetimes for auto-declare
+      saleDatetime:  mForm.saleTime,
+      openDatetime:  mForm.openTime,
+      closeDatetime: mForm.closeTime,
     }) });
     const d = await r.json();
     const td = new Date().toISOString().slice(0, 10);
-    if (r.ok) { toast.success(`✓ Market "${mForm.name}" created!`); load(); setMForm({ name:'', saleTime:`${td}T09:00`, openTime:`${td}T13:00`, closeTime:`${td}T18:45` }); setMCreate(false); }
+    if (r.ok) { toast.success(`✓ Market "${mForm.name}" created! Will auto-open at ${toTime(mForm.saleTime)} and auto-declare at ${toTime(mForm.openTime)} / ${toTime(mForm.closeTime)}`); load(); setMForm({ name:'', saleTime:`${td}T09:00`, openTime:`${td}T13:00`, closeTime:`${td}T18:45` }); setMCreate(false); }
     else toast.error(d.error ?? 'Failed');
     setMLoading(false);
   }

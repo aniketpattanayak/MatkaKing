@@ -194,10 +194,14 @@ model LotteryBet {
 model MatkaMarket {
   id              String       @id @default(cuid())
   name            String       @unique             // "Milan Day", "Kalyan"
-  openTime        String                           // "09:30"
-  closeTime       String                           // "11:30"
+  openTime        String                           // "09:30" — kept for display
+  closeTime       String                           // "11:30" — kept for display
   resultTime      String   @default("12:00")        // kept for compatibility
   saleTime        String   @default("09:00")          // when ticket sales open
+  // Full datetime for auto-declare (set when admin creates market)
+  saleDatetime    DateTime?                        // when bets open
+  openDatetime    DateTime?                        // auto-declare open patti at this time
+  closeDatetime   DateTime?                        // auto-declare close patti at this time
   isOpen          Boolean      @default(false)
   isResultDeclared Boolean     @default(false)
   payoutSingle    Int          @default(90)        // x multiplier

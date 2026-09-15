@@ -120,16 +120,31 @@ export async function POST(req: NextRequest) {
   if (!await isAdmin(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const body = await req.json();
-  const { action, marketId, openPatti, closePatti, name, openTime, closeTime, resultTime, saleTime } = body;
+  const { action, marketId, openPatti, closePatti, name, openTime, closeTime, resultTime, saleTime,
+          saleDatetime, openDatetime, closeDatetime } = body;
 
   // ── Create market ─────────────────────────────────────────────────────────
   if (action === 'create_market') {
     if (!name || !openTime || !closeTime)
       return NextResponse.json({ error: 'name, openTime, closeTime required' }, { status: 400 });
+
+    // Parse datetime-local values from form (e.g. "2026-09-15T13:00") → Date objects
+    const toDate = (v?: string) => v ? new Date(v) : null;
+
     const market = await prisma.matkaMarket.create({
-      data: { name, openTime, closeTime, resultTime: resultTime??'00:00', saleTime: saleTime??openTime, isActive: true, isOpen: true,
-        payoutSingle: 9, payoutJodi: 90, payoutSP: 140, payoutDP: 280, payoutTP: 450,
-        payoutHalfSangam: 1500, payoutFullSangam: 11000 },
+      data: {
+        name, openTime, closeTime,
+        resultTime: resultTime ?? '00:00',
+        saleTime: saleTime ?? openTime,
+        saleDatetime:  toDate(saleDatetime),
+        openDatetime:  toDate(openDatetime),
+        closeDatetime: toDate(closeDatetime),
+        isActive: true,
+        // Market starts closed — opens automatically at saleDatetime
+        isOpen: false,
+        payoutSingle: 90, payoutJodi: 900, payoutSP: 140, payoutDP: 280, payoutTP: 450,
+        payoutHalfSangam: 1500, payoutFullSangam: 11000,
+      },
     });
     clearCache('matka:markets');
     return NextResponse.json({ ok: true, market });
