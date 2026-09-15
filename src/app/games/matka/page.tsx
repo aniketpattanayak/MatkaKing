@@ -825,13 +825,18 @@ export default function MatkaPage() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
                 {dynamicTypes.map(g => {
-                  // Jodi and Full Sangam only in OPEN session
-                  const closeLocked = session === 'CLOSE' && (g.key === 'JODI' || g.key === 'FULL_SANGAM');
-                  // After open declared: Jodi and Full Sangam locked
+                  // Half Sangam, Jodi and Full Sangam only in OPEN session
+                  const closeLocked = session === 'CLOSE' && (g.key === 'JODI' || g.key === 'FULL_SANGAM' || g.key === 'HALF_SANGAM');
+                  // After open declared: Jodi and Full Sangam locked (Half Sangam stays available — player bets openPatti+closeAnk)
                   const openLocked = openDeclared && (g.key === 'JODI' || g.key === 'FULL_SANGAM');
                   const isLocked = closeLocked || openLocked;
                   return (
-                    <button key={g.key} onClick={() => !isLocked && setGameType(g)} style={{
+                    <button key={g.key} onClick={() => {
+                      if (isLocked) return;
+                      // Auto-switch to OPEN session when selecting Half Sangam
+                      if (g.key === 'HALF_SANGAM' && session === 'CLOSE') switchSession('OPEN');
+                      setGameType(g);
+                    }} style={{
                       padding: '7px 13px', borderRadius: 999, border: '1px solid',
                       borderColor: isLocked ? 'rgba(100,100,100,0.2)' : gameType.key === g.key ? '#fe8c45' : 'var(--Border)',
                       background: isLocked ? 'rgba(100,100,100,0.1)' : gameType.key === g.key ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'var(--Bg-3)',
@@ -994,6 +999,20 @@ export default function MatkaPage() {
                   ))}
                 </div>
               </div>
+
+              {/* Half Sangam info — explain the format and that it's OPEN only */}
+              {gameType.key === 'HALF_SANGAM' && (
+                <div style={{display:'flex',gap:10,padding:'10px 14px',background:'rgba(46,204,113,0.06)',border:'1px solid rgba(46,204,113,0.2)',borderRadius:10,marginBottom:8,alignItems:'center',flexWrap:'wrap'}}>
+                  <span style={{fontSize:18}}>½</span>
+                  <div>
+                    <p style={{fontSize:12,color:'#2ECC71',fontWeight:700,marginBottom:2}}>Half Sangam — Open Session Only</p>
+                    <p style={{fontSize:11,color:'var(--Secondary)'}}>
+                      Pick <strong style={{color:'#ffcb52'}}>Open Patti</strong> (3 digits, cols 1-3) + guess <strong style={{color:'#ffcb52'}}>Close Ank</strong> (1 digit, col 4)
+                      &nbsp;→ shows as <strong style={{color:'#ffcb52',fontFamily:'monospace'}}>356-1</strong>
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Show computed ANK when patti is complete */}
               {betValue && betValue.length >= 3 && ['SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key) && (
