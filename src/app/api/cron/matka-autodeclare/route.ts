@@ -9,14 +9,11 @@ import { prisma } from '@/lib/api-helper';
 
 export const dynamic = 'force-dynamic';
 
-// Datetimes stored as TEXT "2026-09-15T13:00" — admin sets them in IST.
-// Vercel runs in UTC, so we must treat bare strings as IST (UTC+5:30).
+// Datetimes are stored by Prisma as UTC ISO strings (e.g. "2026-09-15T17:47:00+00:00")
+// Just parse them directly — no timezone conversion needed.
 function parseIST(v: any): Date {
   if (!v) return new Date(0);
-  const s = String(v);
-  if (s.includes('Z') || s.includes('+') || s.match(/-\d{2}:\d{2}$/)) return new Date(s);
-  // Bare "YYYY-MM-DDTHH:MM" → treat as IST
-  return new Date(s + ':00+05:30');
+  return new Date(String(v));
 }
 
 function pattiAnk(p: string) {
@@ -76,6 +73,14 @@ export async function GET() {
     const now = new Date();
     const log: string[] = [];
     const markets = await prisma.matkaMarket.findMany({ where: { isActive: true } });
+    const debug = markets.map((m: any) => ({
+      name: m.name,
+      isOpen: m.isOpen,
+      isResultDeclared: m.isResultDeclared,
+      saleDatetime: m.saleDatetime,
+      openDatetime: m.openDatetime,
+      closeDatetime: m.closeDatetime,
+    }));
 
     for (const m of markets) {
       const mkt = m as any;
@@ -189,10 +194,9 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ ok: true, time: now.toISOString(), processed: log.length, log });
+    return NextResponse.json({ ok: true, time: now.toISOString(), processed: log.length, log, debug });
   } catch (e: any) {
     console.error('matka-autodeclare error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
-// debug trigger
