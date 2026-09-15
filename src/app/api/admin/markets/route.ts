@@ -128,8 +128,14 @@ export async function POST(req: NextRequest) {
     if (!name || !openTime || !closeTime)
       return NextResponse.json({ error: 'name, openTime, closeTime required' }, { status: 400 });
 
-    // Parse datetime-local values from form (e.g. "2026-09-15T13:00") → Date objects
-    const toDate = (v?: string) => v ? new Date(v) : null;
+    // Parse datetime-local values from form (e.g. "2026-09-15T13:00")
+    // Admin sets times in IST — append +05:30 so UTC servers parse correctly
+    const toDate = (v?: string) => {
+      if (!v) return null;
+      // If already has timezone info, use as-is; otherwise treat as IST
+      if (v.includes('Z') || v.includes('+') || v.includes('-', 10)) return new Date(v);
+      return new Date(v + ':00+05:30'); // IST = UTC+5:30
+    };
 
     const market = await prisma.matkaMarket.create({
       data: {
