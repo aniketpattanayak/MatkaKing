@@ -1,15 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/api-helper';
 
-export async function POST(req: NextRequest) {
-  const secret = req.headers.get('x-admin-secret');
-  const allowed = process.env.ADMIN_SECRET ?? 'supreme-admin-2024';
-  if (secret !== allowed)
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-
+export async function POST() {
   const cols = ['securityQ1','securityA1','securityQ2','securityA2','securityQ3','securityA3'];
   const results: string[] = [];
-
   for (const col of cols) {
     try {
       await prisma.$executeRawUnsafe(`ALTER TABLE "User" ADD COLUMN "${col}" TEXT`);
@@ -18,6 +12,5 @@ export async function POST(req: NextRequest) {
       results.push(`skip ${col}: ${e?.message?.slice(0,80)}`);
     }
   }
-
   return NextResponse.json({ ok: true, results });
 }
