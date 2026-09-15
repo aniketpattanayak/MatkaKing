@@ -73,14 +73,6 @@ export async function GET() {
     const now = new Date();
     const log: string[] = [];
     const markets = await prisma.matkaMarket.findMany({ where: { isActive: true } });
-    const debug = markets.map((m: any) => ({
-      name: m.name,
-      isOpen: m.isOpen,
-      isResultDeclared: m.isResultDeclared,
-      saleDatetime: m.saleDatetime,
-      openDatetime: m.openDatetime,
-      closeDatetime: m.closeDatetime,
-    }));
 
     for (const m of markets) {
       const mkt = m as any;
@@ -194,7 +186,7 @@ export async function GET() {
       }
     }
 
-    return NextResponse.json({ ok: true, time: now.toISOString(), processed: log.length, log, debug });
+    return NextResponse.json({ ok: true, time: now.toISOString(), processed: log.length, log });
   } catch (e: any) {
     console.error('matka-autodeclare error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });
