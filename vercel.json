@@ -9,10 +9,6 @@
       "schedule": "0 8 * * *"
     },
     {
-      "path": "/api/cron/matka-autodeclare",
-      "schedule": "* * * * *"
-    },
-    {
       "path": "/api/cron/matka-reset",
       "schedule": "0 18 * * *"
     }
