@@ -11,11 +11,12 @@ export const dynamic = 'force-dynamic';
 
 // Datetimes stored as TEXT "2026-09-15T13:00" — admin sets them in IST.
 // Vercel runs in UTC, so we must treat bare strings as IST (UTC+5:30).
-function parseIST(v: string): Date {
+function parseIST(v: any): Date {
   if (!v) return new Date(0);
-  if (v.includes('Z') || v.includes('+') || v.match(/-\d{2}:\d{2}$/)) return new Date(v);
+  const s = String(v);
+  if (s.includes('Z') || s.includes('+') || s.match(/-\d{2}:\d{2}$/)) return new Date(s);
   // Bare "YYYY-MM-DDTHH:MM" → treat as IST
-  return new Date(v + ':00+05:30');
+  return new Date(s + ':00+05:30');
 }
 
 function pattiAnk(p: string) {
