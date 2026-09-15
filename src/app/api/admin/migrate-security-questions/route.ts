@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/api-helper';
 
 export async function POST(req: NextRequest) {
-  // Use raw ADMIN_SECRET header check — no JWT needed for this one-time migration
   const secret = req.headers.get('x-admin-secret');
   if (secret !== process.env.ADMIN_SECRET)
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
