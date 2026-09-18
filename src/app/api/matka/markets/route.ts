@@ -37,14 +37,26 @@ export async function GET() {
     const enriched = markets.map((m: any) => {
       // Market is open if: admin manually opened it OR current time is within window
       const timeOpen = isMarketOpen(m.openTime, m.closeTime);
-      const open = m.isOpen || timeOpen; // DB flag OR time-based
+      const open = m.isOpen || timeOpen;
       return { ...m, isOpen: open, status: open ? 'OPEN' : 'CLOSED' };
     }).filter((m: any) => {
-      // Hide markets that haven't reached their saleDatetime yet
+      const now = new Date();
+
+      // 1. Hide markets with a future saleDatetime (datetime-based markets)
       if (m.saleDatetime) {
         const saleAt = new Date(m.saleDatetime);
-        if (new Date() < saleAt) return false; // not yet visible to users
+        if (now < saleAt) return false;
       }
+
+      // 2. For daily time-based markets (no saleDatetime): hide before saleTime
+      if (!m.saleDatetime && m.saleTime) {
+        const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        const [sh, sm] = m.saleTime.split(':').map(Number);
+        const saleMinutes = sh * 60 + sm;
+        const curMinutes  = ist.getHours() * 60 + ist.getMinutes();
+        if (curMinutes < saleMinutes) return false; // before sale time — hide
+      }
+
       return true;
     });
     // Sort: OPEN markets first, then by openTime
