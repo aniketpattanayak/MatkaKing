@@ -84,21 +84,23 @@ export async function GET() {
 
     for (const m of markets) {
       const mkt = m as any;
+      let isOpen = m.isOpen; // track locally — updated by step 1
 
       // ── 1. Open market for betting at saleDatetime ───────────────────────
-      if (mkt.saleDatetime && !m.isOpen && !m.isResultDeclared) {
+      if (mkt.saleDatetime && !isOpen && !m.isResultDeclared) {
         if (now >= parseIST(mkt.saleDatetime)) {
           await prisma.matkaMarket.update({ where: { id: m.id }, data: { isOpen: true } });
+          isOpen = true; // update local state so step 2 sees it
           log.push(`OPENED: ${m.name}`);
         }
       }
 
       // ── 2. Auto-declare OPEN patti at openDatetime ───────────────────────
-      if (mkt.openDatetime && m.isOpen) {
+      if (mkt.openDatetime && isOpen) {
         if (now >= parseIST(mkt.openDatetime)) {
-          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
           const existingResult = await prisma.matkaResult.findFirst({
-            where: { marketId: m.id, createdAt: { gte: today } },
+            where: { marketId: m.id, createdAt: { gte: since24h } },
             orderBy: { createdAt: 'desc' },
           });
           if (!existingResult?.openPatti) {
@@ -139,11 +141,11 @@ export async function GET() {
       }
 
       // ── 3. Auto-declare CLOSE patti at closeDatetime ─────────────────────
-      if (mkt.closeDatetime && m.isOpen && !m.isResultDeclared) {
+      if (mkt.closeDatetime && isOpen && !m.isResultDeclared) {
         if (now >= parseIST(mkt.closeDatetime)) {
-          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const since24hClose = new Date(now.getTime() - 24 * 60 * 60 * 1000);
           const result = await prisma.matkaResult.findFirst({
-            where: { marketId: m.id, createdAt: { gte: today } },
+            where: { marketId: m.id, createdAt: { gte: since24hClose } },
             orderBy: { createdAt: 'desc' },
           });
           if (result?.openPatti && !result.closePatti) {
