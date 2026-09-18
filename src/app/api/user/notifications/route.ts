@@ -14,6 +14,10 @@ export async function GET(req: NextRequest) {
           { expiresAt: null },
           { expiresAt: { gte: now } },
         ],
+        // Show: global notifications (userId null) OR notifications for this specific user
+        AND: [
+          { OR: [{ userId: null }, { userId: p.sub }] }
+        ],
       },
       orderBy: [{ isPinned: 'desc' }, { createdAt: 'desc' }],
       take: 20,
@@ -41,7 +45,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Mark notification as read
 export async function POST(req: NextRequest) {
   const p = verifyToken(req);
   if (!p) return json({ error: 'Unauthorized' }, 401);

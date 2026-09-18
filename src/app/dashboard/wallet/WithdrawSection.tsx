@@ -42,6 +42,7 @@ export default function WithdrawSection({
   const [history,   setHistory]   = useState<any[]>([]);
   const [usedToday, setUsedToday] = useState(0);
   const [limitPerDay, setLimitPerDay] = useState(withdrawPerDay);
+  const [qrImage,   setQrImage]   = useState<string|null>(null);
 
   const loadHistory = async () => {
     const r = await authFetch('/api/user/withdraw');
@@ -75,7 +76,7 @@ export default function WithdrawSection({
 
     setLoading(true);
     try {
-      const body: any = { amount: amt, method };
+      const body: any = { amount: amt, method, qrImage: qrImage ?? undefined };
       if (method === 'UPI')     body.upiId       = upiId.trim();
       if (method === 'PHONEPE') body.phoneNumber  = phone.trim();
       if (method === 'BANK')  { body.bankAccount  = bankAcc; body.bankIfsc = ifsc.toUpperCase(); body.bankName = bankNm; }
@@ -87,7 +88,7 @@ export default function WithdrawSection({
           ? `Withdrawal submitted! You've used all ${limitPerDay} withdrawal${limitPerDay !== 1 ? 's' : ''} for today.`
           : `Withdrawal submitted! ${d.remainingToday} more allowed today.`;
         toast.success(msg);
-        setAmount(''); setUpiId(''); setPhone(''); setBankAcc(''); setIfsc(''); setBankNm('');
+        setAmount(''); setUpiId(''); setPhone(''); setBankAcc(''); setIfsc(''); setBankNm(''); setQrImage(null);
         onSuccess?.();
         loadHistory(); // reloads usedToday count too
       } else {
@@ -203,6 +204,48 @@ export default function WithdrawSection({
               <input placeholder="e.g. SBIN0001234" value={ifsc} onChange={e => setIfsc(e.target.value.toUpperCase())} style={inp}/>
             </div>
           </>)}
+
+          {/* QR Upload */}
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <label style={{ fontSize:12, fontWeight:700, color:'var(--Secondary)', textTransform:'uppercase', letterSpacing:0.5 }}>
+              📷 Upload Your QR Code <span style={{ color:'var(--Secondary)', fontWeight:400, textTransform:'none' }}>(optional — helps admin pay faster)</span>
+            </label>
+            {qrImage ? (
+              <div style={{ position:'relative', display:'inline-block' }}>
+                <img src={qrImage} alt="QR" style={{ width:140, height:140, borderRadius:12, objectFit:'contain', border:'2px solid rgba(46,204,113,0.4)', background:'rgba(255,255,255,0.05)' }} />
+                <button onClick={()=>setQrImage(null)} style={{ position:'absolute', top:-8, right:-8, width:22, height:22, borderRadius:'50%', border:'none', background:'#ef4444', color:'#fff', fontSize:12, cursor:'pointer', fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+                <p style={{ fontSize:11, color:'#2ECC71', marginTop:6 }}>✓ QR uploaded</p>
+              </div>
+            ) : (
+              <label style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', borderRadius:12, border:'2px dashed rgba(255,255,255,0.15)', cursor:'pointer', background:'rgba(255,255,255,0.02)', transition:'border-color 0.2s' }}
+                onDragOver={e=>{e.preventDefault();(e.currentTarget as HTMLElement).style.borderColor='#2ECC71'}}
+                onDragLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor='rgba(255,255,255,0.15)'}}
+                onDrop={e=>{
+                  e.preventDefault();
+                  (e.currentTarget as HTMLElement).style.borderColor='rgba(255,255,255,0.15)';
+                  const file = e.dataTransfer.files[0];
+                  if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = ev => setQrImage(ev.target?.result as string);
+                    reader.readAsDataURL(file);
+                  }
+                }}>
+                <input type="file" accept="image/*" style={{ display:'none' }} onChange={e=>{
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = ev => setQrImage(ev.target?.result as string);
+                    reader.readAsDataURL(file);
+                  }
+                }} />
+                <span style={{ fontSize:28 }}>📱</span>
+                <div>
+                  <p style={{ fontSize:13, fontWeight:700, color:'var(--White)' }}>Tap to upload QR code</p>
+                  <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:2 }}>Admin will scan it to pay you directly</p>
+                </div>
+              </label>
+            )}
+          </div>
 
           <button onClick={submit} disabled={loading || !amount || dailyLimitReached} style={{ height:54, borderRadius:14, border:'none', cursor:(loading||!amount||dailyLimitReached)?'not-allowed':'pointer', background: dailyLimitReached ? 'rgba(100,100,100,0.2)' : 'linear-gradient(270deg,#fe8c45,#ca2826)', color: dailyLimitReached ? 'var(--Secondary)' : '#fff', fontWeight:900, fontSize:16, opacity:(loading||!amount||dailyLimitReached)?0.7:1 }}>
             {dailyLimitReached ? `🚫 Daily limit reached (${limitPerDay}/day)` : loading ? 'Submitting...' : `Withdraw ₹${amount||'0'} Coins`}

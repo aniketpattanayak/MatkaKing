@@ -2031,6 +2031,15 @@ export default function AdminPage() {
                                 {ph  && <div><span style={{fontSize:10,fontWeight:700,color:'#3498DB',background:'rgba(52,152,219,0.1)',padding:'2px 8px',borderRadius:6}}>PhonePe</span><p style={{fontFamily:'monospace',fontSize:13,color:'var(--White)',marginTop:4}}>{ph}</p></div>}
                                 {bk  && <div><span style={{fontSize:10,fontWeight:700,color:'#2ECC71',background:'rgba(46,204,113,0.1)',padding:'2px 8px',borderRadius:6}}>Bank</span><p style={{fontSize:12,color:'var(--White)',marginTop:4}}>{bk[1]}</p><p style={{fontSize:11,color:'var(--Secondary)'}}>{bk[2]}</p></div>}
                                 {!upi && !ph && !bk && <span style={{color:'var(--Secondary)',fontSize:12}}>—</span>}
+                                {/* QR Image */}
+                                {w.qrImage && (
+                                  <div style={{marginTop:8}}>
+                                    <p style={{fontSize:10,color:'#2ECC71',fontWeight:700,marginBottom:4}}>📷 QR Code:</p>
+                                    <img src={w.qrImage} alt="QR" style={{width:90,height:90,borderRadius:8,objectFit:'contain',border:'1px solid rgba(46,204,113,0.3)',background:'white',cursor:'pointer'}}
+                                      onClick={()=>window.open(w.qrImage,'_blank')}
+                                      title="Click to enlarge" />
+                                  </div>
+                                )}
                               </td>
                               {/* Status */}
                               <td style={{padding:'14px 16px'}}>

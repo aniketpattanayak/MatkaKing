@@ -40,6 +40,7 @@ model User {
   matkaBets     MatkaBet[]
   spinResults   SpinResult[]
   notificationReads NotificationRead[]
+  notifications Notification[]
   sessions      Session[]
   affiliate     AffiliateLink[]
 
@@ -105,6 +106,7 @@ model Transaction {
   amount          Int               // INR paise (x100) for deposits; Coins for others
   coins           Int               @default(0)
   upiRef          String?           // bank UTR / reference number
+  qrImage         String?           // base64 QR image uploaded by user for withdrawal
   orderId         String            @unique @default(cuid())
   webhookPayload  String?
   failureReason   String?
@@ -345,6 +347,7 @@ model AffiliateLink {
 
 model Notification {
   id          String           @id @default(cuid())
+  userId      String?          // null = broadcast to all; set = specific user only
   title       String
   message     String
   type        String @default("GENERAL")
@@ -356,6 +359,7 @@ model Notification {
   createdAt   DateTime         @default(now())
   expiresAt   DateTime?
 
+  user        User?            @relation(fields: [userId], references: [id])
   festival    FestivalEvent?   @relation(fields: [festivalId], references: [id])
   reads       NotificationRead[]
 }

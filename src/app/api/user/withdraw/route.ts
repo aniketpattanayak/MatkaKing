@@ -5,7 +5,7 @@ export async function POST(req: NextRequest) {
   const p = verifyToken(req);
   if (!p) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { amount, method, upiId, phoneNumber, bankAccount, bankIfsc, bankName } = await req.json();
+  const { amount, method, upiId, phoneNumber, bankAccount, bankIfsc, bankName, qrImage } = await req.json();
 
   // ── Load admin-configured settings ──────────────────────────────────────
   const [minSetting, maxSetting, perDaySetting] = await Promise.all([
@@ -75,6 +75,7 @@ export async function POST(req: NextRequest) {
           coins:   amount,
           amount:  0,
           orderId: `WD-${method}-${details}-${Date.now()}`,
+          qrImage: qrImage ?? null,
         },
       }),
     ]);
