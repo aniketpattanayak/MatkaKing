@@ -24,19 +24,13 @@ export async function POST(req: NextRequest) {
 
     let referrer: { id: string } | null = null;
     if (referralCode && String(referralCode).trim()) {
-      const code = String(referralCode).trim().toLowerCase();
-      // SQLite doesn't support mode:'insensitive' — fetch by lowercase match
-      referrer = await prisma.user.findFirst({
-        where: { referralCode: code },
-        select: { id: true },
-      });
-      // Also try uppercase in case code was stored differently
-      if (!referrer) {
-        referrer = await prisma.user.findFirst({
-          where: { referralCode: code.toUpperCase() },
-          select: { id: true },
-        });
-      }
+      const raw  = String(referralCode).trim();
+      const lower = raw.toLowerCase();
+      const upper = raw.toUpperCase();
+      // Try all case variants — cuid() stores lowercase but dashboard shows uppercase
+      referrer = await prisma.user.findFirst({ where: { referralCode: lower }, select: { id: true } })
+             ?? await prisma.user.findFirst({ where: { referralCode: upper }, select: { id: true } })
+             ?? await prisma.user.findFirst({ where: { referralCode: raw   }, select: { id: true } });
       if (!referrer) return NextResponse.json({ error: 'Invalid referral code' }, { status: 400 });
     }
 

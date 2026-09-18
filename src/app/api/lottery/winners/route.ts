@@ -6,8 +6,9 @@ export async function GET(req: NextRequest) {
   const currentUserId = p?.sub;
 
   try {
+    const since36h = new Date(Date.now() - 36 * 60 * 60 * 1000);
     const drawnSeries = await prisma.lotterySeries.findMany({
-      where: { status: 'DRAWN' },
+      where: { status: 'DRAWN', drawnAt: { gte: since36h } },
       orderBy: { drawnAt: 'desc' },
       take: 20,
     });

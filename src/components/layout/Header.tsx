@@ -470,7 +470,7 @@ export default function Header() {
                     <input type="password" placeholder="Confirm password" required value={form.confirm}
                       onChange={e=>setForm({...form,confirm:e.target.value})} style={inp}/>
                     <input placeholder="Referral Code (optional)" value={form.referralCode}
-                      onChange={e=>setForm({...form,referralCode:e.target.value.toUpperCase()})}
+                      onChange={e=>setForm({...form,referralCode:e.target.value.trim()})}
                       style={{...inp, fontFamily:'monospace', letterSpacing:1, textTransform:'uppercase'}}/>
                     <p style={{fontSize:11,color:'var(--Secondary)',marginTop:-8}}>Enter a friend's referral code to get +10 bonus coins</p>
 
