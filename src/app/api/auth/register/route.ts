@@ -27,10 +27,11 @@ export async function POST(req: NextRequest) {
       const raw  = String(referralCode).trim();
       const lower = raw.toLowerCase();
       const upper = raw.toUpperCase();
-      // Try all case variants — cuid() stores lowercase but dashboard shows uppercase
+      console.log('Referral lookup:', { raw, lower, upper });
       referrer = await prisma.user.findFirst({ where: { referralCode: lower }, select: { id: true } })
              ?? await prisma.user.findFirst({ where: { referralCode: upper }, select: { id: true } })
              ?? await prisma.user.findFirst({ where: { referralCode: raw   }, select: { id: true } });
+      console.log('Referrer found:', referrer);
       if (!referrer) return NextResponse.json({ error: 'Invalid referral code' }, { status: 400 });
     }
 

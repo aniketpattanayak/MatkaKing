@@ -148,7 +148,7 @@ export default function DashboardPage() {
                 <div style={{background:'var(--Bg-3)',border:'1px solid rgba(255,203,82,0.4)',borderRadius:10,padding:'10px 18px',fontFamily:'monospace',fontWeight:900,fontSize:18,color:'#ffcb52',letterSpacing:2}}>
                   {user.referralCode.slice(0,10).toUpperCase()}
                 </div>
-                <button onClick={()=>{ navigator.clipboard.writeText(user.referralCode).then(()=>toast.success('Copied!')).catch(()=>{}); }} style={{height:44,padding:'0 18px',borderRadius:10,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontWeight:800,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
+                <button onClick={()=>{ navigator.clipboard.writeText(user.referralCode.slice(0,10).toUpperCase()).then(()=>toast.success('Copied!')).catch(()=>{}); }} style={{height:44,padding:'0 18px',borderRadius:10,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontWeight:800,fontSize:14,cursor:'pointer',display:'flex',alignItems:'center',gap:6}}>
                   <Copy size={14}/> Copy
                 </button>
               </div>
