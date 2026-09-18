@@ -24,8 +24,10 @@ export async function POST(req: NextRequest) {
 
     let referrer: { id: string } | null = null;
     if (referralCode && String(referralCode).trim()) {
+      const code = String(referralCode).trim();
+      // Case-insensitive search — form uppercases input but cuid() generates lowercase
       referrer = await prisma.user.findFirst({
-        where: { referralCode: String(referralCode).trim() },
+        where: { referralCode: { equals: code, mode: 'insensitive' } },
         select: { id: true },
       });
       if (!referrer) return NextResponse.json({ error: 'Invalid referral code' }, { status: 400 });

@@ -39,6 +39,13 @@ export async function GET() {
       const timeOpen = isMarketOpen(m.openTime, m.closeTime);
       const open = m.isOpen || timeOpen; // DB flag OR time-based
       return { ...m, isOpen: open, status: open ? 'OPEN' : 'CLOSED' };
+    }).filter((m: any) => {
+      // Hide markets that haven't reached their saleDatetime yet
+      if (m.saleDatetime) {
+        const saleAt = new Date(m.saleDatetime);
+        if (new Date() < saleAt) return false; // not yet visible to users
+      }
+      return true;
     });
     // Sort: OPEN markets first, then by openTime
     const sorted = [...enriched].sort((a:any, b:any) => {

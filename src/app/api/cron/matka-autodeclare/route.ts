@@ -35,19 +35,27 @@ function allPatties(type: 'SP' | 'DP' | 'TP'): string[] {
 }
 
 // Pick the patti (for the given session) that results in minimum payout
+// When no bets exist, returns a random valid patti for variety
 async function safestPatti(marketId: string, session: 'OPEN' | 'CLOSE', m: any): Promise<string> {
   const bets = await prisma.matkaBet.findMany({
     where: { marketId, status: 'ACTIVE' },
     select: { betType: true, betValue: true, session: true, amount: true },
   });
+
+  const candidates = [...allPatties('SP'), ...allPatties('DP'), ...allPatties('TP')];
+
+  // No bets at all — pick a random patti for variety (avoid always showing 012)
+  if (bets.length === 0) {
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
   const RATES: Record<string, number> = {
     ANK: m.payoutSingle, SINGLE_ANK: m.payoutSingle,
     SP: m.payoutSP, SINGLE_PATTI: m.payoutSP,
     DP: m.payoutDP, DOUBLE_PATTI: m.payoutDP,
     TP: m.payoutTP, TRIPLE_PATTI: m.payoutTP,
   };
-  const candidates = [...allPatties('SP'), ...allPatties('DP'), ...allPatties('TP')];
-  let bestPatti = '100';
+  let bestPatti = candidates[Math.floor(Math.random() * candidates.length)];
   let bestPayout = Infinity;
   for (const patti of candidates) {
     const ank = pattiAnk(patti);

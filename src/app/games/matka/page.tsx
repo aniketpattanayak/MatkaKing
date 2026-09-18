@@ -364,19 +364,19 @@ export default function MatkaPage() {
       const correctType = GAME_TYPES.find(g => g.key === autoClassifiedType);
       if (correctType) {
         // Add to cart with the correct type immediately
-        setCart(p => [...p, {
+        setCart(p => [{
           market: market.name, label: correctType.label, session,
           value: betValue, amount, potential: amount * correctType.payout,
-        }]);
+        }, ...p]);
         setDigits(Array(NUM_COLS).fill(null));
         toast.success(`Auto-classified as ${correctType.label}: ${betValue} added to cart!`);
         return;
       }
     }
-    setCart(p => [...p, {
+    setCart(p => [{
       market: market.name, label: gameType.label, session,
       value: betValue, amount, potential: amount * gameType.payout,
-    }]);
+    }, ...p]);
     setDigits(Array(NUM_COLS).fill(null));
     toast.success(`✅ Added: ${gameType.label} ${betValue} — ₹${amount}`);
   };
