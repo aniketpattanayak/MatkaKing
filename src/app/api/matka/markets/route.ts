@@ -23,11 +23,11 @@ export async function GET() {
       orderBy: { openTime: 'asc' },
       include: {
         results: {
-          // ── Fix: use last 72 hours so results remain visible after midnight
+          // ── Fix: use last 36 hours so results remain visible after midnight
           // and for admin/user views the same day the market was drawn.
           // Previously used "today midnight" which caused results to vanish
           // if the market opened+closed on the same calendar day or after midnight.
-          where: { createdAt: { gte: new Date(Date.now() - 72 * 60 * 60 * 1000) } },
+          where: { createdAt: { gte: new Date(Date.now() - 36 * 60 * 60 * 1000) } },
           orderBy: { createdAt: 'desc' },
           take: 1,
           select: { id:true, openPatti:true, closePatti:true, openAnk:true, closeAnk:true, jodi:true, declaredAt:true, totalPayout:true, isDummyResult:true },

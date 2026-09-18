@@ -215,11 +215,11 @@ export default function MatkaPage() {
         const normalized = markets.map((m: any) => {
           // Pick the most recent result within the 72-hour window returned by the API
           const latestResult = m.results?.[0] ?? null;
-          // Check if this result is within 72 hours (extra guard for display)
+          // Check if this result is within 36 hours (extra guard for display)
           const resultAge = latestResult?.declaredAt
             ? Date.now() - new Date(latestResult.declaredAt).getTime()
             : Infinity;
-          const resultVisible = latestResult && resultAge <= 72 * 60 * 60 * 1000;
+          const resultVisible = latestResult && resultAge <= 36 * 60 * 60 * 1000;
           return {
             ...m,
             open:   m.openTime   ?? m.open,
@@ -606,7 +606,7 @@ export default function MatkaPage() {
                     {/* Show when the result was declared and how long it will be visible */}
                     {m.declaredAt && (
                       <p style={{ fontSize:10, color:'var(--Secondary)', marginTop:4 }}>
-                        ⏱ Visible for {Math.max(0, 72 - Math.floor((Date.now() - new Date(m.declaredAt).getTime()) / (1000*60*60)))}h more
+                        ⏱ Visible for {Math.max(0, 36 - Math.floor((Date.now() - new Date(m.declaredAt).getTime()) / (1000*60*60)))}h more
                       </p>
                     )}
                   </div>
