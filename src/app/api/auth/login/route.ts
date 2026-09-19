@@ -50,9 +50,8 @@ export async function POST(req: NextRequest) {
         referralCode: user.referralCode,
       },
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error('login error:', e);
-    return json({ error: 'Server error' }, 500);
+    return json({ error: e?.message ?? 'Server error' }, 500);
   }
 }
-
