@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getCache, setCache } from '@/lib/api-helper';
 import { prisma, isAdminToken } from '@/lib/api-helper';
 
 export async function GET(req: NextRequest) {
+  const cached = getCache('admin:daily-stats');
+  if (cached) return NextResponse.json(cached);
   if (!isAdminToken(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   try {
     const today = new Date(); today.setHours(0,0,0,0);
@@ -31,7 +34,7 @@ export async function GET(req: NextRequest) {
         _sum: { wonAmount: true },
       }) as any;
     } catch(e) { /* wonAmount field may not exist */ }
-    return NextResponse.json({
+    const statsData = {
       date: today.toLocaleDateString('en-IN'),
       lotteryTicketsSoldToday: lotteryTicketsSold,
       matkaBetsToday,
@@ -41,7 +44,9 @@ export async function GET(req: NextRequest) {
       withdrawToday: withdrawToday._sum.coins ?? 0,
       matkaCollectedToday: matkaBetAmt._sum.amount ?? 0,
       matkaPaidToday: matkaWinAmt._sum.wonAmount ?? 0,
-    });
+    };
+    setCache('admin:daily-stats', statsData, 300000); // 5 min
+    return NextResponse.json(statsData);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, verifyToken, isAdminToken, json, clearCache } from '@/lib/api-helper';
+import { prisma, verifyToken, isAdminToken, json, clearCache, getCache, setCache } from '@/lib/api-helper';
 
 async function isAdmin(req: NextRequest) {
   const p = verifyToken(req);
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
       FULL_SANGAM: market?.payoutFullSangam ?? 11000,
     };
 
-    const bets = await prisma.matkaBet.findMany({
+    const bets = await prisma.matkaBet.findMany({ take: 1000,
       where: { marketId, status: 'ACTIVE' },
       select: { id:true, betType:true, betValue:true, session:true, amount:true },
     });
@@ -89,6 +89,9 @@ export async function GET(req: NextRequest) {
     return json({ winnerCount, totalPayout, totalBets, jodi, openAnk, closeAnk, isSafe: totalPayout <= totalBets * 1.3 });
   }
 
+  const adminCacheKey = 'admin:markets';
+  const adminCached = getCache(adminCacheKey);
+  if (adminCached) return NextResponse.json(adminCached);
   try {
     // Compute isOpen from IST time
     const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
@@ -113,11 +116,13 @@ export async function GET(req: NextRequest) {
       const open = m.isOpen || timeOpen; // DB flag OR time-based
       return { ...m, isOpen: open };
     });
-    return NextResponse.json({
+    const adminResp = {
       markets: enriched,
       pendingBets:    stats._sum.amount      ?? 0,
       potentialPayout: stats._sum.potentialWin ?? 0,
-    });
+    };
+    setCache(adminCacheKey, adminResp, 60000); // 1 min cache
+    return NextResponse.json(adminResp);
   } catch (e: any) {
     console.error('admin/markets GET error:', e.message);
     return NextResponse.json({ markets: [], pendingBets: 0, potentialPayout: 0 });

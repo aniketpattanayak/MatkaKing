@@ -46,7 +46,7 @@ export async function GET() {
       return new Date(s.saleStartAt) <= now2;
     });
     const resp = { series: onSale };
-    setCache('lottery:series', resp, 20000);
+    setCache('lottery:series', resp, 120000); // 2 min cache
     return NextResponse.json(resp);
   } catch (e: any) {
     return NextResponse.json({ series: [], error: e.message });

@@ -1,7 +1,10 @@
+import { getCache, setCache } from '@/lib/api-helper';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, isAdminToken } from '@/lib/api-helper';
 
 export async function GET(req: NextRequest) {
+  const cached = getCache('admin:history-stats');
+  if (cached) return NextResponse.json(cached);
   if (!isAdminToken(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const period = new URL(req.url).searchParams.get('period') ?? 'daily';
 
@@ -60,7 +63,9 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ days: result });
+    const resp = { days: result };
+    setCache('admin:history-stats', resp, 600000); // 10 min
+    return NextResponse.json(resp);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

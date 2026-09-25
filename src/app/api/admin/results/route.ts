@@ -6,13 +6,13 @@ export async function GET(req: NextRequest) {
 
   try {
     const [lotteryResults, matkaResults, spinResults] = await Promise.all([
-      prisma.lotterySeries.findMany({
+      prisma.lotterySeries.findMany({ take: 50,
         where: { status: 'DRAWN' },
         orderBy: { drawnAt: 'desc' },
         take: 20,
         include: { _count: { select: { tickets: true } } },
       }),
-      prisma.matkaResult.findMany({
+      prisma.matkaResult.findMany({ take: 50,
         where: { declaredAt: { not: null } },
         orderBy: { declaredAt: 'desc' },
         take: 30,

@@ -67,7 +67,7 @@ export async function GET() {
     });
     const resp = { markets: sorted };
     // 10 s cache — short enough that a freshly declared result appears quickly
-    setCache(cacheKey, resp, 10000);
+    setCache(cacheKey, resp, 120000); // 2 min cache
     return NextResponse.json(resp);
   } catch (e: any) {
     return NextResponse.json({ markets: [], error: e.message });

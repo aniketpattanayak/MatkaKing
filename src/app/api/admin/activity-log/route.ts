@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     // Use transaction table as activity log (already has all actions)
     const [transactions, payments, bets, total] = await Promise.all([
       // Recent deposits
-      prisma.transaction.findMany({
+      prisma.transaction.findMany({ take: 30,
         where:   { ...(type ? { type } : {}) },
         orderBy: { createdAt: 'desc' },
         take:    limit,
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
         },
       }),
       // Recent matka bets
-      prisma.matkaBet.findMany({
+      prisma.matkaBet.findMany({ take: 30,
         orderBy: { placedAt: 'desc' }, take: 10,
         select: {
           id: true, betType: true, betValue: true,
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
         },
       }),
       // Recent lottery purchases
-      prisma.lotteryBet.findMany({
+      prisma.lotteryBet.findMany({ take: 30,
         orderBy: { placedAt: 'desc' }, take: 10,
         select: {
           id: true, amountPaid: true, status: true, placedAt: true,

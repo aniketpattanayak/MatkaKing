@@ -1,3 +1,4 @@
+import { getCache, setCache } from '@/lib/api-helper';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, verifyToken } from '@/lib/api-helper';
 
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
       prisma.matkaBet.findMany({
         where:   { userId: p.sub },
         orderBy: { placedAt: 'desc' },
-        take:    500,
+        take:    20,
         include: {
           market: { select: { id: true, name: true, openTime: true, closeTime: true } },
           result: { select: { openPatti: true, closePatti: true, jodi: true, openAnk: true, closeAnk: true } },
@@ -19,7 +20,7 @@ export async function GET(req: NextRequest) {
       prisma.lotteryBet.findMany({
         where:   { userId: p.sub },
         orderBy: { placedAt: 'desc' },
-        take:    500,
+        take:    20,
         include: {
           series: { select: { id: true, name: true, status: true, drawAt: true, prefix: true, firstPrize: true, secondPrize: true, thirdPrize: true } },
           ticket: { select: { ticketCode: true, isWinner: true } },
