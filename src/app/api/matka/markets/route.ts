@@ -37,7 +37,16 @@ export async function GET() {
     const enriched = markets.map((m: any) => {
       // Market is open if: admin manually opened it OR current time is within window
       const timeOpen = isMarketOpen(m.openTime, m.closeTime);
-      const open = m.isOpen || timeOpen;
+      // Market is open if: admin manually opened OR within time window
+      // After saleTime but before closeTime - market is accessible (OPEN for betting)
+      const now2 = new Date();
+      const ist2 = new Date(now2.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+      const curMin2 = ist2.getHours()*60 + ist2.getMinutes();
+      const hm2 = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+      const afterSale = m.saleTime ? curMin2 >= hm2(m.saleTime) : true;
+      const beforeClose = curMin2 < hm2(m.closeTime);
+      const saleOpen = afterSale && beforeClose;
+      const open = m.isOpen || timeOpen || saleOpen;
       return { ...m, isOpen: open, status: open ? 'OPEN' : 'CLOSED' };
     }).filter((m: any) => {
       const now = new Date();

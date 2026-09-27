@@ -48,8 +48,8 @@ export async function GET(req: NextRequest) {
 
     const market = await prisma.matkaMarket.findUnique({ where: { id: marketId } });
     const PAYOUT: Record<string,number> = {
-      ANK: market?.payoutSingle ?? 90, SINGLE_ANK: market?.payoutSingle ?? 90,
-      JODI: market?.payoutJodi ?? 900,
+      ANK: market?.payoutSingle ?? 9, SINGLE_ANK: market?.payoutSingle ?? 9,
+      JODI: market?.payoutJodi ?? 90,
       SINGLE_PATTI: market?.payoutSP ?? 140, SP: market?.payoutSP ?? 140,
       DOUBLE_PATTI: market?.payoutDP ?? 280, DP: market?.payoutDP ?? 280,
       TRIPLE_PATTI: market?.payoutTP ?? 450, TP: market?.payoutTP ?? 450,
@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
         isActive: true,
         // Market starts closed — opens automatically at saleDatetime
         isOpen: false,
-        payoutSingle: 90, payoutJodi: 900, payoutSP: 140, payoutDP: 280, payoutTP: 450,
+        payoutSingle: 9, payoutJodi: 90, payoutSP: 140, payoutDP: 280, payoutTP: 450,
         payoutHalfSangam: 1500, payoutFullSangam: 11000,
       },
     });
