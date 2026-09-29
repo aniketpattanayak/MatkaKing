@@ -80,7 +80,24 @@ export async function GET() {
   try {
     const now = new Date();
     const log: string[] = [];
-    const markets = await prisma.matkaMarket.findMany({ where: { isActive: true } });
+    // Only fetch markets where action is needed NOW (saleDatetime/openDatetime/closeDatetime <= now)
+    // This means most minute calls will return 0 rows = 1 DB read only!
+    const allMarkets = await prisma.matkaMarket.findMany({
+      where: {
+        isActive: true,
+        isResultDeclared: false,
+        OR: [
+          { saleDatetime: { lte: now.toISOString() } },
+          { openDatetime:  { lte: now.toISOString() } },
+          { closeDatetime: { lte: now.toISOString() } },
+        ]
+      }
+    });
+    const markets = allMarkets;
+    // Early exit if nothing to process - saves all other DB reads
+    if (markets.length === 0) {
+      return NextResponse.json({ ok: true, time: now.toISOString(), processed: 0, log: [] });
+    }
 
     for (const m of markets) {
       const mkt = m as any;
