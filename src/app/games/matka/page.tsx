@@ -521,6 +521,8 @@ export default function MatkaPage() {
         [data-theme="light"] .market-card span { color: #111 !important; }
         [data-theme="light"] .market-card .result-summary { background: rgba(0,0,0,0.05) !important; border-color: rgba(0,0,0,0.1) !important; }
         [data-theme="light"] .view-results-btn { border-color: rgba(0,0,0,0.2) !important; color: #333 !important; }
+        [data-theme="light"] .ank-label { color: #444 !important; }
+        [data-theme="light"] .ank-value { color: #b45309 !important; }
         [data-theme="light"] .market-card .detail-cell { background: rgba(0,0,0,0.04) !important; }
       `}</style>
       <div style={{ paddingTop:120, minHeight:'100vh' }}>
@@ -584,8 +586,8 @@ export default function MatkaPage() {
                         <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:22, color: m.openPatti ? '#2ECC71' : 'var(--Secondary)', background: m.openPatti ? 'rgba(46,204,113,0.1)' : 'transparent', padding:'4px 10px', borderRadius:8 }}>
                           {m.openPatti ?? '???'}
                         </p>
-                        <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:2 }}>
-                          Ank: <strong style={{ color: m.openAnk!=null ? '#ffcb52' : 'var(--Secondary)' }}>{m.openAnk ?? '?'}</strong>
+                        <p style={{ fontSize:13, color:'var(--Secondary)', marginTop:2 }} className="ank-label">
+                          Ank: <strong className="ank-value" style={{ color: m.openAnk!=null ? '#ffcb52' : 'var(--Secondary)' }}>{m.openAnk ?? '?'}</strong>
                         </p>
                       </div>
                       <div style={{ fontSize:20, color:'var(--Secondary)' }}>—</div>
@@ -595,8 +597,8 @@ export default function MatkaPage() {
                         <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:22, color: m.closePatti ? '#3498DB' : 'var(--Secondary)', background: m.closePatti ? 'rgba(52,152,219,0.1)' : 'transparent', padding:'4px 10px', borderRadius:8 }}>
                           {m.closePatti ?? '???'}
                         </p>
-                        <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:2 }}>
-                          Ank: <strong style={{ color: m.closeAnk!=null ? '#ffcb52' : 'var(--Secondary)' }}>{m.closeAnk ?? '?'}</strong>
+                        <p style={{ fontSize:13, color:'var(--Secondary)', marginTop:2 }} className="ank-label">
+                          Ank: <strong className="ank-value" style={{ color: m.closeAnk!=null ? '#ffcb52' : 'var(--Secondary)' }}>{m.closeAnk ?? '?'}</strong>
                         </p>
                       </div>
                       {/* Jodi */}
