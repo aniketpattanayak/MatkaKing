@@ -184,6 +184,7 @@ export default function MatkaPage() {
   const [loggedIn,      setLoggedIn]     = useState(false);
   const [buying,        setBuying]       = useState(false);
   // Increments every time session flips → forces drums to re-scroll to correct digit
+  const [expandedResults, setExpandedResults] = useState<Record<string, boolean>>({});
   const [scrollTrigger, setScrollTrigger]= useState(0);
 
   // Clear only active columns when switching session
@@ -207,7 +208,7 @@ export default function MatkaPage() {
     refreshBalance().then(u => { if (u) { setBalance(u.balance); setLoggedIn(true); } });
 
     // Load markets from DB
-    fetch('/api/matka/markets')
+    const loadMarkets = () => { fetch('/api/matka/markets')
       .then(r => r.json())
       .then(d => {
         const markets = d.markets?.length > 0 ? d.markets : FALLBACK_MARKETS;
@@ -250,7 +251,10 @@ export default function MatkaPage() {
         setAllMarkets([]);
         setMarketsLoading(false);
       })
-      .finally(() => setMarketsLoading(false));
+      .finally(() => setMarketsLoading(false)); };
+    loadMarkets();
+    const interval = setInterval(loadMarkets, 30000); // refresh every 30s
+    return () => clearInterval(interval);
   }, []);
 
   // Clear on game type change
@@ -611,7 +615,13 @@ export default function MatkaPage() {
                     )}
                   </div>
 
-                  {/* Result values — vertical stacked: label on top, value below */}
+                  {/* View Results toggle */}
+                  <button
+                    onClick={e => { e.stopPropagation(); setExpandedResults(prev => ({ ...prev, [m.id]: !prev[m.id] })); }}
+                    style={{ width:'100%', padding:'7px 0', borderRadius:9, border:'1px solid rgba(255,255,255,0.1)', background:'transparent', color:'var(--Secondary)', fontWeight:600, fontSize:11, cursor:'pointer', marginBottom:12 }}>
+                    {(expandedResults[m.id] ?? false) ? '▲ Hide Details' : '▼ View Results'}
+                  </button>
+                  {(expandedResults[m.id] ?? false) && (
                   <div style={{ marginTop:12, background:'rgba(0,0,0,0.2)', borderRadius:12, overflow:'hidden', border:'1px solid rgba(255,255,255,0.06)' }}>
                     <p style={{ fontSize:9, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', letterSpacing:1, padding:'8px 12px 4px', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
                       {m.openPatti ? 'Latest Result' : 'Result Pending'}
@@ -678,6 +688,7 @@ export default function MatkaPage() {
                     </div>
                   </div>
 
+                  )}
                   {/* Play button */}
                   <div style={{ marginTop:24 }}>
                     <button style={{ width:'100%', height:48, borderRadius:14, border:'none', cursor:'pointer', fontWeight:800, fontSize:15, background: isOpen ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'rgba(100,100,100,0.2)', color: isOpen ? '#fff' : 'var(--Secondary)' }}>
@@ -1034,7 +1045,7 @@ export default function MatkaPage() {
                   <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--Secondary)' }}>INR</span>
                   <input type="number" min={1} value={amount}
                     onChange={e => setAmount(Math.max(1, parseInt(e.target.value) || 1))}
-                    style={{ flex: 1, padding: '9px 12px', borderRadius: 10, background: 'var(--Bg-3)', border: '1px solid var(--Border-2)', color: '#fff', fontSize: 18, fontWeight: 900, outline: 'none', textAlign: 'center' }} />
+                    style={{ flex: 1, padding: '9px 12px', borderRadius: 10, background: 'var(--Bg-3)', border: '1px solid var(--Border-2)', color: 'var(--White)', fontSize: 18, fontWeight: 900, outline: 'none', textAlign: 'center' }} />
                   <button onClick={() => setAmount(a => Math.max(1, Math.floor(a / 2)))} style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--Border)', background: 'var(--Bg-3)', color: 'var(--Secondary)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>½</button>
                   <button onClick={() => setAmount(a => a * 2)} style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--Border)', background: 'var(--Bg-3)', color: 'var(--Secondary)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>×2</button>
                 </div>
