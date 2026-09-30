@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     if (type !== 'ALL') where.type = type;
 
     const [transactions, total] = await Promise.all([
-      prisma.transaction.findMany({ take: 50,
+      prisma.transaction.findMany({
         where,
         include: {
           user:    { select: { id:true, name:true, email:true } },
