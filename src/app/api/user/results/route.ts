@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
       prisma.matkaBet.findMany({
         where:   { userId: p.sub },
         orderBy: { placedAt: 'desc' },
-        take:    20,
+        take:    100,
         include: {
           market: { select: { id: true, name: true, openTime: true, closeTime: true } },
           result: { select: { openPatti: true, closePatti: true, jodi: true, openAnk: true, closeAnk: true } },
