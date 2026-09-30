@@ -114,7 +114,7 @@ export async function GET() {
 
       let justDeclaredOpen = false; // flag to skip close in same run
       // ── 2. Auto-declare OPEN patti at openDatetime ───────────────────────
-      if (mkt.openDatetime && isOpen) {
+      if (mkt.openDatetime) {
         if (now >= parseIST(mkt.openDatetime)) {
           const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
           const existingResult = await prisma.matkaResult.findFirst({
@@ -161,7 +161,7 @@ export async function GET() {
 
       // ── 3. Auto-declare CLOSE patti at closeDatetime ─────────────────────
       // Skip if open was just declared in this same run (wait for next cron)
-      if (!justDeclaredOpen && mkt.closeDatetime && isOpen && !m.isResultDeclared) {
+      if (!justDeclaredOpen && mkt.closeDatetime && !m.isResultDeclared) {
         if (now >= parseIST(mkt.closeDatetime)) {
           const since24hClose = new Date(now.getTime() - 24 * 60 * 60 * 1000);
           const result = await prisma.matkaResult.findFirst({
