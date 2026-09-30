@@ -153,6 +153,8 @@ export default function AdminPage() {
   const [txnLoading,     setTxnLoading]     = useState(false);
   // Withdrawals tab state
   const [withdrawals,    setWithdrawals]    = useState<any[]>([]);
+  const [wdPage,         setWdPage]         = useState(1);
+  const WD_PAGE_SIZE = 20;
   const [wdTotal,        setWdTotal]        = useState(0);
   const [wdFilter,       setWdFilter]       = useState<'ALL'|'PENDING'|'SUCCESS'>('PENDING');
   const [wdLoading,      setWdLoading]      = useState(false);
@@ -1984,7 +1986,7 @@ export default function AdminPage() {
                 {/* Filter tabs */}
                 <div style={{display:'flex',gap:6,background:'var(--Bg-2)',borderRadius:12,padding:4,marginBottom:16,border:'1px solid var(--Border)',width:'fit-content'}}>
                   {(['PENDING','ALL','SUCCESS'] as const).map(f=>(
-                    <button key={f} onClick={()=>{ setWdFilter(f); loadWd(f); }} style={{padding:'7px 18px',borderRadius:8,border:'none',cursor:'pointer',fontWeight:700,fontSize:12,background:wdFilter===f?'linear-gradient(270deg,#fe8c45,#ca2826)':'transparent',color:wdFilter===f?'#fff':'var(--Secondary)'}}>
+                    <button key={f} onClick={()=>{ setWdFilter(f); setWdPage(1); loadWd(f); }} style={{padding:'7px 18px',borderRadius:8,border:'none',cursor:'pointer',fontWeight:700,fontSize:12,background:wdFilter===f?'linear-gradient(270deg,#fe8c45,#ca2826)':'transparent',color:wdFilter===f?'#fff':'var(--Secondary)'}}>
                       {f==='PENDING'?`⏳ Pending (${pending.length})`:f==='SUCCESS'?`✅ Paid (${paid.length})`:`All (${withdrawals.length})`}
                     </button>
                   ))}
@@ -2008,7 +2010,7 @@ export default function AdminPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {displayed.map((w:any) => {
+                        {displayed.slice((Math.min(wdPage,Math.ceil(displayed.length/WD_PAGE_SIZE)||1)-1)*WD_PAGE_SIZE, Math.min(wdPage,Math.ceil(displayed.length/WD_PAGE_SIZE)||1)*WD_PAGE_SIZE).map((w:any) => {
                           const oid = w.orderId ?? '';
                           const upi = oid.match(/UPI:([^-]+@[^-]+)/)?.[1];
                           const ph  = oid.match(/PHONEPE:(\d+)/)?.[1];
@@ -2070,10 +2072,24 @@ export default function AdminPage() {
                         })}
                       </tbody>
                     </table>
-                    <div style={{padding:'12px 16px',borderTop:'1px solid var(--Border)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                      <p style={{fontSize:12,color:'var(--Secondary)'}}>Showing {displayed.length} withdrawal{displayed.length!==1?'s':''}</p>
-                      <p style={{fontSize:13,fontWeight:700,color:'#ef4444'}}>Total: ₹{totalAmt.toLocaleString()}</p>
-                    </div>
+                    {(() => {
+                      const totalPages = Math.ceil(displayed.length / WD_PAGE_SIZE);
+                      const page = Math.min(wdPage, totalPages || 1);
+                      return (
+                        <div style={{padding:'12px 16px',borderTop:'1px solid var(--Border)',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+                          <p style={{fontSize:12,color:'var(--Secondary)'}}>
+                            Showing {Math.min((page-1)*WD_PAGE_SIZE+1, displayed.length)}–{Math.min(page*WD_PAGE_SIZE, displayed.length)} of {displayed.length} · Total ₹{totalAmt.toLocaleString()}
+                          </p>
+                          <div style={{display:'flex',gap:4,alignItems:'center'}}>
+                            <button onClick={()=>setWdPage(p=>Math.max(1,p-1))} disabled={page<=1} style={{padding:'5px 12px',borderRadius:7,border:'1px solid var(--Border)',background:'var(--Bg-2)',color:'var(--Secondary)',cursor:page<=1?'not-allowed':'pointer',fontWeight:700,fontSize:12,opacity:page<=1?0.4:1}}>‹ Prev</button>
+                            {Array.from({length:totalPages},(_,i)=>i+1).filter(p=>Math.abs(p-page)<=2).map(p=>(
+                              <button key={p} onClick={()=>setWdPage(p)} style={{padding:'5px 10px',borderRadius:7,border:'none',background:p===page?'linear-gradient(270deg,#fe8c45,#ca2826)':'var(--Bg-2)',color:p===page?'#fff':'var(--Secondary)',cursor:'pointer',fontWeight:700,fontSize:12,minWidth:32}}>{p}</button>
+                            ))}
+                            <button onClick={()=>setWdPage(p=>Math.min(totalPages,p+1))} disabled={page>=totalPages} style={{padding:'5px 12px',borderRadius:7,border:'1px solid var(--Border)',background:'var(--Bg-2)',color:'var(--Secondary)',cursor:page>=totalPages?'not-allowed':'pointer',fontWeight:700,fontSize:12,opacity:page>=totalPages?0.4:1}}>Next ›</button>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>

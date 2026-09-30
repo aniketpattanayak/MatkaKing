@@ -253,8 +253,12 @@ export default function MatkaPage() {
       })
       .finally(() => setMarketsLoading(false)); };
     loadMarkets();
-    const interval = setInterval(loadMarkets, 30000); // refresh every 30s
-    return () => clearInterval(interval);
+    // Smart interval: 60s if any market open, 5min if all closed
+    const getDelay = () => allMarkets.some((m:any) => m.status === 'OPEN') ? 60000 : 300000;
+    let timer: ReturnType<typeof setTimeout>;
+    const schedule = () => { timer = setTimeout(() => { loadMarkets(); schedule(); }, getDelay()); };
+    schedule();
+    return () => clearTimeout(timer);
   }, []);
 
   // Clear on game type change
@@ -510,6 +514,15 @@ export default function MatkaPage() {
   if (!marketSelected) return (
     <>
       <Header />
+      <style>{`
+        [data-theme="light"] .market-card { background: #ffffff !important; border-color: rgba(0,0,0,0.15) !important; }
+        [data-theme="light"] .market-card h2 { color: #111 !important; }
+        [data-theme="light"] .market-card p { color: #444 !important; }
+        [data-theme="light"] .market-card span { color: #111 !important; }
+        [data-theme="light"] .market-card .result-summary { background: rgba(0,0,0,0.05) !important; border-color: rgba(0,0,0,0.1) !important; }
+        [data-theme="light"] .view-results-btn { border-color: rgba(0,0,0,0.2) !important; color: #333 !important; }
+        [data-theme="light"] .market-card .detail-cell { background: rgba(0,0,0,0.04) !important; }
+      `}</style>
       <div style={{ paddingTop:120, minHeight:'100vh' }}>
         <div className="tf-container" style={{ paddingTop:40, paddingBottom:60 }}>
           <div style={{ textAlign:'center', marginBottom:40 }}>
@@ -522,7 +535,7 @@ export default function MatkaPage() {
               const isOpen = m.status === 'OPEN' || m.isOpen;
               return (
                 <div key={m.id} onClick={()=>{ if(!loggedIn){ toast.error('Please login to play'); return; } setMarket(m); setMarketSelected(true); }}
-                  style={{ background:'linear-gradient(135deg,var(--Bg-2),var(--Bg-10))', borderRadius:24, padding:32, border:`2px solid ${isOpen?'rgba(46,204,113,0.4)':'rgba(100,100,100,0.2)'}`, cursor:'pointer', transition:'all 0.2s', position:'relative', overflow:'hidden' }}
+                  className="market-card" style={{ background:'linear-gradient(135deg,var(--Bg-2),var(--Bg-10,var(--Bg-2)))', borderRadius:24, padding:28, border:`2px solid ${isOpen?'rgba(46,204,113,0.4)':'rgba(100,100,100,0.2)'}`, cursor:'pointer', transition:'all 0.2s', position:'relative', overflow:'hidden' }}
                   onMouseEnter={e=>(e.currentTarget.style.transform='translateY(-4px)')}
                   onMouseLeave={e=>(e.currentTarget.style.transform='translateY(0)')}>
 
