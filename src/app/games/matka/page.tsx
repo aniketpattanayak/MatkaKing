@@ -527,9 +527,17 @@ export default function MatkaPage() {
       `}</style>
       <div style={{ paddingTop:120, minHeight:'100vh' }}>
         <div className="tf-container" style={{ paddingTop:40, paddingBottom:60 }}>
-          <div style={{ textAlign:'center', marginBottom:40 }}>
+          <div style={{ textAlign:'center', marginBottom:40, position:'relative' }}>
             <h1 style={{ fontWeight:900, fontSize:36, marginBottom:10 }}>Money Bank</h1>
             <p style={{ color:'var(--Secondary)', fontSize:16 }}>Select a market to start playing</p>
+            <div style={{ display:'flex', justifyContent:'center', gap:12, marginTop:16 }}>
+              <a href="/game-guide" style={{ padding:'8px 20px', borderRadius:999, border:'1px solid var(--Border)', background:'var(--Bg-2)', color:'var(--Secondary)', fontSize:13, fontWeight:600, textDecoration:'none', display:'inline-flex', alignItems:'center', gap:6 }}>
+                📖 Game Guide
+              </a>
+              <button onClick={()=>{ setMarketsLoading(true); fetch('/api/matka/markets').then(r=>r.json()).then(d=>{ if(d.markets) setAllMarkets(d.markets); }).finally(()=>setMarketsLoading(false)); }} style={{ padding:'8px 20px', borderRadius:999, border:'1px solid var(--Border)', background:'var(--Bg-2)', color:'var(--Secondary)', fontSize:13, fontWeight:600, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
+                🔄 Refresh
+              </button>
+            </div>
           </div>
 
           <div className='market-grid' style={{ maxWidth:1000, margin:'0 auto' }}>
@@ -706,8 +714,10 @@ export default function MatkaPage() {
                   )}
                   {/* Play button */}
                   <div style={{ marginTop:24 }}>
-                    <button style={{ width:'100%', height:48, borderRadius:14, border:'none', cursor:'pointer', fontWeight:800, fontSize:15, background: isOpen ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'rgba(100,100,100,0.2)', color: isOpen ? '#fff' : 'var(--Secondary)' }}>
-                      {isOpen ? 'Play Now →' : 'View Results'}
+                    <button
+                      onClick={e => { e.stopPropagation(); if (isOpen) setMarket(m); }}
+                      style={{ width:'100%', height:48, borderRadius:14, border:'none', cursor: isOpen ? 'pointer' : 'not-allowed', fontWeight:800, fontSize:15, background: isOpen ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'rgba(100,100,100,0.2)', color: isOpen ? '#fff' : 'var(--Secondary)', opacity: isOpen ? 1 : 0.7 }}>
+                      {isOpen ? 'Play Now →' : '🔒 Market Closed'}
                     </button>
                   </div>
                 </div>
@@ -731,7 +741,7 @@ export default function MatkaPage() {
           {/* Markets */}
           <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
             {allMarkets.map(m => (
-              <div key={m.id} onClick={() => m.status !== 'CLOSED' && setMarket(m)} style={{
+              <div key={m.id} onClick={() => { if (m.status !== 'CLOSED' && m.isOpen) setMarket(m); }} style={{
                 minWidth: 240, flexShrink: 0, borderRadius: 14, overflow: 'hidden',
                 cursor: m.status !== 'CLOSED' ? 'pointer' : 'default',
                 border: `2px solid ${market.id === m.id ? '#fe8c45' : 'var(--Border)'}`,

@@ -22,6 +22,15 @@ export async function POST(req: NextRequest) {
     });
     if (exists) return NextResponse.json({ error: 'Email already registered' }, { status: 409 });
 
+    // Check username uniqueness
+    if (name && name.trim()) {
+      const nameExists = await prisma.user.findFirst({
+        where: { name: { equals: name.trim(), mode: 'insensitive' } },
+        select: { id: true },
+      });
+      if (nameExists) return NextResponse.json({ error: 'Username already taken. Please choose a different name.' }, { status: 409 });
+    }
+
     let referrer: { id: string } | null = null;
     if (referralCode && String(referralCode).trim()) {
       const raw  = String(referralCode).trim();

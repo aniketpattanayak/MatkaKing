@@ -3,8 +3,8 @@ import { Toaster } from 'sonner';
 import ThemeToggle from '@/components/ThemeToggle';
 
 export const metadata: Metadata = {
-  title: 'KismatHub',
-  description: 'KismatHub Gaming Platform',
+  title: 'Money Notes',
+  description: 'Money Notes - Gaming Platform',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

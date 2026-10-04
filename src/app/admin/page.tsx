@@ -153,6 +153,9 @@ export default function AdminPage() {
   const [txnLoading,     setTxnLoading]     = useState(false);
   // Withdrawals tab state
   const [withdrawals,    setWithdrawals]    = useState<any[]>([]);
+  const [wdStats,        setWdStats]        = useState<any[]>([]);
+  const [adminAuthForm,  setAdminAuthForm]  = useState({ currentPassword:'', newEmail:'41vd786456369@gmail.com', newPassword:'' });
+  const [adminAuthLoading, setAdminAuthLoading] = useState(false);
   const [wdPage,         setWdPage]         = useState(1);
   const WD_PAGE_SIZE = 20;
   const [wdTotal,        setWdTotal]        = useState(0);
@@ -844,6 +847,50 @@ export default function AdminPage() {
               <div style={{background:'var(--Bg-2)',borderRadius:16,border:'1px solid var(--Border)',padding:24,marginTop:16}}>
                 <h4 style={{fontWeight:900,fontSize:16,marginBottom:4}}>💸 Withdrawal Settings</h4>
                 <p style={{color:'var(--Secondary)',fontSize:12,marginBottom:20}}>Control minimum/maximum withdrawal and daily limit</p>
+              {/* ── Admin Account Settings ── */}
+              <div style={{marginTop:32, padding:'24px', background:'var(--Bg-2)', borderRadius:16, border:'1px solid var(--Border)'}}>
+                <h3 style={{fontWeight:700,fontSize:15,marginBottom:4}}>🔐 Admin Account</h3>
+                <p style={{color:'var(--Secondary)',fontSize:12,marginBottom:20}}>Change admin email or password</p>
+
+                <div style={{display:'grid',gap:16}}>
+                  <div>
+                    <label style={{...label}}>Current Password (required for any change)</label>
+                    <input type="password" placeholder="Enter current password" value={adminAuthForm.currentPassword}
+                      onChange={e=>setAdminAuthForm(p=>({...p,currentPassword:e.target.value}))} style={{...inp}} />
+                  </div>
+                  <div>
+                    <label style={{...label}}>New Email</label>
+                    <input type="email" placeholder="41vd786456369@gmail.com" value={adminAuthForm.newEmail}
+                      onChange={e=>setAdminAuthForm(p=>({...p,newEmail:e.target.value}))} style={{...inp}} />
+                    <button onClick={async()=>{
+                      if(!adminAuthForm.currentPassword||!adminAuthForm.newEmail){toast.error('Fill current password and new email');return;}
+                      setAdminAuthLoading(true);
+                      const r=await authFetch('/api/admin/auth',{method:'POST',body:JSON.stringify({action:'changeEmail',newEmail:adminAuthForm.newEmail,currentPassword:adminAuthForm.currentPassword})});
+                      const d=await r.json();
+                      if(d.ok)toast.success('Email updated!');else toast.error(d.error||'Failed');
+                      setAdminAuthLoading(false);
+                    }} disabled={adminAuthLoading} style={{marginTop:8,padding:'8px 20px',borderRadius:10,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+                      Update Email
+                    </button>
+                  </div>
+                  <div>
+                    <label style={{...label}}>New Password</label>
+                    <input type="password" placeholder="Min 6 characters" value={adminAuthForm.newPassword}
+                      onChange={e=>setAdminAuthForm(p=>({...p,newPassword:e.target.value}))} style={{...inp}} />
+                    <button onClick={async()=>{
+                      if(!adminAuthForm.currentPassword||!adminAuthForm.newPassword){toast.error('Fill current password and new password');return;}
+                      setAdminAuthLoading(true);
+                      const r=await authFetch('/api/admin/auth',{method:'POST',body:JSON.stringify({action:'changePassword',newPassword:adminAuthForm.newPassword,currentPassword:adminAuthForm.currentPassword})});
+                      const d=await r.json();
+                      if(d.ok){toast.success('Password updated!');setAdminAuthForm(p=>({...p,currentPassword:'',newPassword:''}))}else toast.error(d.error||'Failed');
+                      setAdminAuthLoading(false);
+                    }} disabled={adminAuthLoading} style={{marginTop:8,padding:'8px 20px',borderRadius:10,border:'none',background:'var(--Bg-3)',color:'var(--White)',fontWeight:700,fontSize:13,cursor:'pointer',border:'1px solid var(--Border)'}}>
+                      Update Password
+                    </button>
+                  </div>
+                </div>
+              </div>
+
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:16}}>
                   <div>
                     <label style={{fontSize:11,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Min Withdrawal (₹)</label>
