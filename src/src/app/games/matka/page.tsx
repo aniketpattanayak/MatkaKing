@@ -1,0 +1,1513 @@
+'use client';
+import React from 'react';
+
+import { useState, useEffect, useRef, useCallback } from 'react';
+export const dynamic = 'force-dynamic'; // prevents static prerender where market=null
+import Link from 'next/link';
+import { toast } from 'sonner';
+import Header from '@/components/layout/Header';
+import { authFetch, getCachedUser, setCachedUser, fetchCurrentUser, refreshBalance } from '@/lib/auth-client';
+
+// ─── Config ───────────────────────────────────────────────────────────────────
+
+// Markets loaded from DB — seeded by admin
+const FALLBACK_MARKETS = [
+  { id: 'milan-day',   name: 'Milan Day',   openTime: '09:30', closeTime: '11:30', resultTime: '12:00', isOpen: true,  results: [] },
+  { id: 'kalyan',      name: 'Kalyan',       openTime: '15:45', closeTime: '17:45', resultTime: '18:00', isOpen: true,  results: [] },
+  { id: 'milan-night', name: 'Milan Night',  openTime: '21:00', closeTime: '23:00', resultTime: '23:30', isOpen: false, results: [] },
+];
+
+// maxSelect = max columns user can select at once
+const GAME_TYPES = [
+  { key: 'ANK',          label: 'Ank',        payout: 9,     maxSelect: 1, desc: 'Pick 1 digit (0-9)', disableAfterOpen: false },
+  { key: 'JODI',         label: 'Jodi',        payout: 90,    maxSelect: 2, desc: 'Pick 2-digit jodi (00-99)', disableAfterOpen: true },
+  { key: 'SINGLE_PATTI', label: 'SP',          payout: 140,   maxSelect: 3, desc: 'SP: All 3 digits different (e.g. 123, 456, 789) — Win ×140', disableAfterOpen: false, openSessionOnly: false },
+  { key: 'DOUBLE_PATTI', label: 'DP',          payout: 280,   maxSelect: 3, desc: 'DP: Exactly 2 same digits (e.g. 112, 223, 344) — Win ×280', disableAfterOpen: false, openSessionOnly: false },
+  { key: 'TRIPLE_PATTI', label: 'TP',          payout: 450,   maxSelect: 3, desc: 'TP: All 3 digits same (e.g. 111, 222, 333) — Win ×450', disableAfterOpen: false, openSessionOnly: false },
+  { key: 'HALF_SANGAM',  label: 'Half Sangam', payout: 1500,  maxSelect: 4, desc: 'Open Patti + Close Ank (e.g. 145-5) — Open session only', disableAfterOpen: true, openSessionOnly: true },
+  { key: 'FULL_SANGAM',  label: 'Full Sangam', payout: 11000, maxSelect: 6, desc: 'Open Patti + Close Patti', disableAfterOpen: true },
+];
+
+const NUM_COLS = 8;
+const ITEM_H   = 50;   // px height of each digit row
+const VISIBLE  = 5;    // visible rows; centre = selected
+const DIGITS   = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+interface CartItem {
+  market: string; label: string; session: 'OPEN'|'CLOSE';
+  value: string; amount: number; potential: number;
+}
+
+// ─── Single drum column ───────────────────────────────────────────────────────
+
+function DrumColumn({
+  colKey, digit, onChange, active, scrollTrigger,
+}: {
+  colKey: string;
+  digit: number | null;   // null = not selected yet (shows 0 by default)
+  onChange: (d: number | null) => void;
+  active: boolean;        // false = greyed out, cannot interact
+  scrollTrigger?: number; // increment this to force a re-scroll (e.g. on session flip)
+}) {
+  const ref    = useRef<HTMLDivElement>(null);
+  const lock   = useRef(false);
+  const shown  = digit ?? 0;
+
+  // Scroll to the current digit — also re-fires when scrollTrigger changes (session flip)
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const target = shown * ITEM_H;
+    lock.current = true;
+    el.scrollTo({ top: target, behavior: 'smooth' });
+    setTimeout(() => { lock.current = false; }, 450);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shown, colKey, scrollTrigger]);
+
+  const snap = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    const idx = Math.max(0, Math.min(9, Math.round(el.scrollTop / ITEM_H)));
+    lock.current = true;
+    el.scrollTo({ top: idx * ITEM_H, behavior: 'smooth' });
+    onChange(idx);
+    setTimeout(() => { lock.current = false; }, 350);
+  }, [onChange]);
+
+  const onScroll = useCallback(() => {
+    if (lock.current) return;
+    const el = ref.current;
+    if (!el) return;
+    const idx = Math.max(0, Math.min(9, Math.round(el.scrollTop / ITEM_H)));
+    onChange(idx);
+  }, [onChange]);
+
+  return (
+    <div style={{
+      position: 'relative',
+      width: 44,
+      height: ITEM_H * VISIBLE,
+      borderRadius: 12,
+      overflow: 'hidden',
+      opacity: active ? 1 : 0.22,
+      pointerEvents: active ? 'auto' : 'none',
+      background: digit !== null ? 'rgba(254,140,69,0.06)' : 'transparent',
+      border: `1px solid ${digit !== null ? 'rgba(254,140,69,0.35)' : 'rgba(255,255,255,0.07)'}`,
+      transition: 'all 0.2s',
+    }}>
+
+      {/* Top fade */}
+      <div style={{ position:'absolute', top:0, left:0, right:0, height: ITEM_H * 2, zIndex:2, pointerEvents:'none',
+        background:'linear-gradient(to bottom, var(--Bg-2) 0%, rgba(0,0,0,0) 100%)' }} />
+
+      {/* Bottom fade */}
+      <div style={{ position:'absolute', bottom:0, left:0, right:0, height: ITEM_H * 2, zIndex:2, pointerEvents:'none',
+        background:'linear-gradient(to top, var(--Bg-2) 0%, rgba(0,0,0,0) 100%)' }} />
+
+      {/* Centre selection line */}
+      <div style={{
+        position:'absolute', top: ITEM_H * 2, left:0, right:0, height: ITEM_H,
+        zIndex:3, pointerEvents:'none',
+        borderTop:`2px solid ${digit !== null ? 'rgba(254,140,69,0.9)' : 'rgba(255,255,255,0.15)'}`,
+        borderBottom:`2px solid ${digit !== null ? 'rgba(254,140,69,0.9)' : 'rgba(255,255,255,0.15)'}`,
+        background: digit !== null ? 'rgba(254,140,69,0.08)' : 'transparent',
+        transition:'all 0.2s',
+      }} />
+
+      {/* Scroll container — use spacer divs NOT padding so maxScrollTop is correct */}
+      <div
+        ref={ref}
+        onScroll={onScroll}
+        onMouseUp={snap}
+        onTouchEnd={snap}
+        style={{
+          height: ITEM_H * VISIBLE,
+          overflowY: 'scroll',
+          scrollSnapType: 'y mandatory',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        } as React.CSSProperties}
+      >
+        {/* Top spacer so digit 0 can sit at centre line */}
+        <div style={{ height: ITEM_H * 2, flexShrink: 0 }} />
+
+        {DIGITS.map(d => (
+          <div
+            key={d}
+            onClick={() => onChange(d)}
+            style={{
+              height: ITEM_H,
+              scrollSnapAlign: 'center',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: d === shown ? 30 : 20,
+              fontWeight: d === shown ? 900 : 400,
+              color: d === shown && digit !== null
+                ? '#ffcb52'
+                : d === shown
+                ? 'var(--White)'
+                : 'var(--Secondary)',
+              cursor: 'pointer',
+              fontFamily: 'monospace',
+              transition: 'font-size 0.1s, color 0.1s',
+              userSelect: 'none',
+            }}
+          >
+            {d}
+          </div>
+        ))}
+
+        {/* Bottom spacer so digit 9 can sit at centre line */}
+        <div style={{ height: ITEM_H * 2, flexShrink: 0 }} />
+      </div>
+    </div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+
+// ── Canvas-based gold coin & money rain background ───────────────────────────
+function LotteryBackground() {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const mouseRef  = React.useRef({ x: 0.5, y: 0.5 });
+
+  React.useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
+    let raf: number;
+    let W = 0, H = 0;
+
+    const resize = () => {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const onMouse = (e: MouseEvent) => {
+      mouseRef.current = { x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight };
+    };
+    window.addEventListener('mousemove', onMouse);
+
+    // Particle types
+    type Kind = 'coin' | 'note' | 'diamond' | 'star' | 'crown';
+    interface Particle {
+      x: number; y: number; vx: number; vy: number;
+      size: number; rotation: number; rotSpeed: number;
+      alpha: number; alphaSpeed: number; alphaDir: number;
+      kind: Kind; color: string; depth: number;
+    }
+
+    const COLORS = {
+      coin:    ['#FFD700','#FFC200','#FFB800','#FFCB52'],
+      note:    ['#4CAF50','#66BB6A','#81C784','#2E7D32'],
+      diamond: ['#64B5F6','#42A5F5','#90CAF9','#1E88E5'],
+      star:    ['#FF8A65','#FE8C45','#FF7043','#FF5722'],
+      crown:   ['#CE93D8','#BA68C8','#AB47BC','#9C27B0'],
+    };
+
+    const particles: Particle[] = [];
+    const KINDS: Kind[] = ['coin','coin','coin','note','diamond','star','crown'];
+    const COUNT = 55;
+
+    for (let i = 0; i < COUNT; i++) {
+      const kind = KINDS[Math.floor(Math.random() * KINDS.length)];
+      const cols = COLORS[kind];
+      particles.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: -(0.5 + Math.random() * 1.2),
+        size: 18 + Math.random() * 36,
+        rotation: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.04,
+        alpha: 0.45 + Math.random() * 0.5,
+        alphaSpeed: 0.003 + Math.random() * 0.005,
+        alphaDir: 1,
+        kind,
+        color: cols[Math.floor(Math.random() * cols.length)],
+        depth: 0.5 + Math.random() * 2.5,
+      });
+    }
+
+    const drawCoin = (ctx: CanvasRenderingContext2D, size: number, color: string) => {
+      // Outer ring
+      ctx.beginPath();
+      ctx.arc(0, 0, size, 0, Math.PI * 2);
+      const g = ctx.createRadialGradient(-size*0.3, -size*0.3, size*0.1, 0, 0, size);
+      g.addColorStop(0, color + 'ff');
+      g.addColorStop(0.6, color + 'cc');
+      g.addColorStop(1, color + '66');
+      ctx.fillStyle = g;
+      ctx.fill();
+      // Inner ring
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.7, 0, Math.PI * 2);
+      ctx.strokeStyle = color + '99';
+      ctx.lineWidth = size * 0.08;
+      ctx.stroke();
+      // ₹ symbol
+      ctx.fillStyle = '#00000088';
+      ctx.font = `bold ${size * 0.8}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('₹', 0, size * 0.05);
+      // Shine
+      ctx.beginPath();
+      ctx.ellipse(-size*0.25, -size*0.3, size*0.2, size*0.1, -0.5, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fill();
+    };
+
+    const drawNote = (ctx: CanvasRenderingContext2D, size: number, color: string) => {
+      const w = size * 1.8, h = size * 0.9;
+      ctx.beginPath();
+      ctx.roundRect(-w/2, -h/2, w, h, size * 0.15);
+      ctx.fillStyle = color + 'cc';
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      // Inner border
+      ctx.beginPath();
+      ctx.roundRect(-w/2+4, -h/2+4, w-8, h-8, size*0.08);
+      ctx.strokeStyle = color + '88';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // ₹ text
+      ctx.fillStyle = '#ffffff99';
+      ctx.font = `bold ${size*0.6}px serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('₹500', 0, 0);
+    };
+
+    const drawDiamond = (ctx: CanvasRenderingContext2D, size: number, color: string) => {
+      ctx.beginPath();
+      ctx.moveTo(0, -size); ctx.lineTo(size*0.7, 0);
+      ctx.lineTo(0, size);  ctx.lineTo(-size*0.7, 0);
+      ctx.closePath();
+      const g = ctx.createLinearGradient(0, -size, 0, size);
+      g.addColorStop(0, color + 'ff');
+      g.addColorStop(0.5, color + 'cc');
+      g.addColorStop(1, color + '66');
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      // Facets
+      ctx.beginPath();
+      ctx.moveTo(0, -size); ctx.lineTo(size*0.7, 0); ctx.lineTo(0, 0); ctx.closePath();
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fill();
+    };
+
+    const drawStar = (ctx: CanvasRenderingContext2D, size: number, color: string) => {
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const r = i % 2 === 0 ? size : size * 0.45;
+        const a = (i * Math.PI) / 5 - Math.PI / 2;
+        i === 0 ? ctx.moveTo(Math.cos(a)*r, Math.sin(a)*r) : ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+      }
+      ctx.closePath();
+      ctx.fillStyle = color + 'dd';
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    };
+
+    const drawCrown = (ctx: CanvasRenderingContext2D, size: number, color: string) => {
+      ctx.beginPath();
+      ctx.moveTo(-size, size*0.3);
+      ctx.lineTo(-size, -size*0.1);
+      ctx.lineTo(-size*0.5, -size*0.6);
+      ctx.lineTo(0, -size*0.1);
+      ctx.lineTo(size*0.5, -size*0.6);
+      ctx.lineTo(size, -size*0.1);
+      ctx.lineTo(size, size*0.3);
+      ctx.closePath();
+      ctx.fillStyle = color + 'cc';
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      // Jewels
+      for (const [jx, jy] of [[-size*0.5, 0],[0, -size*0.05],[size*0.5, 0]]) {
+        ctx.beginPath();
+        ctx.arc(jx, jy, size*0.12, 0, Math.PI*2);
+        ctx.fillStyle = '#ff6b6b';
+        ctx.fill();
+      }
+    };
+
+    const draw = (p: Particle) => {
+      const mx = (mouseRef.current.x - 0.5) * p.depth * 30;
+      const my = (mouseRef.current.y - 0.5) * p.depth * 20;
+      ctx.save();
+      ctx.translate(p.x + mx, p.y + my);
+      ctx.rotate(p.rotation);
+      ctx.globalAlpha = p.alpha;
+      // Glow effect
+      ctx.shadowBlur = 22;
+      ctx.shadowColor = p.color;
+      if (p.kind === 'coin')    drawCoin(ctx, p.size, p.color);
+      if (p.kind === 'note')    drawNote(ctx, p.size, p.color);
+      if (p.kind === 'diamond') drawDiamond(ctx, p.size, p.color);
+      if (p.kind === 'star')    drawStar(ctx, p.size, p.color);
+      if (p.kind === 'crown')   drawCrown(ctx, p.size, p.color);
+      ctx.shadowBlur = 0;
+      ctx.restore();
+    };
+
+    const tick = () => {
+      ctx.clearRect(0, 0, W, H);
+
+      // Background glow orbs — bright vivid like lrbc.ai reference
+      const mx = mouseRef.current.x, my = mouseRef.current.y;
+      // Orange orb (top-left), follows mouse
+      const g1 = ctx.createRadialGradient(W*0.15 + mx*60, H*0.2 + my*40, 0, W*0.15 + mx*60, H*0.2 + my*40, W*0.55);
+      g1.addColorStop(0, 'rgba(254,140,69,0.55)');
+      g1.addColorStop(0.4, 'rgba(254,120,40,0.28)');
+      g1.addColorStop(1, 'transparent');
+      ctx.fillStyle = g1; ctx.fillRect(0,0,W,H);
+
+      // Deep red/crimson orb (bottom-right), counter-follows mouse
+      const g2 = ctx.createRadialGradient(W*0.85 - mx*60, H*0.78 - my*40, 0, W*0.85 - mx*60, H*0.78 - my*40, W*0.5);
+      g2.addColorStop(0, 'rgba(202,40,38,0.50)');
+      g2.addColorStop(0.4, 'rgba(180,20,20,0.25)');
+      g2.addColorStop(1, 'transparent');
+      ctx.fillStyle = g2; ctx.fillRect(0,0,W,H);
+
+      // Gold orb (center), subtle pulse
+      const g3 = ctx.createRadialGradient(W*0.5 + mx*30, H*0.45 + my*20, 0, W*0.5 + mx*30, H*0.45 + my*20, W*0.38);
+      g3.addColorStop(0, 'rgba(255,203,82,0.38)');
+      g3.addColorStop(0.5, 'rgba(255,180,40,0.16)');
+      g3.addColorStop(1, 'transparent');
+      ctx.fillStyle = g3; ctx.fillRect(0,0,W,H);
+
+      // Purple/violet orb (top-right)
+      const g4 = ctx.createRadialGradient(W*0.85 + mx*20, H*0.15 - my*20, 0, W*0.85 + mx*20, H*0.15 - my*20, W*0.35);
+      g4.addColorStop(0, 'rgba(180,80,255,0.40)');
+      g4.addColorStop(0.45, 'rgba(140,40,220,0.18)');
+      g4.addColorStop(1, 'transparent');
+      ctx.fillStyle = g4; ctx.fillRect(0,0,W,H);
+
+      for (const p of particles) {
+        draw(p);
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rotation += p.rotSpeed;
+        p.alpha += p.alphaSpeed * p.alphaDir;
+        if (p.alpha >= 0.95 || p.alpha <= 0.35) p.alphaDir *= -1;
+        // Wrap around
+        if (p.y < -p.size * 2) { p.y = H + p.size; p.x = Math.random() * W; }
+        if (p.x < -p.size * 2) p.x = W + p.size;
+        if (p.x > W + p.size * 2) p.x = -p.size;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    tick();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('mousemove', onMouse);
+    };
+  }, []);
+
+  return (
+    <canvas ref={canvasRef} aria-hidden="true" style={{
+      position:'fixed', inset:0, width:'100%', height:'100%',
+      zIndex:0, pointerEvents:'none', display:'block',
+    }}/>
+  );
+}
+
+export default function MatkaPage() {
+  const [allMarkets,   setAllMarkets]   = useState<any[]>([]);
+  const [marketsLoading, setMarketsLoading] = useState(true);
+  const [market,   setMarket]   = useState<any>(null);
+  const [marketSelected, setMarketSelected] = useState(false); // user clicked a market
+  const [gameType, setGameType] = useState(GAME_TYPES[0]);
+  const [session,  setSession]  = useState<'OPEN'|'CLOSE'>('OPEN');
+
+  // digits[i] = selected digit at STATE index i (null = not selected / inactive)
+  // State indices are always LEFT→RIGHT (Open order)
+  // When Close: we flip visually, so state index 0 appears on far right
+  const [digits, setDigits] = useState<(number|null)[]>(Array(NUM_COLS).fill(null));
+
+  const [amount,        setAmount]       = useState(20);
+  const [cart,          setCart]         = useState<CartItem[]>([]);
+  const [todayBets,     setTodayBets]     = useState<any[]>([]);
+  const [balance,       setBalance]      = useState(0);
+  const [loggedIn,      setLoggedIn]     = useState(false);
+  const [buying,        setBuying]       = useState(false);
+  // Increments every time session flips → forces drums to re-scroll to correct digit
+  const [expandedResults, setExpandedResults] = useState<Record<string, boolean>>({});
+  const [scrollTrigger, setScrollTrigger]= useState(0);
+
+  // Clear only active columns when switching session
+  const clearActiveDigits = () => {
+    setDigits(prev => {
+      const next = [...prev];
+      next.forEach((_,i) => { next[i] = null; }); // clear all on session switch
+      return next;
+    });
+  };
+
+  const switchSession = (s: 'OPEN'|'CLOSE') => {
+    setSession(s);
+    // Small delay so columns re-render in new mirrored positions first, then scroll
+    setTimeout(() => setScrollTrigger(t => t + 1), 80);
+  };
+
+  useEffect(() => {
+    const u = getCachedUser();
+    if (u) { setBalance(u.balance); setLoggedIn(true); }
+    refreshBalance().then(u => { if (u) { setBalance(u.balance); setLoggedIn(true); } });
+
+    // Load markets from DB
+    const loadMarkets = () => { fetch('/api/matka/markets')
+      .then(r => r.json())
+      .then(d => {
+        const markets = d.markets?.length > 0 ? d.markets : FALLBACK_MARKETS;
+        // Normalize DB fields to component fields
+        const normalized = markets.map((m: any) => {
+          // Pick the most recent result within the 72-hour window returned by the API
+          const latestResult = m.results?.[0] ?? null;
+          // Check if this result is within 36 hours (extra guard for display)
+          const resultAge = latestResult?.declaredAt
+            ? Date.now() - new Date(latestResult.declaredAt).getTime()
+            : Infinity;
+          const resultVisible = latestResult && resultAge <= 36 * 60 * 60 * 1000;
+          return {
+            ...m,
+            open:   m.openTime   ?? m.open,
+            close:  m.closeTime  ?? m.close,
+            result: m.resultTime ?? m.result,
+            status: m.isOpen ? 'OPEN' : 'CLOSED',
+            // Only show result data if within 72-hour display window
+            openPatti:    resultVisible ? latestResult.openPatti  ?? null : null,
+            closePatti:   resultVisible ? latestResult.closePatti ?? null : null,
+            openAnk:      resultVisible ? latestResult.openAnk    ?? null : null,
+            closeAnk:     resultVisible ? latestResult.closeAnk   ?? null : null,
+            jodi:         resultVisible ? latestResult.jodi        ?? null : null,
+            isDummyResult:resultVisible ? latestResult.isDummyResult ?? false : false,
+            declaredAt:   resultVisible ? latestResult.declaredAt  ?? null : null,
+            patti: (resultVisible && latestResult?.openPatti)
+              ? `${latestResult.openPatti}-${latestResult.openAnk}`
+              : '???-?',
+          };
+        });
+        setAllMarkets(normalized);
+        setMarket(normalized[0]); // preselect but don't show game yet
+      // Load today's bets
+      authFetch('/api/user/results').then(r=>r.json()).then(d=>{
+        if(d.matkaBets) setTodayBets(d.matkaBets.slice(0,20));
+      }).catch(()=>{});
+      })
+      .catch(() => {
+        setAllMarkets([]);
+        setMarketsLoading(false);
+      })
+      .finally(() => setMarketsLoading(false)); };
+    loadMarkets();
+    // Smart interval: 60s if any market open, 5min if all closed
+    const getDelay = () => allMarkets.some((m:any) => m.status === 'OPEN') ? 60000 : 300000;
+    let timer: ReturnType<typeof setTimeout>;
+    const schedule = () => { timer = setTimeout(() => { loadMarkets(); schedule(); }, getDelay()); };
+    schedule();
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Clear on game type change
+  useEffect(() => { setDigits(Array(NUM_COLS).fill(null)); }, [gameType.key]);
+
+
+
+  // ── Column mapping ─────────────────────────────────────────────────────────
+  //
+  // Open  → state index = visual index  (left to right)
+  // Close → state index = (7 - visual index)  (right to left mirror)
+  //
+  // So if digit is at state index 1:
+  //   Open:  appears at visual position 1  (2nd from LEFT)
+  //   Close: appears at visual position 6  (2nd from RIGHT = 7-1)
+
+  // Columns 0-3 = OPEN side, Columns 4-7 = CLOSE side
+  const stateIdx = (visualIdx: number) => visualIdx;
+
+  // Set a digit by VISUAL column index
+  const setByVisual = useCallback((visualIdx: number, d: number) => {
+    const si = visualIdx;
+    setDigits(prev => {
+      const next = [...prev];
+      // Count how many are already selected (excluding current column)
+      const selectedCount = next.filter((v, i) => v !== null && i !== si).length;
+      if (next[si] === null && selectedCount >= gameType.maxSelect) {
+        toast.error(`${gameType.label} allows max ${gameType.maxSelect} column${gameType.maxSelect > 1 ? 's' : ''}`);
+        return prev;
+      }
+      next[si] = d;
+      return next;
+    });
+  }, [session, gameType]);
+
+  // Clear a column by VISUAL index
+  const clearByVisual = useCallback((visualIdx: number) => {
+    const si = visualIdx;
+    setDigits(prev => { const n = [...prev]; n[si] = null; return n; });
+  }, [session]);
+
+  // ── Build bet value ────────────────────────────────────────────────────────
+
+  const selectedStateIndices = digits
+    .map((d, i) => ({ d, i }))
+    .filter(x => x.d !== null);
+
+  const betValue = (() => {
+    const vals = selectedStateIndices.map(x => x.d!);
+    if (vals.length === 0) return '—';
+    if (gameType.key === 'HALF_SANGAM' && vals.length === 4) {
+      // Only format: OpenPatti-CloseAnk = 3 digits - 1 digit (e.g. 145-5)
+      // First 3 selections = open patti digits, 4th = close ank guess
+      return `${vals[0]}${vals[1]}${vals[2]}-${vals[3]}`;
+    }
+    if (gameType.key === 'FULL_SANGAM' && vals.length === 6)
+      return `${vals[0]}${vals[1]}${vals[2]}-${vals[3]}${vals[4]}${vals[5]}`;
+    return vals.join('');
+  })();
+
+  const readyToAdd = selectedStateIndices.length === gameType.maxSelect;
+  // Check if open has been declared for this market
+  const openDeclared = !!(market?.openPatti);
+  // autoSession: once open is declared, always use CLOSE
+  const autoSession = openDeclared ? 'CLOSE' : session;
+
+  // Auto-switch to CLOSE when open is declared
+  useEffect(() => {
+    if (openDeclared && session === 'OPEN') setSession('CLOSE');
+  }, [openDeclared]); // eslint-disable-line
+
+  // Auto-classify SP/DP/TP when 3 digits selected
+  const autoClassifiedType = (() => {
+    if (!['SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key)) return null;
+    const vals = selectedStateIndices.map((x:any) => x.d);
+    if (vals.length !== 3) return null;
+    const [a,b,d] = vals;
+    // TP: all 3 same (111, 222, 333...)
+    if (a===b && b===d) return 'TRIPLE_PATTI';
+    // DP: first two same OR last two same (221, 122, 334, 443...)
+    // BUT NOT palindrome like 121, 232 (those go to SP)
+    const firstTwoSame = a===b && b!==d;
+    const lastTwoSame  = b===d && a!==b;
+    if (firstTwoSame || lastTwoSame) return 'DOUBLE_PATTI';
+    // SP: all different (123) OR palindrome (121, 232, 343...)
+    return 'SINGLE_PATTI';
+  })();
+  const autoLabel = autoClassifiedType === 'TRIPLE_PATTI' ? 'TP (Triple Patti)'
+    : autoClassifiedType === 'DOUBLE_PATTI' ? 'DP (Double Patti)'
+    : autoClassifiedType === 'SINGLE_PATTI' ? 'SP (Single Patti)' : null;
+
+  // ── Cart ───────────────────────────────────────────────────────────────────
+
+  const addToCart = () => {
+    if (!readyToAdd) return toast.warning(`Select ${gameType.maxSelect} digit${gameType.maxSelect > 1 ? 's' : ''} first`);
+    if (market.status === 'CLOSED') return toast.error('Market is closed');
+    if (session === 'CLOSE' && ['JODI','FULL_SANGAM'].includes(gameType.key)) {
+      return toast.error('Jodi and Full Sangam are only available in OPEN session.');
+    }
+    // After open declared: block open-session ANK/Patti and Jodi/FullSangam
+    if (openDeclared) {
+      if (['JODI','FULL_SANGAM'].includes(gameType.key)) {
+        return toast.error('Jodi and Full Sangam not allowed after Open result is declared.');
+      }
+      if (session === 'OPEN' && ['ANK','SINGLE_ANK','SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key)) {
+        return toast.error('Open-side bets closed. Switch to CLOSE session to continue betting.');
+      }
+    }
+    // Auto-switch patti type based on digit pattern AND add to cart
+    if (['SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key) && autoClassifiedType && autoClassifiedType !== gameType.key) {
+      const correctType = GAME_TYPES.find(g => g.key === autoClassifiedType);
+      if (correctType) {
+        // Add to cart with the correct type immediately
+        setCart(p => [{
+          market: market.name, label: correctType.label, session,
+          value: betValue, amount, potential: amount * correctType.payout,
+        }, ...p]);
+        setDigits(Array(NUM_COLS).fill(null));
+        toast.success(`Auto-classified as ${correctType.label}: ${betValue} added to cart!`);
+        return;
+      }
+    }
+    setCart(p => [{
+      market: market.name, label: gameType.label, session,
+      value: betValue, amount, potential: amount * gameType.payout,
+    }, ...p]);
+    setDigits(Array(NUM_COLS).fill(null));
+    toast.success(`✅ Added: ${gameType.label} ${betValue} — ₹${amount}`);
+  };
+
+  const removeFromCart = (i: number) => setCart(p => p.filter((_, idx) => idx !== i));
+
+  const totalBet = cart.reduce((s, b) => s + b.amount, 0);
+  const totalPot = cart.reduce((s, b) => s + b.potential, 0);
+
+  const buy = async () => {
+    if (!loggedIn) return toast.error('Please login');
+    if (cart.length === 0) return toast.warning('Cart is empty');
+    if (balance < totalBet) return toast.error(`Need ₹${totalBet}, have ₹${balance}`);
+    setBuying(true);
+    try {
+      for (const b of cart) {
+        await authFetch('/api/matka/result', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'place_bet', marketId: market.id, betType: b.label, betValue: b.value, session: b.session, amount: b.amount }),
+        });
+      }
+    } catch { /* demo ok */ }
+    setBalance(p => { const nb = p - totalBet; const cu = getCachedUser(); if (cu) setCachedUser({...cu, balance: nb}); return nb; });
+    toast.success(`🎰 ${cart.length} bets placed! Potential ₹${totalPot.toLocaleString()}`);
+    setCart([]);
+    // Reload today's bets
+    if (market?.id) {
+      authFetch(`/api/user/results`).then(r=>r.json()).then(d=>{
+        if(d.matkaBets) setTodayBets(d.matkaBets.filter((b:any)=>b.marketId===market.id));
+      }).catch(()=>{});
+    }
+    setBuying(false);
+  };
+
+  // ── Visual column order for rendering ─────────────────────────────────────
+  // Open:  visual positions 0..7 map to state 0..7
+  // Close: visual positions 0..7 map to state 7..0
+
+  // Always show columns 1-8 in order (never reverse)
+  const visualOrder = Array.from({ length: NUM_COLS }, (_, i) => i); // [0,1,2,3,4,5,6,7]
+
+  // Which columns are active for current game type + session
+  // si=0→col1, si=1→col2, si=2→col3, si=3→col4, si=4→col5, si=5→col6, si=6→col7, si=7→col8
+  const activeColsFn = (si: number): boolean => {
+    switch(gameType.key) {
+      case 'ANK': case 'SINGLE_ANK':
+        // OPEN=col4(si=3), CLOSE=col5(si=4)
+        return session === 'OPEN' ? si === 3 : si === 4;
+      case 'JODI':
+        // col4+col5 (si=3,4)
+        return si === 3 || si === 4;
+      case 'SINGLE_PATTI': case 'DOUBLE_PATTI': case 'TRIPLE_PATTI':
+        // OPEN=cols1,2,3(si=0,1,2), CLOSE=cols6,7,8(si=5,6,7)
+        return session === 'OPEN' ? si <= 2 : si >= 5;
+      case 'HALF_SANGAM':
+        // Always OPEN: cols 1,2,3 = open patti, col 4 = close ank guess
+        // Format: 3 digits (patti) + 1 digit (ank) — always open session only
+        return si <= 3;
+      case 'FULL_SANGAM':
+        // cols1,2,3 + cols6,7,8 (si=0,1,2 + si=5,6,7)
+        return si <= 2 || si >= 5;
+      default: return true;
+    }
+  };
+
+  // Keyboard input - type digits 0-9, backspace to clear, Enter to add cart
+  useEffect(() => {
+    if (!marketSelected) return;
+    const handler = (e: KeyboardEvent) => {
+      if (['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (e.key >= '0' && e.key <= '9') {
+        const digit = parseInt(e.key);
+        setDigits(prev => {
+          const next = [...prev];
+          const activeCols = next.map((_,si) => si).filter(si => activeColsFn(si));
+          const selected = next.filter((v,si) => v !== null && activeColsFn(si)).length;
+          // Stop if already at max
+          if (selected >= gameType.maxSelect) return prev;
+          const firstEmpty = activeCols.find(si => next[si] === null);
+          if (firstEmpty !== undefined) next[firstEmpty] = digit;
+          return next;
+        });
+      } else if (e.key === 'Backspace') {
+        setDigits(prev => {
+          const next = [...prev];
+          const activeCols = next.map((_,si) => si).filter(si => activeColsFn(si));
+          const lastFilled = [...activeCols].reverse().find(si => next[si] !== null);
+          if (lastFilled !== undefined) next[lastFilled] = null;
+          return next;
+        });
+      } else if (e.key === 'Enter') {
+        document.getElementById('add-to-cart-btn')?.click();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [marketSelected, gameType.key, gameType.maxSelect, session]); // eslint-disable-line
+
+
+  if (marketsLoading || !market) return (
+    <>
+      <Header />
+      <div style={{ paddingTop:140, textAlign:'center', color:'var(--Secondary)', minHeight:'60vh', display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:16 }}>
+        <div style={{ width:52, height:52, border:'4px solid rgba(254,140,69,0.15)', borderTop:'4px solid #fe8c45', borderRadius:'50%', animation:'spin 0.8s linear infinite' }}/>
+        <p style={{ fontSize:15, fontWeight:600 }}>Loading Money Bank...</p>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    </>
+  );
+
+  // Dynamic game rates — use market-specific values if set by admin
+  const gameRates = {
+    ANK:         market?.payoutSingle    ?? 90,
+    JODI:        market?.payoutJodi      ?? 900,
+    SINGLE_PATTI: market?.payoutSP       ?? 140,
+    DOUBLE_PATTI: market?.payoutDP       ?? 280,
+    TRIPLE_PATTI: market?.payoutTP       ?? 450,
+    HALF_SANGAM:  market?.payoutHalfSangam ?? 1500,
+    FULL_SANGAM:  market?.payoutFullSangam ?? 11000,
+  };
+  const dynamicTypes = GAME_TYPES.map(g => ({
+    ...g,
+    payout: gameRates[g.key as keyof typeof gameRates] ?? g.payout,
+  }));
+
+  // Market selection screen - shown before entering the game
+  if (!marketSelected) return (
+    <>
+      <Header />
+      <style>{`
+        [data-theme="light"] .market-card { background: #ffffff !important; border-color: rgba(0,0,0,0.15) !important; }
+        [data-theme="light"] .market-card h2 { color: #111 !important; }
+        [data-theme="light"] .market-card p { color: #444 !important; }
+        [data-theme="light"] .market-card span { color: #111 !important; }
+        [data-theme="light"] .market-card .result-summary { background: rgba(0,0,0,0.05) !important; border-color: rgba(0,0,0,0.1) !important; }
+        [data-theme="light"] .view-results-btn { border-color: rgba(0,0,0,0.2) !important; color: #333 !important; }
+        [data-theme="light"] .ank-label { color: #444 !important; }
+        [data-theme="light"] .ank-value { color: #b45309 !important; }
+        [data-theme="light"] .market-card .detail-cell { background: rgba(0,0,0,0.04) !important; }
+      `}</style>
+      <div style={{ paddingTop:120, minHeight:'100vh', position:'relative', overflow:'hidden' }}>
+        {/* Animated canvas background — coins, icons, glowing orbs with mouse parallax */}
+        <LotteryBackground />
+        <div className="tf-container" style={{ paddingTop:40, paddingBottom:60, position:'relative', zIndex:1 }}>
+          <div style={{ textAlign:'center', marginBottom:40, position:'relative' }}>
+            <h1 style={{ fontWeight:900, fontSize:36, marginBottom:10 }}>Money Bank</h1>
+            <p style={{ color:'var(--Secondary)', fontSize:16 }}>Select a market to start playing</p>
+            <div style={{ display:'flex', justifyContent:'center', gap:12, marginTop:16 }}>
+              <a href="/game-guide" style={{ padding:'8px 20px', borderRadius:999, border:'1px solid var(--Border)', background:'var(--Bg-2)', color:'var(--Secondary)', fontSize:13, fontWeight:600, textDecoration:'none', display:'inline-flex', alignItems:'center', gap:6 }}>
+                📖 Game Guide
+              </a>
+              <button onClick={()=>{ setMarketsLoading(true); fetch('/api/matka/markets').then(r=>r.json()).then(d=>{ if(d.markets) setAllMarkets(d.markets); }).finally(()=>setMarketsLoading(false)); }} style={{ padding:'8px 20px', borderRadius:999, border:'1px solid var(--Border)', background:'var(--Bg-2)', color:'var(--Secondary)', fontSize:13, fontWeight:600, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:6 }}>
+                🔄 Refresh
+              </button>
+            </div>
+          </div>
+
+          <div className='market-grid' style={{ maxWidth:1000, margin:'0 auto' }}>
+            {allMarkets.map((m:any) => {
+              const isOpen = m.status === 'OPEN';
+              return (
+                <div key={m.id} onClick={()=>{ if(!loggedIn){ toast.error('Please login to play'); return; } setMarket(m); setMarketSelected(true); }}
+                  className="market-card" style={{ background:'linear-gradient(135deg,var(--Bg-2),var(--Bg-10,var(--Bg-2)))', borderRadius:24, padding:28, border:`2px solid ${isOpen?'rgba(46,204,113,0.4)':'rgba(100,100,100,0.2)'}`, cursor:'pointer', transition:'all 0.2s', position:'relative', overflow:'hidden' }}
+                  onMouseEnter={e=>(e.currentTarget.style.transform='translateY(-4px)')}
+                  onMouseLeave={e=>(e.currentTarget.style.transform='translateY(0)')}>
+
+                  {/* Status badge */}
+                  <div style={{ position:'absolute', top:20, right:20, padding:'4px 14px', borderRadius:999, fontSize:12, fontWeight:800, background:isOpen?'rgba(46,204,113,0.15)':'rgba(239,68,68,0.12)', color:isOpen?'#2ECC71':'#ef4444', border:`1px solid ${isOpen?'rgba(46,204,113,0.4)':'rgba(239,68,68,0.3)'}` }}>
+                    {isOpen ? '● OPEN' : '● CLOSED'}
+                  </div>
+
+                  {/* Market name */}
+                  <h2 style={{ fontWeight:900, fontSize:28, marginBottom:8 }}>{m.name}</h2>
+
+                  {/* Times */}
+                  <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:20, color:'var(--Secondary)', fontSize:14 }}>
+                    <span style={{ color:'#2ECC71', fontWeight:700 }}>● {m.open ?? m.openTime}</span>
+                    <span>→</span>
+                    <span style={{ color:'#ef4444', fontWeight:700 }}>● {m.close ?? m.closeTime}</span>
+                  </div>
+
+                  {/* Last result - show open/close/ank/jodi */}
+                  <div style={{ background:'rgba(0,0,0,0.2)', borderRadius:14, padding:'14px 16px', marginBottom:20 }}>
+                    {/* Label: show how long ago result was declared */}
+                    {(() => {
+                      if (!m.declaredAt) return (
+                        <p style={{ fontSize:10, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', marginBottom:10, letterSpacing:1 }}>Today's Result</p>
+                      );
+                      const hoursAgo = Math.floor((Date.now() - new Date(m.declaredAt).getTime()) / (1000 * 60 * 60));
+                      const minsAgo  = Math.floor((Date.now() - new Date(m.declaredAt).getTime()) / (1000 * 60));
+                      const label    = hoursAgo === 0
+                        ? `${minsAgo}m ago`
+                        : hoursAgo < 24
+                        ? `${hoursAgo}h ago (today)`
+                        : `${hoursAgo}h ago (yesterday)`;
+                      return (
+                        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+                          <p style={{ fontSize:10, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', letterSpacing:1 }}>Latest Result</p>
+                          <span style={{ fontSize:10, color: hoursAgo >= 24 ? '#f59e0b' : '#2ECC71', fontWeight:600, background: hoursAgo >= 24 ? 'rgba(245,158,11,0.1)' : 'rgba(46,204,113,0.1)', borderRadius:999, padding:'2px 8px' }}>
+                            🕐 {label}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                    <div style={{ display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
+                      {/* Open */}
+                      <div style={{ textAlign:'center' }}>
+                        <p style={{ fontSize:9, color:'#2ECC71', fontWeight:700, textTransform:'uppercase', marginBottom:4 }}>Open</p>
+                        <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:22, color: m.openPatti ? '#2ECC71' : 'var(--Secondary)', background: m.openPatti ? 'rgba(46,204,113,0.1)' : 'transparent', padding:'4px 10px', borderRadius:8 }}>
+                          {m.openPatti ?? '???'}
+                        </p>
+                        <p style={{ fontSize:13, color:'var(--Secondary)', marginTop:2 }} className="ank-label">
+                          Ank: <strong className="ank-value" style={{ color: m.openAnk!=null ? '#ffcb52' : 'var(--Secondary)' }}>{m.openAnk ?? '?'}</strong>
+                        </p>
+                      </div>
+                      <div style={{ fontSize:20, color:'var(--Secondary)' }}>—</div>
+                      {/* Close */}
+                      <div style={{ textAlign:'center' }}>
+                        <p style={{ fontSize:9, color:'#ef4444', fontWeight:700, textTransform:'uppercase', marginBottom:4 }}>Close</p>
+                        <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:22, color: m.closePatti ? '#3498DB' : 'var(--Secondary)', background: m.closePatti ? 'rgba(52,152,219,0.1)' : 'transparent', padding:'4px 10px', borderRadius:8 }}>
+                          {m.closePatti ?? '???'}
+                        </p>
+                        <p style={{ fontSize:13, color:'var(--Secondary)', marginTop:2 }} className="ank-label">
+                          Ank: <strong className="ank-value" style={{ color: m.closeAnk!=null ? '#ffcb52' : 'var(--Secondary)' }}>{m.closeAnk ?? '?'}</strong>
+                        </p>
+                      </div>
+                      {/* Jodi */}
+                      <div style={{ marginLeft:'auto', textAlign:'center', background:'rgba(255,203,82,0.08)', border:'1px solid rgba(255,203,82,0.3)', borderRadius:12, padding:'10px 18px' }}>
+                        <p style={{ fontSize:9, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', marginBottom:4 }}>Jodi</p>
+                        <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:28, color: m.jodi ? '#ffcb52' : 'var(--Secondary)' }}>
+                          {m.jodi ?? '??'}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Partial result hint */}
+                    {m.openPatti && !m.closePatti && (
+                      <p style={{ fontSize:11, color:'#ffcb52', marginTop:8, fontWeight:600 }}>⏳ Open declared · Waiting for Close result...</p>
+                    )}
+                    {!m.openPatti && (
+                      <p style={{ fontSize:11, color:'var(--Secondary)', marginTop:8 }}>Result not declared yet</p>
+                    )}
+                    {m.jodi && !m.isDummyResult && (
+                      <p style={{ fontSize:11, color:'#2ECC71', marginTop:8, fontWeight:600 }}>✓ Result declared</p>
+                    )}
+                    {m.jodi && m.isDummyResult && (
+                      <p style={{ fontSize:11, color:'#f59e0b', marginTop:8, fontWeight:600 }}>🛡️ Result declared (house)</p>
+                    )}
+                    {/* Show when the result was declared and how long it will be visible */}
+                    {m.declaredAt && (
+                      <p style={{ fontSize:10, color:'var(--Secondary)', marginTop:4 }}>
+                        ⏱ Visible for {Math.max(0, 36 - Math.floor((Date.now() - new Date(m.declaredAt).getTime()) / (1000*60*60)))}h more
+                      </p>
+                    )}
+                  </div>
+
+                  {/* View Results toggle */}
+                  <button
+                    onClick={e => { e.stopPropagation(); setExpandedResults(prev => ({ ...prev, [m.id]: !prev[m.id] })); }}
+                    style={{ width:'100%', padding:'7px 0', borderRadius:9, border:'1px solid rgba(255,255,255,0.1)', background:'transparent', color:'var(--Secondary)', fontWeight:600, fontSize:11, cursor:'pointer', marginBottom:12 }}>
+                    {(expandedResults[m.id] ?? false) ? '▲ Hide Details' : '▼ View Results'}
+                  </button>
+                  {(expandedResults[m.id] ?? false) && (
+                  <div style={{ marginTop:12, background:'rgba(0,0,0,0.2)', borderRadius:12, overflow:'hidden', border:'1px solid rgba(255,255,255,0.06)' }}>
+                    <p style={{ fontSize:9, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', letterSpacing:1, padding:'8px 12px 4px', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+                      {m.openPatti ? 'Latest Result' : 'Result Pending'}
+                    </p>
+                    <div style={{ padding:'10px 12px', display:'flex', flexDirection:'column', gap:6 }}>
+
+                      {/* Row 1: Open Ank & Open Patti */}
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 10px', borderRadius:8, background:'rgba(46,204,113,0.06)', border:'1px solid rgba(46,204,113,0.12)' }}>
+                          <span style={{ fontSize:10, color:'#2ECC71', fontWeight:700, marginBottom:4 }}>● Open Ank</span>
+                          <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color: m.openAnk != null ? '#2ECC71' : 'var(--Secondary)' }}>
+                            {m.openAnk ?? '?'}
+                          </span>
+                        </div>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 10px', borderRadius:8, background:'rgba(46,204,113,0.06)', border:'1px solid rgba(46,204,113,0.12)' }}>
+                          <span style={{ fontSize:10, color:'#2ECC71', fontWeight:700, marginBottom:4 }}>● Open Patti</span>
+                          <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color: m.openPatti ? '#2ECC71' : 'var(--Secondary)' }}>
+                            {m.openPatti ?? '???'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Row 2: Jodi — full width */}
+                      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 12px', borderRadius:8, background:'rgba(255,203,82,0.07)', border:'1px solid rgba(255,203,82,0.2)' }}>
+                        <span style={{ fontSize:10, color:'#ffcb52', fontWeight:700, marginBottom:4 }}>● Jodi</span>
+                        <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:24, color: m.jodi ? '#ffcb52' : 'var(--Secondary)' }}>
+                          {m.jodi ?? '??'}
+                        </span>
+                      </div>
+
+                      {/* Row 3: Close Ank & Close Patti */}
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6 }}>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 10px', borderRadius:8, background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.12)' }}>
+                          <span style={{ fontSize:10, color:'#ef4444', fontWeight:700, marginBottom:4 }}>● Close Ank</span>
+                          <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color: m.closeAnk != null ? '#ef4444' : 'var(--Secondary)' }}>
+                            {m.closeAnk ?? '?'}
+                          </span>
+                        </div>
+                        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 10px', borderRadius:8, background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.12)' }}>
+                          <span style={{ fontSize:10, color:'#ef4444', fontWeight:700, marginBottom:4 }}>● Close Patti</span>
+                          <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color: m.closePatti ? '#3498DB' : 'var(--Secondary)' }}>
+                            {m.closePatti ?? '???'}
+                          </span>
+                        </div>
+                      </div>
+
+
+                      {/* Row 4: Half Sangam — only OpenPatti-CloseAnk */}
+                      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 10px', borderRadius:8, background:'rgba(46,204,113,0.04)', border:'1px solid rgba(46,204,113,0.1)' }}>
+                        <span style={{ fontSize:10, color:'#2ECC71', fontWeight:700, marginBottom:4 }}>½ Sangam (Patti-Ank)</span>
+                        <span style={{ fontFamily:'monospace', fontWeight:800, fontSize:15, color: m.openPatti && m.closeAnk != null ? '#2ECC71' : 'var(--Secondary)' }}>
+                          {m.openPatti && m.closeAnk != null ? `${m.openPatti}-${m.closeAnk}` : '???-?'}
+                        </span>
+                      </div>
+
+                      {/* Row 5: Full Sangam — full width */}
+                      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'8px 12px', borderRadius:8, background:'rgba(167,139,250,0.07)', border:'1px solid rgba(167,139,250,0.2)' }}>
+                        <span style={{ fontSize:10, color:'#a78bfa', fontWeight:700, marginBottom:4 }}>● Full Sangam</span>
+                        <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:16, color: m.openPatti && m.closePatti ? '#a78bfa' : 'var(--Secondary)' }}>
+                          {m.openPatti && m.closePatti ? `${m.openPatti}-${m.closePatti}` : '???-???'}
+                        </span>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  )}
+                  {/* Play button */}
+                  <div style={{ marginTop:24 }}>
+                    <button
+                      onClick={e => { e.stopPropagation(); if (isOpen) { setMarket(m); setMarketSelected(true); } }}
+                      style={{ width:'100%', height:48, borderRadius:14, border:'none', cursor: isOpen ? 'pointer' : 'not-allowed', fontWeight:800, fontSize:15, background: isOpen ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'rgba(100,100,100,0.2)', color: isOpen ? '#fff' : 'var(--Secondary)', opacity: isOpen ? 1 : 0.7 }}>
+                      {isOpen ? 'Play Now →' : '🔒 Market Closed'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+      <footer id="footer"><div className="footer-bottom" style={{paddingTop:24,paddingBottom:24}}><div className="tf-container"><div className="wrapper"><div className="right"><span>© 2025 Supreme Gaming Engine</span></div></div></div></div></footer>
+    </>
+  );
+
+  return (
+    <>
+      <Header />
+
+      {/* bg */}
+      <div className="matka-game-area" style={{ background: 'linear-gradient(180deg,#0d0b2a,var(--Bg))', paddingTop: 100 }}>
+        <div className="tf-container" style={{ paddingTop: 18 }}>
+
+          {/* Markets */}
+          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
+            {allMarkets.map(m => (
+              <div key={m.id} onClick={() => { if (m.status === 'OPEN') { setMarket(m); setMarketSelected(true); } }} style={{
+                minWidth: 240, flexShrink: 0, borderRadius: 14, overflow: 'hidden',
+                cursor: m.status !== 'CLOSED' ? 'pointer' : 'default',
+                border: `2px solid ${market.id === m.id ? '#fe8c45' : 'var(--Border)'}`,
+                background: 'var(--Bg-2)', transition: 'border-color 0.2s',
+              }}>
+                <div style={{ padding: '12px 16px 8px', background: market.id === m.id ? 'rgba(254,140,69,0.07)' : 'transparent' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontWeight: 900, fontSize: 15 }}>{m.name}</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 999,
+                      background: m.status === 'OPEN' ? 'rgba(46,204,113,0.15)' : 'rgba(231,76,60,0.15)',
+                      color: m.status === 'OPEN' ? '#2ECC71' : '#E74C3C' }}>{m.status}</span>
+                  </div>
+                  <p style={{ fontSize: 11, color: 'var(--Secondary)' }}>🟢 {m.open} → 🔴 {m.close}</p>
+                </div>
+                <div style={{ padding: '7px 16px 12px', display: 'flex', gap: 10, alignItems: 'center', flexWrap:'wrap' }}>
+                  <div style={{ textAlign:'center' }}>
+                    <p style={{ fontSize: 9, color: '#2ECC71', marginBottom: 2, fontWeight: 700, textTransform: 'uppercase' }}>Open</p>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 15, color: m.openPatti?'#ffcb52':'var(--Secondary)' }}>{m.openPatti??'???'}</span>
+                    <p style={{ fontSize: 9, color: 'var(--Secondary)' }}>Ank: <strong style={{color:'#ffcb52'}}>{m.openAnk??'?'}</strong></p>
+                  </div>
+                  <div style={{ width: 1, height: 32, background: 'var(--Border)' }} />
+                  <div style={{ textAlign:'center' }}>
+                    <p style={{ fontSize: 9, color: '#ef4444', marginBottom: 2, fontWeight: 700, textTransform: 'uppercase' }}>Close</p>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 15, color: m.closePatti?'#ffcb52':'var(--Secondary)' }}>{m.closePatti??'???'}</span>
+                    <p style={{ fontSize: 9, color: 'var(--Secondary)' }}>Ank: <strong style={{color:'#ffcb52'}}>{m.closeAnk??'?'}</strong></p>
+                  </div>
+                  <div style={{ width: 1, height: 32, background: 'var(--Border)' }} />
+                  <div style={{ textAlign:'center' }}>
+                    <p style={{ fontSize: 9, color: 'var(--Secondary)', marginBottom: 2, fontWeight: 700, textTransform: 'uppercase' }}>Jodi</p>
+                    <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 20, color: m.jodi?'#ffcb52':'var(--Secondary)' }}>{m.jodi??'??'}</span>
+                    {m.isDummyResult && m.jodi && (
+                      <p style={{ fontSize: 8, color: '#f59e0b', fontWeight: 700, marginTop: 2 }}>🛡️ house</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="main-content" style={{ paddingTop: 18 }}>
+        <div className="tf-container">
+
+          {/* Results panel for CLOSED markets */}
+          {market.status === 'CLOSED' && (market.openPatti || market.jodi) && (
+            <div style={{ background:'var(--Bg-2)', borderRadius:20, border:'1px solid var(--Border)', padding:28, marginBottom:20 }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8, marginBottom:20 }}>
+                <h3 style={{ fontWeight:900, fontSize:20, margin:0 }}>📊 {market.name} — Result</h3>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  {market.isDummyResult && (
+                    <span style={{ fontSize:11, background:'rgba(245,158,11,0.15)', border:'1px solid rgba(245,158,11,0.35)', color:'#f59e0b', borderRadius:999, padding:'3px 10px', fontWeight:700 }}>
+                      🛡️ House Result
+                    </span>
+                  )}
+                  {market.declaredAt && (
+                    <span style={{ fontSize:11, color:'var(--Secondary)', background:'var(--Bg-3)', borderRadius:999, padding:'3px 10px' }}>
+                      🕐 {new Date(market.declaredAt).toLocaleString('en-IN', { timeZone:'Asia/Kolkata', hour:'2-digit', minute:'2-digit', day:'numeric', month:'short' })} IST
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))', gap:16, marginBottom:20 }}>
+                {/* Open Patti */}
+                <div style={{ background:'rgba(46,204,113,0.06)', border:'1px solid rgba(46,204,113,0.25)', borderRadius:14, padding:'18px 20px', textAlign:'center' }}>
+                  <p style={{ fontSize:11, color:'#2ECC71', fontWeight:700, textTransform:'uppercase', marginBottom:10, letterSpacing:1 }}>Open Patti</p>
+                  <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:36, color: market.openPatti?'#ffcb52':'var(--Secondary)', lineHeight:1 }}>
+                    {market.openPatti ?? '???'}
+                  </p>
+                  <p style={{ fontSize:13, color:'var(--Secondary)', marginTop:8 }}>
+                    Open Ank: <strong style={{ color:'#ffcb52', fontSize:18 }}>{market.openAnk ?? '?'}</strong>
+                  </p>
+                </div>
+                {/* Close Patti */}
+                <div style={{ background:'rgba(239,68,68,0.06)', border:'1px solid rgba(239,68,68,0.25)', borderRadius:14, padding:'18px 20px', textAlign:'center' }}>
+                  <p style={{ fontSize:11, color:'#ef4444', fontWeight:700, textTransform:'uppercase', marginBottom:10, letterSpacing:1 }}>Close Patti</p>
+                  <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:36, color: market.closePatti?'#ffcb52':'var(--Secondary)', lineHeight:1 }}>
+                    {market.closePatti ?? '???'}
+                  </p>
+                  <p style={{ fontSize:13, color:'var(--Secondary)', marginTop:8 }}>
+                    Close Ank: <strong style={{ color:'#ffcb52', fontSize:18 }}>{market.closeAnk ?? '?'}</strong>
+                  </p>
+                </div>
+                {/* Jodi */}
+                <div style={{ background:'rgba(255,203,82,0.08)', border:'2px solid rgba(255,203,82,0.4)', borderRadius:14, padding:'18px 20px', textAlign:'center' }}>
+                  <p style={{ fontSize:11, color:'#ffcb52', fontWeight:700, textTransform:'uppercase', marginBottom:10, letterSpacing:1 }}>Jodi (Final)</p>
+                  <p style={{ fontFamily:'monospace', fontWeight:900, fontSize:48, color: market.jodi?'#ffcb52':'var(--Secondary)', lineHeight:1 }}>
+                    {market.jodi ?? '??'}
+                  </p>
+                  {market.jodi && <p style={{ fontSize:11, color:'#2ECC71', marginTop:8, fontWeight:700 }}>✓ Result Declared</p>}
+                </div>
+              </div>
+              {/* Partial result notice */}
+              {market.openPatti && !market.closePatti && (
+                <div style={{ background:'rgba(255,203,82,0.08)', border:'1px solid rgba(255,203,82,0.3)', borderRadius:12, padding:'12px 16px', display:'flex', alignItems:'center', gap:10 }}>
+                  <span style={{ fontSize:20 }}>⏳</span>
+                  <div>
+                    <p style={{ fontWeight:700, color:'#ffcb52', fontSize:14 }}>Open Result Declared</p>
+                    <p style={{ fontSize:12, color:'var(--Secondary)' }}>Close result will be declared after {market.close ?? market.closeTime}</p>
+                  </div>
+                </div>
+              )}
+              {!market.openPatti && (
+                <div style={{ background:'rgba(100,100,100,0.08)', border:'1px solid var(--Border)', borderRadius:12, padding:'12px 16px', display:'flex', alignItems:'center', gap:10 }}>
+                  <span style={{ fontSize:20 }}>🕐</span>
+                  <p style={{ fontSize:13, color:'var(--Secondary)' }}>Result not yet declared. Check back after {market.result ?? market.resultTime}</p>
+                </div>
+              )}
+              <button onClick={()=>{setMarket(null);setMarketSelected(false);}} style={{ marginTop:20, padding:'10px 24px', borderRadius:10, border:'1px solid var(--Border)', background:'var(--Bg-3)', color:'var(--Secondary)', fontWeight:700, cursor:'pointer', fontSize:13 }}>
+                ← Back to Markets
+              </button>
+            </div>
+          )}
+
+          {/* Game Type + Open/Close */}
+          <div style={{ background: 'var(--Bg-2)', borderRadius: 14, padding: '13px 18px', marginBottom: 18, border: '1px solid var(--Border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                {dynamicTypes.map(g => {
+                  // Half Sangam, Jodi and Full Sangam only in OPEN session
+                  const closeLocked = session === 'CLOSE' && (g.key === 'JODI' || g.key === 'FULL_SANGAM' || g.key === 'HALF_SANGAM');
+                  // After open declared: Jodi and Full Sangam locked (Half Sangam stays available — player bets openPatti+closeAnk)
+                  const openLocked = openDeclared && (g.key === 'JODI' || g.key === 'FULL_SANGAM');
+                  const isLocked = closeLocked || openLocked;
+                  return (
+                    <button key={g.key} onClick={() => {
+                      if (isLocked) return;
+                      // Auto-switch to OPEN session when selecting Half Sangam
+                      if (g.key === 'HALF_SANGAM' && session === 'CLOSE') switchSession('OPEN');
+                      setGameType(g);
+                    }} style={{
+                      padding: '7px 13px', borderRadius: 999, border: '1px solid',
+                      borderColor: isLocked ? 'rgba(100,100,100,0.2)' : gameType.key === g.key ? '#fe8c45' : 'var(--Border)',
+                      background: isLocked ? 'rgba(100,100,100,0.1)' : gameType.key === g.key ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'var(--Bg-3)',
+                      color: isLocked ? 'var(--Secondary)' : gameType.key === g.key ? '#fff' : 'var(--White)', fontWeight: 700, fontSize: 12,
+                      cursor: isLocked ? 'not-allowed' : 'pointer', position:'relative',
+                    }}>
+                      {g.label}
+                      <span className="payout-badge" style={{ fontSize: 9, opacity: 0.7, marginLeft: 3 }}>{g.payout}x</span>
+                      {isLocked && <span style={{position:'absolute',top:-4,right:-4,fontSize:8,background:'#ef4444',color:'#fff',borderRadius:4,padding:'0 3px',fontWeight:700}}>🔒</span>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {loggedIn && <>
+                  <span style={{ color: '#ffcb52', fontWeight: 700, fontSize: 13 }}>💰 {balance.toLocaleString()} Coins</span>
+                  <Link href="/dashboard/wallet" style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px', borderRadius:999, background:'linear-gradient(270deg,#2ECC71,#16a34a)', color:'#fff', fontWeight:700, fontSize:12, textDecoration:'none', whiteSpace:'nowrap' }}>
+                    💳 Add Coins
+                  </Link>
+                </>}
+                {/* OPEN / CLOSE toggle */}
+                <div style={{ display: 'flex', background: 'var(--Bg-3)', borderRadius: 999, padding: 3, border: '1px solid var(--Border)' }}>
+                  {(['OPEN', 'CLOSE'] as const).map(s => {
+                    const isOpenLocked = s === 'OPEN' && openDeclared;
+                    return (
+                      <button key={s} onClick={() => !isOpenLocked && switchSession(s)} style={{
+                        padding: '8px 22px', borderRadius: 999, border: 'none',
+                        cursor: isOpenLocked ? 'not-allowed' : 'pointer',
+                        fontWeight: 700, fontSize: 13, transition: 'all 0.2s',
+                        background: session === s ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'transparent',
+                        color: isOpenLocked ? 'var(--Secondary)' : session === s ? '#fff' : 'var(--Secondary)',
+                        opacity: isOpenLocked ? 0.4 : 1,
+                        position: 'relative',
+                      }}>
+                        {s}
+                        {isOpenLocked && <span style={{fontSize:9,marginLeft:4}}>🔒</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <p style={{ marginTop: 8, fontSize: 11, color: 'var(--Secondary)' }}>
+              <strong style={{ color: 'var(--Main-color)' }}>{gameType.label}</strong> — {gameType.desc} &nbsp;·&nbsp;
+              Select <strong style={{ color: 'var(--White)' }}>{gameType.maxSelect}</strong> column{gameType.maxSelect > 1 ? 's' : ''} &nbsp;·&nbsp;
+              {session === 'OPEN'
+                ? <span style={{ color: '#2ECC71' }}>← Open: columns read left to right</span>
+                : <span style={{ color: '#3498DB' }}>Close: columns read right to left →</span>}
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 18, alignItems: 'start' }}>
+
+            {/* ── Drum picker ── */}
+            <div style={{ background: 'var(--Bg-2)', borderRadius: 18, border: '1px solid var(--Border)', overflow: 'hidden' }}>
+
+              {/* Header */}
+              <div style={{ padding: '14px 20px 12px', borderBottom: '1px solid var(--Border)', background: 'rgba(0,0,0,0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <span style={{ fontWeight: 900, fontSize: 17 }}>{market.name}</span>
+                  <span style={{ marginLeft: 10, fontSize: 12, color: 'var(--Secondary)' }}>{gameType.label} · pick {gameType.maxSelect}</span>
+                </div>
+                {/* Direction indicator */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: session === 'OPEN' ? 'rgba(46,204,113,0.1)' : 'rgba(52,152,219,0.1)',
+                  border: `1px solid ${session === 'OPEN' ? 'rgba(46,204,113,0.3)' : 'rgba(52,152,219,0.3)'}`,
+                  borderRadius: 999, padding: '5px 14px',
+                }}>
+                  <div style={{ width: 7, height: 7, borderRadius: '50%', background: session === 'OPEN' ? '#2ECC71' : '#3498DB' }} />
+                  <span style={{ fontWeight: 700, fontSize: 12, color: session === 'OPEN' ? '#2ECC71' : '#3498DB' }}>
+                    {session === 'OPEN' ? '← OPEN (Left)' : 'CLOSE (Right) →'}
+                  </span>
+                </div>
+              </div>
+
+
+
+              {/* 8 drum columns — always 8, order flips on Close */}
+              <div style={{ padding: '10px 16px 10px', position: 'relative' }}>
+
+                {/* Full-width selection band behind all columns */}
+                <div style={{
+                  position: 'absolute',
+                  top: 10 + ITEM_H * 2,
+                  left: 16, right: 16,
+                  height: ITEM_H,
+                  pointerEvents: 'none',
+                  zIndex: 0,
+                  borderTop: '1.5px solid rgba(254,140,69,0.5)',
+                  borderBottom: '1.5px solid rgba(254,140,69,0.5)',
+                  background: 'rgba(254,140,69,0.04)',
+                }} />
+
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'space-around' }}>
+                  {visualOrder.map((si, vi) => (
+                    <DrumColumn
+                      key={`${gameType.key}-${si}`}
+                      colKey={`${gameType.key}-${si}`}
+                      scrollTrigger={scrollTrigger}
+                      digit={digits[si]}
+                      active={activeColsFn(si)}
+                      onChange={d => {
+                        // Check max selections before setting
+                        setDigits(prev => {
+                          const next = [...prev];
+                          const alreadySelected = next.filter((v, i) => v !== null && i !== si).length;
+                          if (prev[si] === null && alreadySelected >= gameType.maxSelect) {
+                            toast.error(`${gameType.label} = pick only ${gameType.maxSelect} digit${gameType.maxSelect > 1 ? 's' : ''}`);
+                            return prev;
+                          }
+                          next[si] = d;
+                          return next;
+                        });
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* CLR buttons row */}
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'space-around', padding: '0 16px 10px' }}>
+                {visualOrder.map((si, vi) => (
+                  <div key={vi} style={{ width: 44, display: 'flex', justifyContent: 'center' }}>
+                    <button onClick={() => setDigits(prev => { const n = [...prev]; n[si] = null; return n; })} style={{
+                      width: 36, height: 18, borderRadius: 5, border: 'none',
+                      background: digits[si] !== null ? 'rgba(239,68,68,0.18)' : 'transparent',
+                      color: digits[si] !== null ? '#ef4444' : 'var(--Border)',
+                      fontSize: 9, fontWeight: 700, cursor: digits[si] !== null ? 'pointer' : 'default',
+                    }}>CLR</button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Selected value + progress */}
+              <div style={{ padding: '12px 20px', borderTop: '1px solid var(--Border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <p style={{ fontSize: 10, color: 'var(--Secondary)', marginBottom: 4, fontWeight: 700, textTransform: 'uppercase' }}>
+                    Selected ({selectedStateIndices.length}/{gameType.maxSelect})
+                  </p>
+                  <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 36, color: '#ffcb52', letterSpacing: 4 }}>
+                    {betValue}
+                  </span>
+                  {autoLabel && autoClassifiedType !== gameType.key && (
+                    <span style={{fontSize:10,color:'#ffcb52',display:'block',marginTop:2}}>
+                      Will be saved as: {autoLabel}
+                    </span>
+                  )}
+                </div>
+                {/* Progress dots */}
+                <div style={{ display: 'flex', gap: 5 }}>
+                  {Array.from({ length: gameType.maxSelect }).map((_, i) => (
+                    <div key={i} style={{
+                      width: 10, height: 10, borderRadius: '50%',
+                      background: i < selectedStateIndices.length ? '#ffcb52' : 'var(--Border)',
+                      transition: 'background 0.2s',
+                    }} />
+                  ))}
+                </div>
+              </div>
+
+              {/* Half Sangam info — explain the format and that it's OPEN only */}
+              {gameType.key === 'HALF_SANGAM' && (
+                <div style={{display:'flex',gap:10,padding:'10px 14px',background:'rgba(46,204,113,0.06)',border:'1px solid rgba(46,204,113,0.2)',borderRadius:10,marginBottom:8,alignItems:'center',flexWrap:'wrap'}}>
+                  <span style={{fontSize:18}}>½</span>
+                  <div>
+                    <p style={{fontSize:12,color:'#2ECC71',fontWeight:700,marginBottom:2}}>Half Sangam — Open Session Only</p>
+                    <p style={{fontSize:11,color:'var(--Secondary)'}}>
+                      Pick <strong style={{color:'#ffcb52'}}>Open Patti</strong> (3 digits, cols 1-3) + guess <strong style={{color:'#ffcb52'}}>Close Ank</strong> (1 digit, col 4)
+                      &nbsp;→ shows as <strong style={{color:'#ffcb52',fontFamily:'monospace'}}>356-1</strong>
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Show computed ANK when patti is complete */}
+              {betValue && betValue.length >= 3 && ['SINGLE_PATTI','DOUBLE_PATTI','TRIPLE_PATTI'].includes(gameType.key) && (
+                <div style={{display:'flex',gap:12,padding:'8px 14px',background:'rgba(255,203,82,0.08)',border:'1px solid rgba(255,203,82,0.2)',borderRadius:10,marginBottom:8,alignItems:'center',flexWrap:'wrap'}}>
+                  <span style={{fontSize:12,color:'var(--Secondary)'}}>Patti: <strong style={{color:'#ffcb52',fontFamily:'monospace',fontSize:16}}>{betValue}</strong></span>
+                  <span style={{fontSize:12,color:'var(--Secondary)'}}>→ Ank: <strong style={{color:'#fe8c45',fontSize:18,fontFamily:'monospace'}}>{betValue.split('').reduce((s:number,d:string)=>s+parseInt(d),0)%10}</strong></span>
+                  {session==='OPEN' && <span style={{fontSize:11,color:'#2ECC71',fontWeight:700}}>OPEN side</span>}
+                  {session==='CLOSE' && <span style={{fontSize:11,color:'#3498DB',fontWeight:700}}>CLOSE side</span>}
+                </div>
+              )}
+              {betValue && gameType.key==='JODI' && betValue.length===2 && (
+                <div style={{padding:'8px 14px',background:'rgba(255,203,82,0.08)',border:'1px solid rgba(255,203,82,0.2)',borderRadius:10,marginBottom:8}}>
+                  <span style={{fontSize:12,color:'var(--Secondary)'}}>Jodi: <strong style={{color:'#ffcb52',fontFamily:'monospace',fontSize:20}}>{betValue}</strong></span>
+                </div>
+              )}
+              {/* Amount + Add to Cart */}
+              <div style={{ padding: '14px 18px 18px', borderTop: '1px solid var(--Border)', background: 'rgba(0,0,0,0.1)' }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--Secondary)' }}>INR</span>
+                  <input type="number" min={1} value={amount}
+                    onChange={e => setAmount(Math.max(1, parseInt(e.target.value) || 1))}
+                    style={{ flex: 1, padding: '9px 12px', borderRadius: 10, background: 'var(--Bg-3)', border: '1px solid var(--Border-2)', color: 'var(--White)', fontSize: 18, fontWeight: 900, outline: 'none', textAlign: 'center' }} />
+                  <button onClick={() => setAmount(a => Math.max(1, Math.floor(a / 2)))} style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--Border)', background: 'var(--Bg-3)', color: 'var(--Secondary)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>½</button>
+                  <button onClick={() => setAmount(a => a * 2)} style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--Border)', background: 'var(--Bg-3)', color: 'var(--Secondary)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>×2</button>
+                </div>
+                <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                  {[10, 20, 50, 100, 200, 500].map(a => (
+                    <button key={a} onClick={() => setAmount(a)} style={{
+                      flex: 1, padding: '6px 0', borderRadius: 7,
+                      border: `1px solid ${amount === a ? '#fe8c45' : 'var(--Border)'}`,
+                      background: amount === a ? 'rgba(254,140,69,0.14)' : 'var(--Bg-3)',
+                      color: amount === a ? '#fe8c45' : 'var(--Secondary)',
+                      fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                    }}>₹{a}</button>
+                  ))}
+                </div>
+
+                {market.status === 'OPEN' ? (
+                  <button id="add-to-cart-btn" onClick={addToCart} disabled={!readyToAdd} style={{
+                    width: '100%', height: 50, borderRadius: 13, border: 'none',
+                    background: readyToAdd ? 'linear-gradient(270deg,#fe8c45,#ca2826)' : 'var(--Bg-3)',
+                    color: readyToAdd ? '#fff' : 'var(--White)', fontWeight: 900, fontSize: 16, cursor: readyToAdd ? 'pointer' : 'not-allowed',
+                    opacity: readyToAdd ? 1 : 0.6, transition: 'all 0.2s',
+                  }}>
+                    {readyToAdd
+                      ? `🛒 Add to Cart — ${gameType.label} ${betValue} · Win ₹${(amount * gameType.payout).toLocaleString()}`
+                      : `Select ${gameType.maxSelect - selectedStateIndices.length} more digit${gameType.maxSelect - selectedStateIndices.length > 1 ? 's' : ''}`}
+                  </button>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: 13, borderRadius: 12, background: 'rgba(231,76,60,0.1)', border: '1px solid rgba(231,76,60,0.3)', color: '#E74C3C', fontWeight: 700 }}>
+                    ⛔ {market.name} CLOSED · Opens {market.open}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Cart + Rates ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+              {/* Cart */}
+              <div style={{ background: 'var(--Bg-2)', borderRadius: 14, border: '1px solid var(--Border)', overflow: 'hidden' }}>
+                <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--Border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.15)' }}>
+                  <h4 style={{ fontWeight: 900, fontSize: 15 }}>🛒 {cart.length} BIDS <span style={{ color: 'var(--Secondary)', fontWeight: 400, fontSize: 12 }}>₹{totalBet}</span></h4>
+                  {cart.length > 0 && <button onClick={() => setCart([])} style={{ fontSize: 11, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>Clear</button>}
+                </div>
+
+                {cart.length === 0 ? (
+                  <div style={{ padding: '36px 14px', textAlign: 'center', color: 'var(--Secondary)', fontSize: 12 }}>
+                    <div style={{ fontSize: 36, marginBottom: 8 }}>🛒</div>
+                    0 Bids · ₹0
+                    <div style={{ marginTop: 6, color: 'var(--Secondary)', fontSize: 11 }}>Select digits → Add to Cart</div>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ maxHeight: 260, overflowY: 'auto' }}>
+                      {cart.map((b, i) => (
+                        <div key={i} style={{ padding: '9px 12px', borderBottom: '1px solid rgba(255,255,255,0.03)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 17, color: '#ffcb52' }}>{b.value}</span>
+                              <span style={{ fontSize: 9, borderRadius: 999, padding: '1px 6px', fontWeight: 700,
+                                background: b.session === 'OPEN' ? 'rgba(46,204,113,0.15)' : 'rgba(52,152,219,0.15)',
+                                color: b.session === 'OPEN' ? '#2ECC71' : '#3498DB' }}>{b.session}</span>
+                            </div>
+                            <div style={{ fontSize: 10, color: 'var(--Secondary)', marginTop: 1 }}>{b.label} · {b.market}</div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontWeight: 700, fontSize: 13 }}>₹{b.amount}</div>
+                              <div style={{ fontSize: 9, color: '#2ECC71' }}>→₹{b.potential.toLocaleString()}</div>
+                            </div>
+                            <button onClick={() => removeFromCart(i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 17 }}>×</button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ padding: '12px 14px', borderTop: '1px solid var(--Border)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+                        <span style={{ color: 'var(--Secondary)' }}>Total</span><span style={{ fontWeight: 700 }}>₹{totalBet}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 12 }}>
+                        <span style={{ color: 'var(--Secondary)' }}>If Win</span><span style={{ fontWeight: 700, color: '#2ECC71' }}>₹{totalPot.toLocaleString()}</span>
+                      </div>
+                      <button onClick={buy} disabled={buying || !loggedIn} style={{
+                        width: '100%', height: 46, borderRadius: 11, border: 'none',
+                        background: (!loggedIn || buying) ? 'var(--Bg-3)' : 'linear-gradient(270deg,#fe8c45,#ca2826)',
+                        color: '#fff', fontWeight: 900, fontSize: 14, cursor: (!loggedIn || buying) ? 'not-allowed' : 'pointer',
+                      }}>
+                        {!loggedIn ? '🔒 Login' : buying ? '⏳ Placing...' : `Buy — ₹${totalBet}`}
+                      </button>
+                      <p style={{ textAlign: 'center', fontSize: 10, color: 'var(--Secondary)', marginTop: 7 }}>
+                        Balance: {loggedIn ? `₹${balance.toLocaleString()}` : '—'}
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Today's Bets */}
+              {todayBets.filter(b=>b.marketId===market?.id).length > 0 && (
+                <div style={{background:'var(--Bg-2)',borderRadius:14,border:'1px solid var(--Border)',overflow:'hidden'}}>
+                  <div style={{padding:'12px 14px',borderBottom:'1px solid var(--Border)',background:'rgba(0,0,0,0.15)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <h4 style={{fontWeight:900,fontSize:14}}>📋 Today's Bets</h4>
+                    <span style={{fontSize:11,color:'var(--Secondary)'}}>{todayBets.filter(b=>b.marketId===market?.id).length} bets</span>
+                  </div>
+                  <div style={{maxHeight:200,overflowY:'auto'}}>
+                    {todayBets.filter(b=>b.marketId===market?.id).map((b:any,i:number)=>(
+                      <div key={i} style={{
+                        padding:'9px 12px',
+                        borderBottom:'1px solid rgba(255,255,255,0.03)',
+                        display:'flex',justifyContent:'space-between',alignItems:'center',
+                        background: b.status==='WON' ? 'rgba(46,204,113,0.08)' : 'transparent',
+                        borderLeft: b.status==='WON' ? '3px solid #2ECC71' : b.status==='LOST' ? '3px solid #ef4444' : '3px solid transparent',
+                      }}>
+                        <div>
+                          <div style={{display:'flex',alignItems:'center',gap:6}}>
+                            <span style={{fontFamily:'monospace',fontWeight:900,fontSize:16,color: b.status==='WON'?'#2ECC71':'#ffcb52'}}>{b.betValue}</span>
+                            <span style={{fontSize:9,borderRadius:999,padding:'1px 6px',fontWeight:700,
+                              background:b.session==='OPEN'?'rgba(46,204,113,0.15)':'rgba(52,152,219,0.15)',
+                              color:b.session==='OPEN'?'#2ECC71':'#3498DB'}}>{b.session}</span>
+                            {b.status==='WON' && <span style={{fontSize:10,fontWeight:700,color:'#2ECC71',background:'rgba(46,204,113,0.15)',padding:'1px 8px',borderRadius:999}}>🏆 WON</span>}
+                            {b.status==='LOST' && <span style={{fontSize:10,fontWeight:700,color:'#ef4444',background:'rgba(239,68,68,0.1)',padding:'1px 8px',borderRadius:999}}>❌ LOST</span>}
+                            {b.status==='ACTIVE' && <span style={{fontSize:10,fontWeight:700,color:'#ffcb52',background:'rgba(255,203,82,0.1)',padding:'1px 8px',borderRadius:999}}>⏳ Active</span>}
+                          </div>
+                          <div style={{fontSize:10,color:'var(--Secondary)',marginTop:1}}>{b.betType}</div>
+                        </div>
+                        <div style={{textAlign:'right'}}>
+                          <div style={{fontWeight:700,fontSize:13}}>₹{b.amount}</div>
+                          {b.status==='WON' && <div style={{fontSize:11,color:'#2ECC71',fontWeight:700}}>+₹{(b.wonAmount??0).toLocaleString()}</div>}
+                          {b.status!=='WON' && <div style={{fontSize:10,color:'#2ECC71'}}>→₹{(b.potentialWin??0).toLocaleString()}</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Game Rates */}
+              <div style={{ background: 'var(--Bg-2)', borderRadius: 14, padding: '13px 15px', border: '1px solid var(--Border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <h4 style={{ fontWeight: 700, fontSize: 13 }}>💰 Game Rates</h4>
+                  <span style={{ fontSize: 10, color: 'var(--Secondary)' }}>{market.name}</span>
+                </div>
+                {dynamicTypes.map(g => (
+                  <div key={g.key} onClick={() => setGameType(g)} style={{
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '6px 9px', borderRadius: 7, marginBottom: 3, cursor: 'pointer',
+                    background: gameType.key === g.key ? 'rgba(254,140,69,0.1)' : 'transparent',
+                    border: `1px solid ${gameType.key === g.key ? 'rgba(254,140,69,0.3)' : 'transparent'}`,
+                  }}>
+                    <span style={{ fontSize: 12, fontWeight: gameType.key === g.key ? 700 : 400 }}>{g.label}</span>
+                    <span style={{ fontWeight: 900, color: 'var(--White)', fontSize: 12 }}>{g.payout}x</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <footer id="footer">
+        <div className="footer-bottom" style={{ paddingTop: 24, paddingBottom: 24 }}>
+          <div className="tf-container">
+            <div className="wrapper">
+              <div className="center"><ul style={{ display: 'flex', gap: 24 }}>
+                <li><Link href="/">Home</Link></li>
+                <li><Link href="/games/lottery">Lucky Winner</Link></li>
+                
+              </ul></div>
+              <div className="right"><span>© 2025 Supreme Gaming Engine</span></div>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </>
+  );
+}
