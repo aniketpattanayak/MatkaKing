@@ -153,6 +153,7 @@ export default function AdminPage() {
   const [txnLoading,     setTxnLoading]     = useState(false);
   // Withdrawals tab state
   const [withdrawals,    setWithdrawals]    = useState<any[]>([]);
+  const [wdLoaded,       setWdLoaded]       = useState(false);
   const [wdStats,        setWdStats]        = useState<any[]>([]);
   const [adminAuthForm,  setAdminAuthForm]  = useState({ currentPassword:'', newEmail:'admin@gmail.com', newPassword:'' });
   const [adminAuthLoading, setAdminAuthLoading] = useState(false);
@@ -2058,9 +2059,11 @@ export default function AdminPage() {
                 );
                 setWithdrawals(txns);
                 setWdTotal(d.total ?? txns.length);
+                setWdLoaded(true);
+                setWdLoaded(true);
               }).catch(()=>toast.error('Failed to load')).finally(()=>setWdLoading(false));
             };
-            if (withdrawals.length === 0 && !wdLoading) loadWd();
+            if (!wdLoaded && !wdLoading) loadWd();
 
             const markPaid = async (txnId: string) => {
               setWdMarkingId(txnId);
