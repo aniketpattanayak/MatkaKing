@@ -5,16 +5,14 @@ import { prisma, isAdminToken } from '@/lib/api-helper';
 async function buildRow(dayStart: Date, dayEnd: Date, label: string) {
   const [
     depositAgg, withdrawAgg,
-    lotteryTickets, lotteryWinners,
-    matkaBets, matkaWinners,
-    matkaWonAgg,
+    lotteryBetAgg, lotteryWonAgg,
+    matkaBetAgg, matkaWonAgg,
   ] = await Promise.all([
     prisma.transaction.aggregate({ where: { type: 'DEPOSIT',    status: 'SUCCESS', createdAt: { gte: dayStart, lt: dayEnd } }, _sum: { coins: true } }),
     prisma.transaction.aggregate({ where: { type: 'WITHDRAWAL', status: 'SUCCESS', createdAt: { gte: dayStart, lt: dayEnd } }, _sum: { coins: true } }),
-    prisma.lotteryBet.count({ where: { placedAt: { gte: dayStart, lt: dayEnd } } }),
-    prisma.lotteryBet.count({ where: { placedAt: { gte: dayStart, lt: dayEnd }, status: 'WON' } }),
-    prisma.matkaBet.count({ where: { placedAt: { gte: dayStart, lt: dayEnd } } }),
-    prisma.matkaBet.count({ where: { placedAt: { gte: dayStart, lt: dayEnd }, status: 'WON' } }),
+    prisma.lotteryBet.aggregate({ where: { placedAt: { gte: dayStart, lt: dayEnd } }, _sum: { amountPaid: true } }),
+    prisma.lotteryBet.aggregate({ where: { placedAt: { gte: dayStart, lt: dayEnd }, status: 'WON' }, _sum: { wonAmount: true } }),
+    prisma.matkaBet.aggregate({ where: { placedAt: { gte: dayStart, lt: dayEnd } }, _sum: { amount: true } }),
     prisma.matkaBet.aggregate({ where: { placedAt: { gte: dayStart, lt: dayEnd }, status: 'WON' }, _sum: { wonAmount: true } }),
   ]);
 

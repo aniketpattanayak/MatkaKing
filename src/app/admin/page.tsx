@@ -813,8 +813,8 @@ export default function AdminPage() {
                           <td style={{textAlign:'right',padding:'8px 10px',color:'#3498DB',fontWeight:600}}>₹{(d.deposit??0).toLocaleString()}</td>
                           <td style={{textAlign:'right',padding:'8px 10px',color:'#ffcb52'}}>{(d.lotteryTickets??0).toLocaleString()}</td>
                           <td style={{textAlign:'right',padding:'8px 10px',color:'#9B59B6'}}>{(d.matkaBets??0).toLocaleString()}</td>
-                          <td style={{textAlign:'right',padding:'8px 10px',color:'#ffcb52'}}>{(d.lotteryWinners??0).toLocaleString()}</td>
-                          <td style={{textAlign:'right',padding:'8px 10px',color:'#9B59B6'}}>{(d.matkaWinners??0).toLocaleString()}</td>
+                          <td style={{textAlign:'right',padding:'8px 10px',color:'#ffcb52'}}>₹{(d.lotteryWinners??0).toLocaleString()}</td>
+                          <td style={{textAlign:'right',padding:'8px 10px',color:'#9B59B6'}}>₹{(d.matkaWinners??0).toLocaleString()}</td>
                           <td style={{textAlign:'right',padding:'8px 10px',color:'#ef4444'}}>₹{(d.withdraw??0).toLocaleString()}</td>
                           <td style={{textAlign:'right',padding:'8px 10px',fontWeight:700,color:profit>=0?'#2ECC71':'#ef4444'}}>₹{profit.toLocaleString()}</td>
                         </tr>

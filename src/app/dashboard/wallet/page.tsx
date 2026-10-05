@@ -143,8 +143,14 @@ export default function WalletPage() {
     `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}&bgcolor=1a1d27&color=ffffff&margin=2`;
   const withdrawQR = true; // enables QR in withdraw section
 
-  const txnColor = (t: string) => ['DEPOSIT','WIN_CREDIT','BONUS','SPIN_WIN'].includes(t) ? '#2ECC71' : '#ef4444';
-  const txnSign  = (t: string) => ['DEPOSIT','WIN_CREDIT','BONUS','SPIN_WIN'].includes(t) ? '+' : '-';
+  const txnLabel = (t: any) => {
+    if ((t.type === 'WIN_CREDIT' || t.type === 'REFERRAL') && t.orderId?.startsWith('REF-')) return 'REFERRAL';
+    return t.type.replace(/_/g,' ');
+  };
+  const txnColorType = (t: any) => ['DEPOSIT','WIN CREDIT','BONUS','SPIN WIN','REFERRAL'].includes(txnLabel(t)) ? '#2ECC71' : '#ef4444';
+  const txnSignType  = (t: any) => ['DEPOSIT','WIN CREDIT','BONUS','SPIN WIN','REFERRAL'].includes(txnLabel(t)) ? '+' : '-';
+  const txnColor = (t: string) => ['DEPOSIT','WIN_CREDIT','BONUS','SPIN_WIN','REFERRAL'].includes(t) ? '#2ECC71' : '#ef4444';
+  const txnSign  = (t: string) => ['DEPOSIT','WIN_CREDIT','BONUS','SPIN_WIN','REFERRAL'].includes(t) ? '+' : '-';
 
   const inp: React.CSSProperties = {
     width:'100%', padding:'11px 14px', borderRadius:10,
@@ -418,9 +424,9 @@ export default function WalletPage() {
                   <tbody>
                     {transactions.slice((historyPage-1)*HISTORY_PER_PAGE, historyPage*HISTORY_PER_PAGE).map(t=>(
                       <tr key={t.id} style={{ borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
-                        <td style={{ padding:'14px 20px', fontWeight:600, fontSize:14 }}>{t.type.replace(/_/g,' ')}</td>
-                        <td style={{ padding:'14px 20px', fontWeight:700, color:txnColor(t.type), fontSize:16 }}>
-                          {txnSign(t.type)}{(t.coins||t.amount||0).toLocaleString()} Coins
+                        <td style={{ padding:'14px 20px', fontWeight:600, fontSize:14 }}>{txnLabel(t)}</td>
+                        <td style={{ padding:'14px 20px', fontWeight:700, color:txnColorType(t), fontSize:16 }}>
+                          {txnSignType(t)}{(t.coins||t.amount||0).toLocaleString()} Coins
                         </td>
                         <td style={{ padding:'14px 20px' }}>
                           <span style={{ padding:'3px 12px', borderRadius:999, fontSize:11, fontWeight:700,
