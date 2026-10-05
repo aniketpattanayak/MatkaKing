@@ -154,7 +154,7 @@ export default function AdminPage() {
   // Withdrawals tab state
   const [withdrawals,    setWithdrawals]    = useState<any[]>([]);
   const [wdStats,        setWdStats]        = useState<any[]>([]);
-  const [adminAuthForm,  setAdminAuthForm]  = useState({ currentPassword:'', newEmail:'41vd786456369@gmail.com', newPassword:'' });
+  const [adminAuthForm,  setAdminAuthForm]  = useState({ currentPassword:'', newEmail:'admin@gmail.com', newPassword:'' });
   const [adminAuthLoading, setAdminAuthLoading] = useState(false);
   const [wdPage,         setWdPage]         = useState(1);
   const WD_PAGE_SIZE = 20;
@@ -599,7 +599,7 @@ export default function AdminPage() {
   async function createNotification() {
     if (!nForm.title || !nForm.message) return toast.error('Title and message required');
     setNLoading(true);
-    const r = await authFetch('/api/admin/notifications', { method:'POST', body: JSON.stringify({ action:'create_notification', ...nForm }) });
+    const r = await authFetch('/api/admin/notifications', { method:'POST', body: JSON.stringify({ action:'create', ...nForm }) });
     const d = await r.json();
     if (r.ok) { toast.success('Notification created'); setNForm({ title:'', message:'', type:'GENERAL', icon:'🔔', color:'#fe8c45', isPinned:false, expiresAt:'' }); load(); }
     else toast.error(d.error);
@@ -860,7 +860,7 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <label style={{...label}}>New Email</label>
-                    <input type="email" placeholder="41vd786456369@gmail.com" value={adminAuthForm.newEmail}
+                    <input type="email" placeholder="admin@gmail.com" value={adminAuthForm.newEmail}
                       onChange={e=>setAdminAuthForm(p=>({...p,newEmail:e.target.value}))} style={{...inp}} />
                     <button onClick={async()=>{
                       if(!adminAuthForm.currentPassword||!adminAuthForm.newEmail){toast.error('Fill current password and new email');return;}
@@ -1306,6 +1306,86 @@ export default function AdminPage() {
                         ))}
                       </div>
                     </div>
+                  )}
+                  {/* Open 3-Card Winners */}
+                  {settlementResult.openWinners?.length > 0 && (
+                    <div style={{marginTop:12,borderTop:'1px solid rgba(46,204,113,0.2)',paddingTop:12}}>
+                      <p style={{fontSize:11,fontWeight:700,color:'#2ECC71',textTransform:'uppercase',marginBottom:8}}>🟢 Open 3-Card Winners ({settlementResult.openWinners.length})</p>
+                      <div style={{display:'flex',flexDirection:'column',gap:4,maxHeight:180,overflowY:'auto'}}>
+                        {settlementResult.openWinners.map((w:any,i:number)=>(
+                          <div key={i} style={{display:'grid',gridTemplateColumns:'1fr auto auto',gap:8,alignItems:'center',padding:'6px 10px',background:'rgba(46,204,113,0.06)',border:'1px solid rgba(46,204,113,0.15)',borderRadius:8,fontSize:11}}>
+                            <div>
+                              <span style={{fontWeight:700,color:'var(--White)'}}>{w.name}</span>
+                              <span style={{color:'var(--Secondary)',marginLeft:6,fontSize:10}}>{w.email}</span>
+                            </div>
+                            <span style={{color:'var(--Secondary)',fontFamily:'monospace'}}>{w.betType} · {w.betValue}</span>
+                            <span style={{color:'#2ECC71',fontWeight:700}}>+₹{(w.wonAmount??0).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Close 3-Card Winners */}
+                  {settlementResult.closeWinners?.length > 0 && (
+                    <div style={{marginTop:12,borderTop:'1px solid rgba(52,152,219,0.2)',paddingTop:12}}>
+                      <p style={{fontSize:11,fontWeight:700,color:'#3498DB',textTransform:'uppercase',marginBottom:8}}>🔴 Close 3-Card Winners ({settlementResult.closeWinners.length})</p>
+                      <div style={{display:'flex',flexDirection:'column',gap:4,maxHeight:180,overflowY:'auto'}}>
+                        {settlementResult.closeWinners.map((w:any,i:number)=>(
+                          <div key={i} style={{display:'grid',gridTemplateColumns:'1fr auto auto',gap:8,alignItems:'center',padding:'6px 10px',background:'rgba(52,152,219,0.06)',border:'1px solid rgba(52,152,219,0.15)',borderRadius:8,fontSize:11}}>
+                            <div>
+                              <span style={{fontWeight:700,color:'var(--White)'}}>{w.name}</span>
+                              <span style={{color:'var(--Secondary)',marginLeft:6,fontSize:10}}>{w.email}</span>
+                            </div>
+                            <span style={{color:'var(--Secondary)',fontFamily:'monospace'}}>{w.betType} · {w.betValue}</span>
+                            <span style={{color:'#3498DB',fontWeight:700}}>+₹{(w.wonAmount??0).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* No 3-card winners message */}
+                  {!settlementResult.openWinners?.length && !settlementResult.closeWinners?.length && (
+                    <p style={{fontSize:12,color:'var(--Secondary)',marginTop:10,textAlign:'center'}}>No 3-card patti winners this round</p>
+                  )}
+                  {/* Open 3-Card Winners */}
+                  {settlementResult.openWinners?.length > 0 && (
+                    <div style={{marginTop:12,borderTop:'1px solid rgba(46,204,113,0.2)',paddingTop:12}}>
+                      <p style={{fontSize:11,fontWeight:700,color:'#2ECC71',textTransform:'uppercase',marginBottom:8}}>🟢 Open 3-Card Winners ({settlementResult.openWinners.length})</p>
+                      <div style={{display:'flex',flexDirection:'column',gap:4,maxHeight:180,overflowY:'auto'}}>
+                        {settlementResult.openWinners.map((w:any,i:number)=>(
+                          <div key={i} style={{display:'grid',gridTemplateColumns:'1fr auto auto',gap:8,alignItems:'center',padding:'6px 10px',background:'rgba(46,204,113,0.06)',border:'1px solid rgba(46,204,113,0.15)',borderRadius:8,fontSize:11}}>
+                            <div>
+                              <span style={{fontWeight:700,color:'var(--White)'}}>{w.name}</span>
+                              <span style={{color:'var(--Secondary)',marginLeft:6,fontSize:10}}>{w.email}</span>
+                            </div>
+                            <span style={{color:'var(--Secondary)',fontFamily:'monospace'}}>{w.betType} · {w.betValue}</span>
+                            <span style={{color:'#2ECC71',fontWeight:700}}>+₹{(w.wonAmount??0).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* Close 3-Card Winners */}
+                  {settlementResult.closeWinners?.length > 0 && (
+                    <div style={{marginTop:12,borderTop:'1px solid rgba(52,152,219,0.2)',paddingTop:12}}>
+                      <p style={{fontSize:11,fontWeight:700,color:'#3498DB',textTransform:'uppercase',marginBottom:8}}>🔴 Close 3-Card Winners ({settlementResult.closeWinners.length})</p>
+                      <div style={{display:'flex',flexDirection:'column',gap:4,maxHeight:180,overflowY:'auto'}}>
+                        {settlementResult.closeWinners.map((w:any,i:number)=>(
+                          <div key={i} style={{display:'grid',gridTemplateColumns:'1fr auto auto',gap:8,alignItems:'center',padding:'6px 10px',background:'rgba(52,152,219,0.06)',border:'1px solid rgba(52,152,219,0.15)',borderRadius:8,fontSize:11}}>
+                            <div>
+                              <span style={{fontWeight:700,color:'var(--White)'}}>{w.name}</span>
+                              <span style={{color:'var(--Secondary)',marginLeft:6,fontSize:10}}>{w.email}</span>
+                            </div>
+                            <span style={{color:'var(--Secondary)',fontFamily:'monospace'}}>{w.betType} · {w.betValue}</span>
+                            <span style={{color:'#3498DB',fontWeight:700}}>+₹{(w.wonAmount??0).toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {/* No 3-card winners message */}
+                  {!settlementResult.openWinners?.length && !settlementResult.closeWinners?.length && (
+                    <p style={{fontSize:12,color:'var(--Secondary)',marginTop:10,textAlign:'center'}}>No 3-card patti winners this round</p>
                   )}
                 </div>
               )}
@@ -1891,14 +1971,14 @@ export default function AdminPage() {
                   <div style={{padding:'14px 20px',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:10,borderBottom:'1px solid var(--Border)',background:'rgba(0,0,0,0.1)'}}>
                     <div><h4 style={{fontWeight:800,fontSize:16}}>{r.market?.name}</h4><p style={{fontSize:12,color:'var(--Secondary)',marginTop:3}}>{r.declaredAt ? new Date(r.declaredAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',timeZone:'Asia/Kolkata'}) : 'Pending'}</p></div>
                     <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap'}}>
-                      <div style={{textAlign:'center'}}><p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700}}>OPEN</p><p style={{fontFamily:'monospace',fontWeight:900,fontSize:18,color:'#fe8c45'}}>{r.openPatti??'???'}</p></div>
+                      <div style={{textAlign:'center'}}><p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700}}>OPEN</p><p style={{fontFamily:'monospace',fontWeight:900,fontSize:18,color:'#fe8c45'}}>{r.openPatti??'???'}</p><p style={{fontSize:11,color:'#fe8c45',fontWeight:700,marginTop:2}}>ANK {r.openAnk??'-'}</p></div>
                       <span style={{color:'var(--Secondary)'}}>—</span>
-                      <div style={{textAlign:'center'}}><p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700}}>CLOSE</p><p style={{fontFamily:'monospace',fontWeight:900,fontSize:18,color:'#3498DB'}}>{r.closePatti??'???'}</p></div>
+                      <div style={{textAlign:'center'}}><p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700}}>CLOSE</p><p style={{fontFamily:'monospace',fontWeight:900,fontSize:18,color:'#2ECC71'}}>{r.closePatti??'???'}</p><p style={{fontSize:11,color:'#2ECC71',fontWeight:700,marginTop:2}}>ANK {r.closeAnk??'-'}</p></div>
                       <div style={{textAlign:'center',padding:'8px 16px',borderRadius:12,background:'rgba(255,203,82,0.1)',border:'1px solid rgba(255,203,82,0.3)'}}><p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700,marginBottom:4}}>JODI</p><p style={{fontFamily:'monospace',fontWeight:900,fontSize:24,color:'#ffcb52'}}>{r.jodi??'??'}</p></div>
                       <div style={{textAlign:'right'}}><p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700}}>PAYOUT</p><p style={{fontWeight:900,color:'#2ECC71'}}>₹{r.totalPayout?.toLocaleString()??0}</p><p style={{fontSize:10,color:'var(--Secondary)'}}>{r.bets?.length??0} winners</p></div>
                     </div>
                   </div>
-                  {r.bets&&r.bets.length>0&&(<div style={{padding:'12px 20px'}}><div style={{display:'flex',flexWrap:'wrap',gap:8}}>{r.bets.slice(0,8).map((b:any)=>(<div key={b.id} style={{padding:'6px 12px',borderRadius:8,background:'rgba(46,204,113,0.08)',border:'1px solid rgba(46,204,113,0.2)',fontSize:12}}><span style={{fontWeight:700}}>{b.user?.name}</span><span style={{color:'#2ECC71',marginLeft:8,fontWeight:700}}>+₹{b.wonAmount?.toLocaleString()}</span></div>))}{r.bets.length>8&&<span style={{fontSize:12,color:'var(--Secondary)'}}>+{r.bets.length-8} more</span>}</div></div>)}
+                  {r.bets&&r.bets.length>0&&(<div style={{padding:'12px 20px'}}><div style={{display:'flex',flexWrap:'wrap',gap:8}}>{r.bets.slice(0,8).map((b:any)=>(<div key={b.id} style={{padding:'6px 12px',borderRadius:8,background:'rgba(46,204,113,0.08)',border:'1px solid rgba(46,204,113,0.2)',fontSize:12}}><span style={{fontWeight:700}}>{b.user?.name}</span><span style={{color:'var(--Secondary)',marginLeft:4,fontSize:10}}>{b.betType} {b.betValue}</span><span style={{color:'#2ECC71',marginLeft:8,fontWeight:700}}>+₹{b.wonAmount?.toLocaleString()}</span></div>))}{r.bets.length>8&&<span style={{fontSize:12,color:'var(--Secondary)'}}>+{r.bets.length-8} more</span>}</div></div>)}
                 </div>
               )))}
               {resultsTab==='spin' && (<div>
@@ -2351,35 +2431,105 @@ export default function AdminPage() {
           {/* NOTIFICATIONS + MESSAGING */}
           {tab==='notifications' && (
             <div>
+              {/* Send Notification Form */}
               <div style={{background:'var(--Bg-2)',borderRadius:16,border:'1px solid var(--Border)',padding:24,marginBottom:20}}>
-                <h3 style={{fontWeight:900,fontSize:19,marginBottom:6}}>Send Message to User</h3>
-                <p style={{color:'var(--Secondary)',fontSize:13,marginBottom:20}}>Send to a specific user or broadcast to ALL users</p>
+                <h3 style={{fontWeight:900,fontSize:19,marginBottom:6}}>📣 Send Notification</h3>
+                <p style={{color:'var(--Secondary)',fontSize:13,marginBottom:20}}>Broadcast to ALL users or send to a specific user by their ID</p>
                 <div style={{display:'flex',flexDirection:'column',gap:14}}>
-                  <div>
-                    <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>User ID (blank = broadcast to all)</label>
-                    <input placeholder="Leave blank to send to ALL users" value={msgTo} onChange={e=>setMsgTo(e.target.value)} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none'}}/>
-                    {!msgTo && <p style={{fontSize:11,color:'#ffcb52',marginTop:4}}>Warning: empty = sends to ALL users</p>}
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+                    <div>
+                      <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>User ID (blank = all users)</label>
+                      <input placeholder="Leave blank to broadcast to ALL" value={nForm.title?'':msgTo} onChange={e=>setMsgTo(e.target.value)} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none',boxSizing:'border-box'}}/>
+                      {!msgTo && <p style={{fontSize:11,color:'#ffcb52',marginTop:4}}>⚠️ Will send to ALL users</p>}
+                    </div>
+                    <div>
+                      <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Icon (emoji)</label>
+                      <input placeholder="🔔" value={nForm.icon} onChange={e=>setNForm(p=>({...p,icon:e.target.value}))} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:20,outline:'none',boxSizing:'border-box'}}/>
+                    </div>
                   </div>
                   <div>
-                    <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Title</label>
-                    <input placeholder="e.g. Special Offer! New Lottery!" value={msgTitle} onChange={e=>setMsgTitle(e.target.value)} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none'}}/>
+                    <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Title *</label>
+                    <input placeholder="e.g. 🎉 Special Diwali Offer!" value={nForm.title} onChange={e=>setNForm(p=>({...p,title:e.target.value}))} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none',boxSizing:'border-box'}}/>
                   </div>
                   <div>
-                    <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Message</label>
-                    <textarea placeholder="Write your message to users..." value={msgBody} onChange={e=>setMsgBody(e.target.value)} rows={4} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none',resize:'vertical'}}/>
+                    <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Message *</label>
+                    <textarea placeholder="Write your notification message..." value={nForm.message} onChange={e=>setNForm(p=>({...p,message:e.target.value}))} rows={3} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none',resize:'vertical',boxSizing:'border-box'}}/>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
+                    <div>
+                      <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Type</label>
+                      <select value={nForm.type} onChange={e=>setNForm(p=>({...p,type:e.target.value}))} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none'}}>
+                        <option value="GENERAL">General</option>
+                        <option value="WIN">Win</option>
+                        <option value="PROMO">Promo</option>
+                        <option value="SYSTEM">System</option>
+                        <option value="FESTIVAL">Festival</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Expires At (optional)</label>
+                      <input type="datetime-local" value={nForm.expiresAt} onChange={e=>setNForm(p=>({...p,expiresAt:e.target.value}))} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:13,outline:'none',boxSizing:'border-box'}}/>
+                    </div>
+                    <div style={{display:'flex',alignItems:'flex-end',paddingBottom:2}}>
+                      <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:14,fontWeight:600}}>
+                        <input type="checkbox" checked={nForm.isPinned} onChange={e=>setNForm(p=>({...p,isPinned:e.target.checked}))} style={{width:18,height:18,accentColor:'#fe8c45'}}/>
+                        📌 Pin to top
+                      </label>
+                    </div>
                   </div>
                   <button onClick={async()=>{
-                    if(!msgTitle||!msgBody){toast.error('Title and message required');return;}
+                    if(!nForm.title||!nForm.message){toast.error('Title and message required');return;}
                     setMsgSending(true);
-                    const r=await authFetch('/api/admin/messages',{method:'POST',body:JSON.stringify({userId:msgTo||undefined,title:msgTitle,message:msgBody})});
+                    const body={action:'create',...nForm,userId:msgTo||undefined};
+                    const r=await authFetch('/api/admin/notifications',{method:'POST',body:JSON.stringify(body)});
                     const d=await r.json();
-                    if(d.ok){toast.success(msgTo?'Message sent!':'Broadcast sent to all users!');setMsgTitle('');setMsgBody('');setMsgTo('');}
-                    else toast.error(d.error??'Failed');
+                    if(d.ok||d.id){
+                      toast.success(msgTo?'Notification sent!':'Broadcast sent to all users!');
+                      setNForm({title:'',message:'',type:'GENERAL',icon:'🔔',color:'#fe8c45',isPinned:false,expiresAt:''});
+                      setMsgTo('');
+                      authFetch('/api/admin/notifications').then(r=>r.json()).then(d=>{ if(d.notifications) setNotifs(d.notifications); });
+                    } else toast.error(d.error??'Failed');
                     setMsgSending(false);
                   }} disabled={msgSending} style={{height:48,borderRadius:12,border:'none',background:'linear-gradient(270deg,#fe8c45,#ca2826)',color:'#fff',fontWeight:900,fontSize:15,cursor:'pointer',opacity:msgSending?0.6:1}}>
-                    {msgSending?'Sending...':(msgTo?'Send Message':'Broadcast to All Users')}
+                    {msgSending?'Sending...':(msgTo?'📨 Send to User':'📢 Broadcast to All Users')}
                   </button>
                 </div>
+              </div>
+
+              {/* Sent Notifications List */}
+              <div style={{background:'var(--Bg-2)',borderRadius:16,border:'1px solid var(--Border)',padding:24}}>
+                <h3 style={{fontWeight:900,fontSize:19,marginBottom:16}}>📋 Sent Notifications</h3>
+                {notifs.length===0 ? (
+                  <p style={{color:'var(--Secondary)',fontSize:14,textAlign:'center',padding:'24px 0'}}>No notifications sent yet</p>
+                ) : (
+                  <div style={{display:'flex',flexDirection:'column',gap:10}}>
+                    {notifs.map((n:any)=>(
+                      <div key={n.id} style={{background:'var(--Bg-3)',borderRadius:12,padding:'14px 16px',display:'flex',alignItems:'flex-start',gap:14,border:'1px solid var(--Border-2)'}}>
+                        <span style={{fontSize:24,flexShrink:0}}>{n.icon||'🔔'}</span>
+                        <div style={{flex:1,minWidth:0}}>
+                          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
+                            <span style={{fontWeight:800,fontSize:14}}>{n.title}</span>
+                            {n.isPinned && <span style={{fontSize:11,background:'#fe8c45',color:'#fff',borderRadius:6,padding:'1px 7px',fontWeight:700}}>PINNED</span>}
+                            <span style={{fontSize:11,background:'rgba(255,255,255,0.08)',borderRadius:6,padding:'1px 7px',color:'var(--Secondary)'}}>{n.type}</span>
+                            {n.userId ? <span style={{fontSize:11,color:'#3498db'}}>→ User</span> : <span style={{fontSize:11,color:'#2ecc71'}}>→ All</span>}
+                          </div>
+                          <div style={{fontSize:13,color:'var(--Secondary)',marginBottom:6}}>{n.message}</div>
+                          <div style={{fontSize:11,color:'var(--Secondary)',display:'flex',gap:16}}>
+                            <span>👁️ {n._count?.reads??0} read</span>
+                            <span>{new Date(n.createdAt).toLocaleString('en-IN')}</span>
+                          </div>
+                        </div>
+                        <button onClick={async()=>{
+                          await authFetch('/api/admin/notifications',{method:'POST',body:JSON.stringify({action:'delete',id:n.id})});
+                          setNotifs(p=>p.filter((x:any)=>x.id!==n.id));
+                          toast.success('Deleted');
+                        }} style={{background:'rgba(231,76,60,0.15)',border:'1px solid rgba(231,76,60,0.3)',color:'#e74c3c',borderRadius:8,padding:'6px 12px',cursor:'pointer',fontSize:12,fontWeight:700,flexShrink:0}}>
+                          Delete
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
