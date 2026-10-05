@@ -143,6 +143,7 @@ export default function AdminPage() {
   const [msgTitle,     setMsgTitle]     = useState('');
   const [msgBody,      setMsgBody]      = useState('');
   const [msgSending,   setMsgSending]   = useState(false);
+  const [editingNotif, setEditingNotif] = useState<any|null>(null);
   const [results,        setResults]        = useState<any>({ lottery:[], matka:[], spin:[], spinStats:{} });
   const [resultsTab,     setResultsTab]     = useState<'lottery'|'matka'>('lottery');
   const [resultsLoading, setResultsLoading] = useState(false);
@@ -2437,7 +2438,7 @@ export default function AdminPage() {
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
                     <div>
                       <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>User ID (blank = all users)</label>
-                      <input placeholder="Leave blank to broadcast to ALL" value={nForm.title?'':msgTo} onChange={e=>setMsgTo(e.target.value)} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none',boxSizing:'border-box'}}/>
+                      <input placeholder="Leave blank to broadcast to ALL" value={msgTo} onChange={e=>setMsgTo(e.target.value)} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none',boxSizing:'border-box'}}/>
                       {!msgTo && <p style={{fontSize:11,color:'#ffcb52',marginTop:4}}>⚠️ Will send to ALL users</p>}
                     </div>
                     <div>
@@ -2502,28 +2503,80 @@ export default function AdminPage() {
                 ) : (
                   <div style={{display:'flex',flexDirection:'column',gap:10}}>
                     {notifs.map((n:any)=>(
-                      <div key={n.id} style={{background:'var(--Bg-3)',borderRadius:12,padding:'14px 16px',display:'flex',alignItems:'flex-start',gap:14,border:'1px solid var(--Border-2)'}}>
-                        <span style={{fontSize:24,flexShrink:0}}>{n.icon||'🔔'}</span>
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
-                            <span style={{fontWeight:800,fontSize:14}}>{n.title}</span>
-                            {n.isPinned && <span style={{fontSize:11,background:'#fe8c45',color:'#fff',borderRadius:6,padding:'1px 7px',fontWeight:700}}>PINNED</span>}
-                            <span style={{fontSize:11,background:'rgba(255,255,255,0.08)',borderRadius:6,padding:'1px 7px',color:'var(--Secondary)'}}>{n.type}</span>
-                            {n.userId ? <span style={{fontSize:11,color:'#3498db'}}>→ User</span> : <span style={{fontSize:11,color:'#2ecc71'}}>→ All</span>}
+                      <div key={n.id}>
+                        <div style={{background:'var(--Bg-3)',borderRadius:12,padding:'14px 16px',display:'flex',alignItems:'flex-start',gap:14,border:editingNotif?.id===n.id?'1px solid #fe8c45':'1px solid var(--Border-2)'}}>
+                          <span style={{fontSize:24,flexShrink:0}}>{n.icon||'🔔'}</span>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:3}}>
+                              <span style={{fontWeight:800,fontSize:14}}>{n.title}</span>
+                              {n.isPinned && <span style={{fontSize:11,background:'#fe8c45',color:'#fff',borderRadius:6,padding:'1px 7px',fontWeight:700}}>PINNED</span>}
+                              <span style={{fontSize:11,background:'rgba(255,255,255,0.08)',borderRadius:6,padding:'1px 7px',color:'var(--Secondary)'}}>{n.type}</span>
+                              {n.userId ? <span style={{fontSize:11,color:'#3498db'}}>→ User</span> : <span style={{fontSize:11,color:'#2ecc71'}}>→ All</span>}
+                            </div>
+                            <div style={{fontSize:13,color:'var(--Secondary)',marginBottom:6}}>{n.message}</div>
+                            <div style={{fontSize:11,color:'var(--Secondary)',display:'flex',gap:16}}>
+                              <span>👁️ {n._count?.reads??0} read</span>
+                              <span>{new Date(n.createdAt).toLocaleString('en-IN')}</span>
+                            </div>
                           </div>
-                          <div style={{fontSize:13,color:'var(--Secondary)',marginBottom:6}}>{n.message}</div>
-                          <div style={{fontSize:11,color:'var(--Secondary)',display:'flex',gap:16}}>
-                            <span>👁️ {n._count?.reads??0} read</span>
-                            <span>{new Date(n.createdAt).toLocaleString('en-IN')}</span>
+                          <div style={{display:'flex',gap:6,flexShrink:0}}>
+                            <button onClick={()=>setEditingNotif(editingNotif?.id===n.id?null:{id:n.id,title:n.title,message:n.message,type:n.type,icon:n.icon||'🔔',isPinned:n.isPinned})}
+                              style={{background:'rgba(52,152,219,0.15)',border:'1px solid rgba(52,152,219,0.3)',color:'#3498db',borderRadius:8,padding:'6px 12px',cursor:'pointer',fontSize:12,fontWeight:700}}>
+                              {editingNotif?.id===n.id?'Cancel':'Edit'}
+                            </button>
+                            <button onClick={async()=>{
+                              if(!confirm('Delete this notification permanently?')) return;
+                              await authFetch('/api/admin/notifications',{method:'POST',body:JSON.stringify({action:'delete',id:n.id})});
+                              setNotifs(p=>p.filter((x:any)=>x.id!==n.id));
+                              if(editingNotif?.id===n.id) setEditingNotif(null);
+                              toast.success('Deleted');
+                            }} style={{background:'rgba(231,76,60,0.15)',border:'1px solid rgba(231,76,60,0.3)',color:'#e74c3c',borderRadius:8,padding:'6px 12px',cursor:'pointer',fontSize:12,fontWeight:700}}>
+                              Delete
+                            </button>
                           </div>
                         </div>
-                        <button onClick={async()=>{
-                          await authFetch('/api/admin/notifications',{method:'POST',body:JSON.stringify({action:'delete',id:n.id})});
-                          setNotifs(p=>p.filter((x:any)=>x.id!==n.id));
-                          toast.success('Deleted');
-                        }} style={{background:'rgba(231,76,60,0.15)',border:'1px solid rgba(231,76,60,0.3)',color:'#e74c3c',borderRadius:8,padding:'6px 12px',cursor:'pointer',fontSize:12,fontWeight:700,flexShrink:0}}>
-                          Delete
-                        </button>
+                        {editingNotif?.id===n.id && (
+                          <div style={{background:'var(--Bg-3)',borderRadius:'0 0 12px 12px',padding:'16px',border:'1px solid #fe8c45',borderTop:'none',display:'flex',flexDirection:'column',gap:10}}>
+                            <div style={{display:'grid',gridTemplateColumns:'80px 1fr',gap:10}}>
+                              <div>
+                                <label style={{fontSize:11,color:'var(--Secondary)',display:'block',marginBottom:4,textTransform:'uppercase',fontWeight:700}}>Icon</label>
+                                <input value={editingNotif.icon} onChange={e=>setEditingNotif((p:any)=>({...p,icon:e.target.value}))} style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid var(--Border-2)',background:'var(--Bg-2)',color:'var(--White)',fontSize:18,outline:'none',textAlign:'center'}}/>
+                              </div>
+                              <div>
+                                <label style={{fontSize:11,color:'var(--Secondary)',display:'block',marginBottom:4,textTransform:'uppercase',fontWeight:700}}>Title</label>
+                                <input value={editingNotif.title} onChange={e=>setEditingNotif((p:any)=>({...p,title:e.target.value}))} style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid var(--Border-2)',background:'var(--Bg-2)',color:'var(--White)',fontSize:14,outline:'none'}}/>
+                              </div>
+                            </div>
+                            <div>
+                              <label style={{fontSize:11,color:'var(--Secondary)',display:'block',marginBottom:4,textTransform:'uppercase',fontWeight:700}}>Message</label>
+                              <textarea value={editingNotif.message} onChange={e=>setEditingNotif((p:any)=>({...p,message:e.target.value}))} rows={2} style={{width:'100%',padding:'8px 10px',borderRadius:8,border:'1px solid var(--Border-2)',background:'var(--Bg-2)',color:'var(--White)',fontSize:13,outline:'none',resize:'vertical',boxSizing:'border-box'}}/>
+                            </div>
+                            <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                              <select value={editingNotif.type} onChange={e=>setEditingNotif((p:any)=>({...p,type:e.target.value}))} style={{padding:'8px 10px',borderRadius:8,border:'1px solid var(--Border-2)',background:'var(--Bg-2)',color:'var(--White)',fontSize:13,outline:'none'}}>
+                                <option value="GENERAL">General</option>
+                                <option value="WIN">Win</option>
+                                <option value="PROMO">Promo</option>
+                                <option value="SYSTEM">System</option>
+                                <option value="FESTIVAL">Festival</option>
+                              </select>
+                              <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',fontSize:13,fontWeight:600}}>
+                                <input type="checkbox" checked={editingNotif.isPinned} onChange={e=>setEditingNotif((p:any)=>({...p,isPinned:e.target.checked}))} style={{width:16,height:16,accentColor:'#fe8c45'}}/>
+                                📌 Pinned
+                              </label>
+                              <button onClick={async()=>{
+                                const r=await authFetch('/api/admin/notifications',{method:'POST',body:JSON.stringify({action:'update',...editingNotif})});
+                                const d=await r.json();
+                                if(d.ok){
+                                  setNotifs(p=>p.map((x:any)=>x.id===editingNotif.id?{...x,...editingNotif}:x));
+                                  setEditingNotif(null);
+                                  toast.success('Updated');
+                                } else toast.error(d.error??'Failed');
+                              }} style={{marginLeft:'auto',background:'linear-gradient(270deg,#fe8c45,#ca2826)',border:'none',color:'#fff',borderRadius:8,padding:'8px 20px',cursor:'pointer',fontSize:13,fontWeight:700}}>
+                                💾 Save Changes
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

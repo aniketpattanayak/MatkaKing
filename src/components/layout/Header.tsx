@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Gamepad2, Ticket, LayoutDashboard, Wallet, Settings,
-  LogOut, User, ChevronDown, X, Menu, Coins, Sun, Moon
+  LogOut, User, ChevronDown, X, Menu, Coins, Sun, Moon, Bell
 } from 'lucide-react';
 import { getToken, setToken, clearToken, getCachedUser, setCachedUser, fetchCurrentUser, type SessionUser } from '@/lib/auth-client';
 
@@ -29,18 +29,47 @@ export default function Header() {
     { question:'', answer:'' },
   ]);
   const [dropdown,setDropdown]= useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const unreadCount = notifications.filter((n:any)=>!n.isRead).length;
+
+  const fetchNotifications = async () => {
+    if (!getToken()) return;
+    try {
+      const r = await fetch('/api/notifications', { headers: { Authorization: `Bearer ${getToken()}` } });
+      const d = await r.json();
+      if (d.notifications) setNotifications(d.notifications);
+    } catch {}
+  };
+
+  const markRead = async (id?: string) => {
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify(id ? { notificationId: id } : { markAll: true }),
+      });
+      setNotifications(prev => prev.map((n:any) => (!id || n.id===id) ? {...n, isRead:true} : n));
+    } catch {}
+  };
   const [mobileNav,setMobileNav]=useState(false);
   const [topBar,setTopBar]=useState(true);
   const dropRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const c = getCachedUser(); if (c) setUser(c);
-    if (getToken()) fetchCurrentUser().then(u => { if (u) setUser(u); });
+    if (getToken()) { fetchCurrentUser().then(u => { if (u) setUser(u); }); fetchNotifications(); }
+    const poll = setInterval(() => { if (getToken()) fetchNotifications(); }, 60000);
+    const onFocus = () => { if (getToken()) fetchNotifications(); };
+    window.addEventListener('focus', onFocus);
+    return () => { clearInterval(poll); window.removeEventListener('focus', onFocus); };
   }, []);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (dropRef.current && !dropRef.current.contains(e.target as Node)) setDropdown(false);
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -237,6 +266,72 @@ export default function Header() {
                       }}>
                         <Coins size={14}/> {user.balance.toLocaleString()}
                       </Link>
+
+                      {/* Notification Bell */}
+                      <div ref={notifRef} style={{ position:'relative' }}>
+                        <button onClick={()=>{ setNotifOpen(v=>!v); if(!notifOpen) fetchNotifications(); }} style={{
+                          width:40, height:40, borderRadius:'50%',
+                          background:'var(--Bg-2)', border:'1px solid var(--Border)',
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          cursor:'pointer', color:'var(--White)', position:'relative', flexShrink:0,
+                        }}>
+                          <Bell size={17}/>
+                          {unreadCount > 0 && (
+                            <span style={{
+                              position:'absolute', top:-2, right:-2,
+                              background:'#ef4444', color:'#fff',
+                              borderRadius:'50%', width:16, height:16,
+                              fontSize:9, fontWeight:900,
+                              display:'flex', alignItems:'center', justifyContent:'center',
+                              border:'2px solid var(--Bg)',
+                            }}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+                          )}
+                        </button>
+
+                        {notifOpen && (
+                          <div style={{
+                            position:'absolute', top:'calc(100% + 10px)', right:0,
+                            background:'var(--Bg-2)', border:'1px solid var(--Border)',
+                            borderRadius:16, width:320, maxHeight:420, overflowY:'auto',
+                            boxShadow:'0 20px 60px rgba(0,0,0,0.5)', zIndex:9999,
+                          }}>
+                            <div style={{ padding:'14px 16px', borderBottom:'1px solid var(--Border)', display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', top:0, background:'var(--Bg-2)' }}>
+                              <span style={{ fontWeight:800, fontSize:14 }}>🔔 Notifications</span>
+                              {unreadCount > 0 && (
+                                <button onClick={()=>markRead()} style={{ fontSize:11, color:'#fe8c45', background:'none', border:'none', cursor:'pointer', fontWeight:700 }}>
+                                  Mark all read
+                                </button>
+                              )}
+                            </div>
+                            {notifications.length === 0 ? (
+                              <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--Secondary)', fontSize:13 }}>
+                                <div style={{ fontSize:32, marginBottom:8 }}>🔔</div>
+                                No notifications yet
+                              </div>
+                            ) : notifications.map((n:any) => (
+                              <div key={n.id} onClick={()=>markRead(n.id)} style={{
+                                padding:'12px 16px', borderBottom:'1px solid rgba(255,255,255,0.04)',
+                                background: n.isRead ? 'transparent' : 'rgba(254,140,69,0.04)',
+                                cursor:'pointer', borderLeft: n.isRead ? '3px solid transparent' : `3px solid ${n.color||'#fe8c45'}`,
+                              }}>
+                                <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+                                  <span style={{ fontSize:20, lineHeight:1, marginTop:1 }}>{n.icon||'🔔'}</span>
+                                  <div style={{ flex:1 }}>
+                                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3 }}>
+                                      <span style={{ fontWeight:700, fontSize:13, color:'var(--White)' }}>{n.title}</span>
+                                      {!n.isRead && <span style={{ width:7, height:7, borderRadius:'50%', background:'#fe8c45', flexShrink:0 }}/>}
+                                    </div>
+                                    <p style={{ fontSize:12, color:'var(--Secondary)', lineHeight:1.4 }}>{n.message}</p>
+                                    <p style={{ fontSize:10, color:'rgba(255,255,255,0.3)', marginTop:4 }}>
+                                      {new Date(n.createdAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
                       {/* Avatar + Dropdown */}
                       <div ref={dropRef} style={{ position:'relative' }}>
