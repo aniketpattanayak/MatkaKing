@@ -219,10 +219,10 @@ function LotteryBackground() {
         y: Math.random() * window.innerHeight,
         vx: (Math.random() - 0.5) * 0.4,
         vy: -(0.5 + Math.random() * 1.2),
-        size: 14 + Math.random() * 28,
+        size: 18 + Math.random() * 36,
         rotation: Math.random() * Math.PI * 2,
         rotSpeed: (Math.random() - 0.5) * 0.04,
-        alpha: 0.3 + Math.random() * 0.6,
+        alpha: 0.45 + Math.random() * 0.5,
         alphaSpeed: 0.003 + Math.random() * 0.005,
         alphaDir: 1,
         kind,
@@ -350,33 +350,50 @@ function LotteryBackground() {
       ctx.translate(p.x + mx, p.y + my);
       ctx.rotate(p.rotation);
       ctx.globalAlpha = p.alpha;
+      // Glow effect
+      ctx.shadowBlur = 22;
+      ctx.shadowColor = p.color;
       if (p.kind === 'coin')    drawCoin(ctx, p.size, p.color);
       if (p.kind === 'note')    drawNote(ctx, p.size, p.color);
       if (p.kind === 'diamond') drawDiamond(ctx, p.size, p.color);
       if (p.kind === 'star')    drawStar(ctx, p.size, p.color);
       if (p.kind === 'crown')   drawCrown(ctx, p.size, p.color);
+      ctx.shadowBlur = 0;
       ctx.restore();
     };
 
     const tick = () => {
       ctx.clearRect(0, 0, W, H);
 
-      // Background glow orbs
+      // Background glow orbs — bright vivid like lrbc.ai reference
       const mx = mouseRef.current.x, my = mouseRef.current.y;
-      const g1 = ctx.createRadialGradient(W*0.1 + mx*30, H*0.2 + my*20, 0, W*0.1, H*0.2, W*0.45);
-      g1.addColorStop(0, 'rgba(254,140,69,0.12)');
+      // Orange orb (top-left), follows mouse
+      const g1 = ctx.createRadialGradient(W*0.15 + mx*60, H*0.2 + my*40, 0, W*0.15 + mx*60, H*0.2 + my*40, W*0.55);
+      g1.addColorStop(0, 'rgba(254,140,69,0.55)');
+      g1.addColorStop(0.4, 'rgba(254,120,40,0.28)');
       g1.addColorStop(1, 'transparent');
       ctx.fillStyle = g1; ctx.fillRect(0,0,W,H);
 
-      const g2 = ctx.createRadialGradient(W*0.85 - mx*30, H*0.75 - my*20, 0, W*0.85, H*0.75, W*0.4);
-      g2.addColorStop(0, 'rgba(202,40,38,0.1)');
+      // Deep red/crimson orb (bottom-right), counter-follows mouse
+      const g2 = ctx.createRadialGradient(W*0.85 - mx*60, H*0.78 - my*40, 0, W*0.85 - mx*60, H*0.78 - my*40, W*0.5);
+      g2.addColorStop(0, 'rgba(202,40,38,0.50)');
+      g2.addColorStop(0.4, 'rgba(180,20,20,0.25)');
       g2.addColorStop(1, 'transparent');
       ctx.fillStyle = g2; ctx.fillRect(0,0,W,H);
 
-      const g3 = ctx.createRadialGradient(W*0.5 + mx*15, H*0.4 + my*10, 0, W*0.5, H*0.4, W*0.3);
-      g3.addColorStop(0, 'rgba(255,203,82,0.08)');
+      // Gold orb (center), subtle pulse
+      const g3 = ctx.createRadialGradient(W*0.5 + mx*30, H*0.45 + my*20, 0, W*0.5 + mx*30, H*0.45 + my*20, W*0.38);
+      g3.addColorStop(0, 'rgba(255,203,82,0.38)');
+      g3.addColorStop(0.5, 'rgba(255,180,40,0.16)');
       g3.addColorStop(1, 'transparent');
       ctx.fillStyle = g3; ctx.fillRect(0,0,W,H);
+
+      // Purple/violet orb (top-right)
+      const g4 = ctx.createRadialGradient(W*0.85 + mx*20, H*0.15 - my*20, 0, W*0.85 + mx*20, H*0.15 - my*20, W*0.35);
+      g4.addColorStop(0, 'rgba(180,80,255,0.40)');
+      g4.addColorStop(0.45, 'rgba(140,40,220,0.18)');
+      g4.addColorStop(1, 'transparent');
+      ctx.fillStyle = g4; ctx.fillRect(0,0,W,H);
 
       for (const p of particles) {
         draw(p);
@@ -384,7 +401,7 @@ function LotteryBackground() {
         p.y += p.vy;
         p.rotation += p.rotSpeed;
         p.alpha += p.alphaSpeed * p.alphaDir;
-        if (p.alpha >= 0.9 || p.alpha <= 0.15) p.alphaDir *= -1;
+        if (p.alpha >= 0.95 || p.alpha <= 0.35) p.alphaDir *= -1;
         // Wrap around
         if (p.y < -p.size * 2) { p.y = H + p.size; p.x = Math.random() * W; }
         if (p.x < -p.size * 2) p.x = W + p.size;
@@ -771,42 +788,8 @@ export default function MatkaPage() {
         [data-theme="light"] .market-card .detail-cell { background: rgba(0,0,0,0.04) !important; }
       `}</style>
       <div style={{ paddingTop:120, minHeight:'100vh', position:'relative', overflow:'hidden' }}>
-        {/* Animated lottery background */}
-        <div aria-hidden="true" style={{ position:'fixed', inset:0, zIndex:0, pointerEvents:'none', overflow:'hidden' }}>
-          <style>{`
-            @keyframes floatUp { 0%{transform:translateY(100vh) rotate(0deg);opacity:0} 10%{opacity:0.7} 90%{opacity:0.5} 100%{transform:translateY(-120px) rotate(720deg);opacity:0} }
-            @keyframes sway { 0%,100%{transform:translateX(0)} 50%{transform:translateX(30px)} }
-            .lbg-particle { position:absolute; bottom:-80px; animation:floatUp linear infinite; }
-          `}</style>
-          {[
-            {left:'5%',  size:28, dur:'9s',  delay:'0s',   emoji:'🎰'},
-            {left:'12%', size:22, dur:'13s', delay:'2s',   emoji:'💰'},
-            {left:'20%', size:32, dur:'11s', delay:'4s',   emoji:'🃏'},
-            {left:'28%', size:20, dur:'15s', delay:'1s',   emoji:'🎲'},
-            {left:'36%', size:26, dur:'10s', delay:'6s',   emoji:'💎'},
-            {left:'44%', size:30, dur:'12s', delay:'3s',   emoji:'🤑'},
-            {left:'52%', size:24, dur:'14s', delay:'5s',   emoji:'🎴'},
-            {left:'60%', size:28, dur:'9s',  delay:'7s',   emoji:'💵'},
-            {left:'68%', size:22, dur:'11s', delay:'2.5s', emoji:'🎰'},
-            {left:'76%', size:26, dur:'13s', delay:'0.5s', emoji:'🃏'},
-            {left:'84%', size:20, dur:'10s', delay:'4.5s', emoji:'💰'},
-            {left:'92%', size:30, dur:'12s', delay:'8s',   emoji:'🎲'},
-            {left:'8%',  size:18, dur:'16s', delay:'9s',   emoji:'💎'},
-            {left:'32%', size:24, dur:'8s',  delay:'3.5s', emoji:'🤑'},
-            {left:'56%', size:28, dur:'14s', delay:'6.5s', emoji:'💵'},
-            {left:'80%', size:20, dur:'11s', delay:'1.5s', emoji:'🎴'},
-          ].map((p,i)=>(
-            <div key={i} className="lbg-particle" style={{
-              left:p.left, fontSize:p.size,
-              animationDuration:p.dur, animationDelay:p.delay,
-              opacity:0.6,
-            }}>{p.emoji}</div>
-          ))}
-          {/* Glowing orbs */}
-          <div style={{ position:'absolute', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle,rgba(254,140,69,0.08) 0%,transparent 70%)', top:'10%', left:'-5%', animation:'sway 8s ease-in-out infinite' }}/>
-          <div style={{ position:'absolute', width:500, height:500, borderRadius:'50%', background:'radial-gradient(circle,rgba(202,40,38,0.06) 0%,transparent 70%)', bottom:'5%', right:'-8%', animation:'sway 10s ease-in-out infinite reverse' }}/>
-          <div style={{ position:'absolute', width:300, height:300, borderRadius:'50%', background:'radial-gradient(circle,rgba(255,203,82,0.07) 0%,transparent 70%)', top:'40%', left:'45%', animation:'sway 12s ease-in-out infinite' }}/>
-        </div>
+        {/* Animated canvas background — coins, icons, glowing orbs with mouse parallax */}
+        <LotteryBackground />
         <div className="tf-container" style={{ paddingTop:40, paddingBottom:60, position:'relative', zIndex:1 }}>
           <div style={{ textAlign:'center', marginBottom:40, position:'relative' }}>
             <h1 style={{ fontWeight:900, fontSize:36, marginBottom:10 }}>Money Bank</h1>
@@ -1250,7 +1233,7 @@ export default function MatkaPage() {
                   background: 'rgba(254,140,69,0.04)',
                 }} />
 
-                <div style={{ display: 'flex', gap: 6, justifyContent: 'space-around', overflowX: 'auto', paddingBottom: 4 }}>
+                <div style={{ display: 'flex', gap: 6, justifyContent: 'space-around' }}>
                   {visualOrder.map((si, vi) => (
                     <DrumColumn
                       key={`${gameType.key}-${si}`}

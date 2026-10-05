@@ -35,18 +35,21 @@ export async function GET() {
       },
     });
     const enriched = markets.map((m: any) => {
-      // Market is open if: admin manually opened it OR current time is within window
-      const timeOpen = isMarketOpen(m.openTime, m.closeTime);
-      // Market is open if: admin manually opened OR within time window
-      // After saleTime but before closeTime - market is accessible (OPEN for betting)
+      // If result already declared, market is always CLOSED
+      if (m.isResultDeclared) {
+        return { ...m, isOpen: false, status: 'CLOSED' };
+      }
+      // For special/event markets (saleDatetime set): respect admin DB flag
+      // For daily time-based markets: use time window only (ignore stale DB flag)
       const now2 = new Date();
       const ist2 = new Date(now2.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
       const curMin2 = ist2.getHours()*60 + ist2.getMinutes();
       const hm2 = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
-      const afterSale = m.saleTime ? curMin2 >= hm2(m.saleTime) : true;
+      const afterSale = m.saleTime ? curMin2 >= hm2(m.saleTime) : curMin2 >= hm2(m.openTime);
       const beforeClose = curMin2 < hm2(m.closeTime);
-      const saleOpen = afterSale && beforeClose;
-      const open = m.isOpen || timeOpen || saleOpen;
+      const timeOpen = afterSale && beforeClose;
+      // For saleDatetime markets (one-off events), also honour admin DB flag
+      const open = m.saleDatetime ? (m.isOpen || timeOpen) : timeOpen;
       return { ...m, isOpen: open, status: open ? 'OPEN' : 'CLOSED' };
     }).filter((m: any) => {
       const now = new Date();

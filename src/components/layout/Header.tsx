@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   Gamepad2, Ticket, LayoutDashboard, Wallet, Settings,
-  LogOut, User, ChevronDown, X, Menu, Coins, Sun, Moon, Bell
+  LogOut, User, ChevronDown, X, Menu, Coins, Sun, Moon, Bell, RefreshCw
 } from 'lucide-react';
 import { getToken, setToken, clearToken, getCachedUser, setCachedUser, fetchCurrentUser, type SessionUser } from '@/lib/auth-client';
 
@@ -425,6 +425,18 @@ export default function Header() {
                     </>
                   )}
 
+                  {/* Refresh button */}
+                  <button onClick={()=>window.location.reload()} style={{
+                    width:36,height:36,borderRadius:'50%',border:'1px solid var(--Border)',
+                    background:'var(--Bg-2)',cursor:'pointer',display:'flex',
+                    alignItems:'center',justifyContent:'center',color:'var(--White)',
+                    flexShrink:0,
+                  }} title="Refresh page">
+                    <RefreshCw size={16}/>
+                  </button>
+
+                    {/* Refresh */}
+                  <button onClick={()=>window.location.reload()} style={{width:36,height:36,borderRadius:"50%",border:"1px solid var(--Border)",background:"var(--Bg-2)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--White)",flexShrink:0}} title="Refresh page"><RefreshCw size={16}/></button>
                   {/* Theme toggle */}
                   <button onClick={()=>{
                     const cur = document.documentElement.getAttribute('data-theme')||'dark';

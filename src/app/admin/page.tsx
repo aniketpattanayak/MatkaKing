@@ -54,7 +54,7 @@ export default function AdminPage() {
   // ── Matka form ──────────────────────────────────────────────────────────────
   const [mResult,  setMResult]  = useState({ marketId:'', openPatti:'', closePatti:'' });
   const [settlementResult, setSettlementResult] = useState<any>(null); // after declare_close
-  const todayDate = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const todayDate = new Date(Date.now() + 5.5*60*60*1000).toISOString().slice(0, 10); // IST "YYYY-MM-DD" // "YYYY-MM-DD"
   const [mForm,    setMForm]    = useState({ name:'', saleTime:`${todayDate}T09:00`, openTime:`${todayDate}T13:00`, closeTime:`${todayDate}T18:45` });
   const [mCreate,  setMCreate]  = useState(false); // show create form
   const [mLoading, setMLoading] = useState(false);
@@ -381,7 +381,7 @@ export default function AdminPage() {
       closeDatetime: toUTC(mForm.closeTime),
     }) });
     const d = await r.json();
-    const td = new Date().toISOString().slice(0, 10);
+    const td = new Date(Date.now() + 5.5*60*60*1000).toISOString().slice(0, 10); // IST date
     if (r.ok) { toast.success(`✓ Market "${mForm.name}" created! Will auto-open at ${toTime(mForm.saleTime)} and auto-declare at ${toTime(mForm.openTime)} / ${toTime(mForm.closeTime)}`); load(); setMForm({ name:'', saleTime:`${td}T09:00`, openTime:`${td}T13:00`, closeTime:`${td}T18:45` }); setMCreate(false); }
     else toast.error(d.error ?? 'Failed');
     setMLoading(false);
