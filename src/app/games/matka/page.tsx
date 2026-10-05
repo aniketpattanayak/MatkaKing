@@ -829,7 +829,17 @@ export default function MatkaPage() {
           </div>
 
           <div className='market-grid' style={{ maxWidth:1000, margin:'0 auto' }}>
-            {allMarkets.map((m:any) => {
+            {[...allMarkets].sort((a:any, b:any) => {
+              const rank = (x:any) => {
+                if (x.status === 'OPEN') return 0;
+                if (x.declaredAt) {
+                  const hrs = (Date.now() - new Date(x.declaredAt).getTime()) / 3600000;
+                  if (hrs < 24) return 1;
+                }
+                return 2;
+              };
+              return rank(a) - rank(b);
+            }).map((m:any) => {
               const isOpen = m.status === 'OPEN';
               return (
                 <div key={m.id} onClick={()=>{ if(!loggedIn){ toast.error('Please login to play'); return; } setMarket(m); setMarketSelected(true); }}

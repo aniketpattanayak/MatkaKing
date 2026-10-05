@@ -637,6 +637,13 @@ export default function Header() {
           </div>
         </div>
       )}
+    
+      <style>{/* eslint-disable-next-line react/no-danger */`
+        @media (max-width: 767px) {
+          .header-right > *:not(.mobile-button) { display: none !important; }
+          .mobile-button { display: flex !important; }
+        }
+      `}</style>
     </>
   );
 }
