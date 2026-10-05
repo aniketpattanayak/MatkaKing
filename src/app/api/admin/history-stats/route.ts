@@ -2,6 +2,30 @@ import { getCache, setCache } from '@/lib/api-helper';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, isAdminToken } from '@/lib/api-helper';
 
+async function buildRow(dayStart: Date, dayEnd: Date, label: string) {
+  const [
+    depositAgg, withdrawAgg,
+    lotteryTickets, lotteryWinners,
+    matkaBets, matkaWinners,
+    matkaWonAgg,
+  ] = await Promise.all([
+    prisma.transaction.aggregate({ where: { type: 'DEPOSIT',    status: 'SUCCESS', createdAt: { gte: dayStart, lt: dayEnd } }, _sum: { coins: true } }),
+    prisma.transaction.aggregate({ where: { type: 'WITHDRAWAL', status: 'SUCCESS', createdAt: { gte: dayStart, lt: dayEnd } }, _sum: { coins: true } }),
+    prisma.lotteryBet.count({ where: { placedAt: { gte: dayStart, lt: dayEnd } } }),
+    prisma.lotteryBet.count({ where: { placedAt: { gte: dayStart, lt: dayEnd }, status: 'WON' } }),
+    prisma.matkaBet.count({ where: { placedAt: { gte: dayStart, lt: dayEnd } } }),
+    prisma.matkaBet.count({ where: { placedAt: { gte: dayStart, lt: dayEnd }, status: 'WON' } }),
+    prisma.matkaBet.aggregate({ where: { placedAt: { gte: dayStart, lt: dayEnd }, status: 'WON' }, _sum: { wonAmount: true } }),
+  ]);
+
+  const deposit  = depositAgg._sum.coins  ?? 0;
+  const withdraw = withdrawAgg._sum.coins ?? 0;
+  const matkaPaid = matkaWonAgg._sum.wonAmount ?? 0;
+  const profit   = deposit - withdraw - matkaPaid;
+
+  return { date: label, deposit, lotteryTickets, matkaBets, lotteryWinners, matkaWinners, withdraw, profit };
+}
+
 export async function GET(req: NextRequest) {
   const cached = getCache('admin:history-stats');
   if (cached) return NextResponse.json(cached);
@@ -12,7 +36,6 @@ export async function GET(req: NextRequest) {
     const result = [];
 
     if (period === 'daily') {
-      // Last 10 days, one bar per day
       for (let i = 9; i >= 0; i--) {
         const dayStart = new Date();
         dayStart.setHours(0, 0, 0, 0);
@@ -20,16 +43,10 @@ export async function GET(req: NextRequest) {
         const dayEnd = new Date(dayStart);
         dayEnd.setDate(dayEnd.getDate() + 1);
         const label = dayStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-        const [lotteryAmt, matkaAmt, matkaWon] = await Promise.all([
-          prisma.lotteryBet.aggregate({ where: { placedAt: { gte: dayStart, lt: dayEnd } }, _sum: { amountPaid: true } }),
-          prisma.matkaBet.aggregate({ where: { placedAt: { gte: dayStart, lt: dayEnd } }, _sum: { amount: true } }),
-          prisma.matkaBet.aggregate({ where: { placedAt: { gte: dayStart, lt: dayEnd }, status: 'WON' }, _sum: { wonAmount: true } }),
-        ]);
-        result.push({ date: label, lotteryRevenue: lotteryAmt._sum.amountPaid ?? 0, matkaCollected: matkaAmt._sum.amount ?? 0, matkaPaid: matkaWon._sum.wonAmount ?? 0, matkaProfit: (matkaAmt._sum.amount ?? 0) - (matkaWon._sum.wonAmount ?? 0) });
+        result.push(await buildRow(dayStart, dayEnd, label));
       }
 
     } else if (period === 'weekly') {
-      // Last 7 days grouped by day (1 week)
       for (let i = 6; i >= 0; i--) {
         const dayStart = new Date();
         dayStart.setHours(0, 0, 0, 0);
@@ -37,16 +54,10 @@ export async function GET(req: NextRequest) {
         const dayEnd = new Date(dayStart);
         dayEnd.setDate(dayEnd.getDate() + 1);
         const label = dayStart.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric' });
-        const [lotteryAmt, matkaAmt, matkaWon] = await Promise.all([
-          prisma.lotteryBet.aggregate({ where: { placedAt: { gte: dayStart, lt: dayEnd } }, _sum: { amountPaid: true } }),
-          prisma.matkaBet.aggregate({ where: { placedAt: { gte: dayStart, lt: dayEnd } }, _sum: { amount: true } }),
-          prisma.matkaBet.aggregate({ where: { placedAt: { gte: dayStart, lt: dayEnd }, status: 'WON' }, _sum: { wonAmount: true } }),
-        ]);
-        result.push({ date: label, lotteryRevenue: lotteryAmt._sum.amountPaid ?? 0, matkaCollected: matkaAmt._sum.amount ?? 0, matkaPaid: matkaWon._sum.wonAmount ?? 0, matkaProfit: (matkaAmt._sum.amount ?? 0) - (matkaWon._sum.wonAmount ?? 0) });
+        result.push(await buildRow(dayStart, dayEnd, label));
       }
 
     } else {
-      // Last 30 days grouped into 4 weeks
       for (let w = 3; w >= 0; w--) {
         const weekEnd = new Date();
         weekEnd.setHours(0, 0, 0, 0);
@@ -54,17 +65,12 @@ export async function GET(req: NextRequest) {
         const weekStart = new Date(weekEnd);
         weekStart.setDate(weekStart.getDate() - 7);
         const label = `${weekStart.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} – ${weekEnd.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`;
-        const [lotteryAmt, matkaAmt, matkaWon] = await Promise.all([
-          prisma.lotteryBet.aggregate({ where: { placedAt: { gte: weekStart, lt: weekEnd } }, _sum: { amountPaid: true } }),
-          prisma.matkaBet.aggregate({ where: { placedAt: { gte: weekStart, lt: weekEnd } }, _sum: { amount: true } }),
-          prisma.matkaBet.aggregate({ where: { placedAt: { gte: weekStart, lt: weekEnd }, status: 'WON' }, _sum: { wonAmount: true } }),
-        ]);
-        result.push({ date: label, lotteryRevenue: lotteryAmt._sum.amountPaid ?? 0, matkaCollected: matkaAmt._sum.amount ?? 0, matkaPaid: matkaWon._sum.wonAmount ?? 0, matkaProfit: (matkaAmt._sum.amount ?? 0) - (matkaWon._sum.wonAmount ?? 0) });
+        result.push(await buildRow(weekStart, weekEnd, label));
       }
     }
 
     const resp = { days: result };
-    setCache('admin:history-stats', resp, 600000); // 10 min
+    setCache('admin:history-stats', resp, 600000);
     return NextResponse.json(resp);
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
