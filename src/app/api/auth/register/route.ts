@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/api-helper';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { randomBytes } from 'crypto';
+
+function genReferralCode() {
+  return randomBytes(5).toString('hex').toUpperCase();
+}
 const JWT_SECRET = process.env.JWT_SECRET ?? 'sge-dev-secret-change-in-prod';
 
 const SIGNUP_BONUS_COINS = 50;
@@ -15,32 +20,37 @@ export async function POST(req: NextRequest) {
     if (!email || !password || password.length < 6)
       return NextResponse.json({ error: 'Valid email and password (min 6 chars) required' }, { status: 400 });
 
-    // Only select columns that definitely exist in the DB
     const exists = await prisma.user.findUnique({
       where: { email: email.toLowerCase() },
       select: { id: true },
     });
     if (exists) return NextResponse.json({ error: 'Email already registered' }, { status: 409 });
 
-    // Check username uniqueness
+    // Check username uniqueness via JS (LibSQL does not support mode: insensitive)
     if (name && name.trim()) {
-      const nameExists = await prisma.user.findFirst({
-        where: { name: { equals: name.trim(), mode: 'insensitive' } },
-        select: { id: true },
+      const nameLower = name.trim().toLowerCase();
+      const allWithName = await prisma.user.findMany({
+        where: { name: { not: null } },
+        select: { id: true, name: true },
       });
+      const nameExists = allWithName.some(u => (u.name ?? '').toLowerCase() === nameLower);
       if (nameExists) return NextResponse.json({ error: 'Username already taken. Please choose a different name.' }, { status: 409 });
     }
 
     let referrer: { id: string } | null = null;
     if (referralCode && String(referralCode).trim()) {
-      const raw  = String(referralCode).trim();
-      const lower = raw.toLowerCase();
-      const upper = raw.toUpperCase();
-      console.log('Referral lookup:', { raw, lower, upper });
-      referrer = await prisma.user.findFirst({ where: { referralCode: lower }, select: { id: true } })
-             ?? await prisma.user.findFirst({ where: { referralCode: upper }, select: { id: true } })
-             ?? await prisma.user.findFirst({ where: { referralCode: raw   }, select: { id: true } });
-      console.log('Referrer found:', referrer);
+      // Normalize: trim, remove spaces/dashes, uppercase
+      const raw = String(referralCode).trim().replace(/[\s\-]/g, '').toUpperCase();
+      const allUsers = await prisma.user.findMany({ select: { id: true, referralCode: true } });
+      const match = allUsers.find(u => {
+        if (!u.referralCode) return false;
+        const stored = u.referralCode.replace(/[\s\-]/g, '').toUpperCase();
+        return stored === raw ||
+               stored.slice(0, 10) === raw.slice(0, 10) ||
+               stored.startsWith(raw) ||
+               raw.startsWith(stored);
+      });
+      referrer = match ? { id: match.id } : null;
       if (!referrer) return NextResponse.json({ error: 'Invalid referral code' }, { status: 400 });
     }
 
@@ -48,7 +58,6 @@ export async function POST(req: NextRequest) {
     const passwordHash = await bcrypt.hash(password, 12);
     const displayName = (name ?? email.split('@')[0]) as string;
 
-    // Hash security answers — only include if columns exist in DB
     const sq = Array.isArray(securityQuestions) ? securityQuestions : [];
     const secData: Record<string, string> = {};
     for (let i = 0; i < Math.min(sq.length, 3); i++) {
@@ -60,8 +69,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Attempt 1: create user with security data (works after migration)
-    // Attempt 2: create user without security data (works before migration)
     let user: any;
     for (const extra of [secData, {}]) {
       try {
@@ -71,6 +78,7 @@ export async function POST(req: NextRequest) {
               name: displayName,
               email: email.toLowerCase(),
               passwordHash,
+              referralCode: genReferralCode(),
               referredBy: referrer?.id,
               ...extra,
               wallet: { create: { balance: initialBalance } },
@@ -84,9 +92,9 @@ export async function POST(req: NextRequest) {
           }
           return u;
         });
-        break; // success — stop trying
+        break;
       } catch (e: any) {
-        if (Object.keys(extra).length === 0) throw e; // both attempts failed — rethrow
+        if (Object.keys(extra).length === 0) throw e;
         console.warn('Register: security columns missing, retrying without them');
       }
     }
