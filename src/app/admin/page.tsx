@@ -171,6 +171,13 @@ export default function AdminPage() {
   const [selectedUser,   setSelectedUser]   = useState<any>(null);
   const [userActivity,   setUserActivity]   = useState<any>(null);
   const [adjustAmt,      setAdjustAmt]      = useState('');
+  const [isMobile,       setIsMobile]       = useState(false);
+  useEffect(() => {
+    const c = () => setIsMobile(window.innerWidth < 768);
+    c();
+    window.addEventListener('resize', c);
+    return () => window.removeEventListener('resize', c);
+  }, []);
 
   // ── Load ────────────────────────────────────────────────────────────────────
   useEffect(() => { load(); }, []);
@@ -698,7 +705,7 @@ export default function AdminPage() {
           {/* ── OVERVIEW ── */}
           {tab==='overview' && (
             <div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:12, marginBottom:20 }} className='stat-grid'>
+              <div style={{ display:'grid', gridTemplateColumns:isMobile?'1fr':'repeat(2,1fr)', gap:12, marginBottom:20 }} className='stat-grid'>
                 {[
                   { label:'Lottery Series', value: data.series.length,                            Icon:Ticket,         color:'#3498DB', sub: data.series.filter((s:any)=>s.status==='OPEN').length+' open' },
                   { label:'Matka Markets',  value: data.markets.length,                           Icon:Dices,          color:'#9B59B6', sub: data.markets.filter((m:any)=>m.isOpen).length+' open' },
@@ -717,7 +724,7 @@ export default function AdminPage() {
               </div>
 
               {/* Quick status */}
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+              <div style={{ display:'grid', gridTemplateColumns:isMobile?'1fr':'1fr 1fr', gap:16 }}>
                 <div style={{ ...card, padding:20 }}>
                   <h4 style={{ fontWeight:700, fontSize:15, marginBottom:14 }}>Lottery Series</h4>
                   {data.series.length===0 ? <p style={{ color:'var(--Secondary)', fontSize:13 }}>No series yet — go to Lottery tab</p> :
@@ -888,7 +895,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14,marginBottom:16}}>
+                <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr 1fr',gap:14,marginBottom:16}}>
                   <div>
                     <label style={{fontSize:11,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Min Withdrawal (₹)</label>
                     <input type="number" min={1} value={wdSettings.minWithdraw} onChange={e=>setWdSettings(p=>({...p,minWithdraw:e.target.value}))} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:15,fontWeight:700,outline:'none'}}/>
@@ -921,7 +928,7 @@ export default function AdminPage() {
           )}
 
           {tab==='lottery' && (
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 380px', gap:20, alignItems:'start' }}>
+            <div style={{ display:'grid', gridTemplateColumns:isMobile?'1fr':'1fr 380px', gap:20, alignItems:'start' }}>
               {/* Existing series */}
               <div style={card}>
                 <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--Border)', background:'rgba(0,0,0,0.15)' }}>
@@ -992,7 +999,7 @@ export default function AdminPage() {
                   </div>
                   <div style={{background:'rgba(255,203,82,0.06)',border:'1px solid rgba(255,203,82,0.2)',borderRadius:12,padding:'14px 16px'}}>
                     <label style={{...label,color:'#ffcb52',marginBottom:10}}>Prize Tiers (3 winners)</label>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>
+                    <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr 1fr',gap:10}}>
                       <div><label style={{fontSize:10,fontWeight:700,color:'#ffcb52',display:'block',marginBottom:4}}>1ST PRIZE (₹)</label><input type="number" value={lForm.firstPrize} onChange={e=>setLForm({...lForm,firstPrize:e.target.value})} style={inp}/></div>
                       <div><label style={{fontSize:10,fontWeight:700,color:'#3498DB',display:'block',marginBottom:4}}>2ND PRIZE (₹)</label><input type="number" value={lForm.secondPrize} onChange={e=>setLForm({...lForm,secondPrize:e.target.value})} style={inp}/></div>
                       <div><label style={{fontSize:10,fontWeight:700,color:'#9B59B6',display:'block',marginBottom:4}}>3RD PRIZE (₹)</label><input type="number" value={lForm.thirdPrize} onChange={e=>setLForm({...lForm,thirdPrize:e.target.value})} style={inp}/></div>
@@ -1187,7 +1194,7 @@ export default function AdminPage() {
 
           {/* ── MATKA ── */}
           {tab==='matka' && (
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 360px', gap:20, alignItems:'start' }}>
+            <div style={{ display:'grid', gridTemplateColumns:isMobile?'1fr':'1fr 360px', gap:20, alignItems:'start' }}>
 
               {/* Markets list */}
               <div style={card}>
@@ -1276,7 +1283,7 @@ export default function AdminPage() {
                     <button onClick={()=>setSettlementResult(null)} style={{background:'none',border:'none',color:'var(--Secondary)',cursor:'pointer',fontSize:18}}>×</button>
                   </div>
                   {/* Main stats */}
-                  <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginBottom:16}}>
+                  <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'repeat(3,1fr)',gap:10,marginBottom:16}}>
                     {[
                       {label:'Jodi',value:settlementResult.jodi,color:'#ffcb52'},
                       {label:'Total Paid',value:'₹'+(settlementResult.totalPayout??0).toLocaleString(),color:'#2ECC71'},
@@ -1501,7 +1508,7 @@ export default function AdminPage() {
                         <span style={{fontSize:11,color:'var(--Secondary)'}}>{payoutPreview.winners} winners</span>
                       </div>
                       {/* Financial summary */}
-                      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:8}}>
+                      <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr 1fr',gap:8,marginBottom:8}}>
                         <div style={{background:'rgba(0,0,0,0.2)',borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
                           <p style={{fontSize:10,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:3}}>Collected</p>
                           <p style={{fontSize:14,fontWeight:900,color:'#3498DB'}}>₹{payoutPreview.collected?.toLocaleString()}</p>
@@ -1614,7 +1621,7 @@ export default function AdminPage() {
 
           {/* ── SPIN WHEEL ── */}
           {tab==='spin' && (
-            <div style={{ display:'grid', gridTemplateColumns:'380px 1fr', gap:20, alignItems:'start' }}>
+            <div style={{ display:'grid', gridTemplateColumns:isMobile?'1fr':'380px 1fr', gap:20, alignItems:'start' }}>
 
               {/* Config */}
               <div style={{ ...card, padding:22 }}>
@@ -1768,7 +1775,7 @@ export default function AdminPage() {
 
           {/* ── UPI POOL ── */}
           {tab==='upi' && (
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 360px', gap:20, alignItems:'start' }}>
+            <div style={{ display:'grid', gridTemplateColumns:isMobile?'1fr':'1fr 360px', gap:20, alignItems:'start' }}>
               <div style={card}>
                 <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--Border)', background:'rgba(0,0,0,0.15)' }}>
                   <h3 style={{ fontWeight:900, fontSize:19 }}>UPI Pool</h3>
@@ -1979,7 +1986,7 @@ export default function AdminPage() {
                 </div>
               )))}
               {resultsTab==='spin' && (<div>
-                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:20}}>{[{l:'Total',v:results.spin?.length??0,c:'#3498DB'},{l:'Paid Out',v:`₹${(results.spinStats?.totalWon??0).toLocaleString()}`,c:'#2ECC71'},{l:'Free/Paid',v:`${results.spin?.filter((r:any)=>r.isFree).length??0}/${results.spin?.filter((r:any)=>!r.isFree).length??0}`,c:'#ffcb52'}].map(s=>(<div key={s.l} style={{...card,padding:'16px 20px'}}><p style={{fontSize:11,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:6}}>{s.l}</p><p style={{fontWeight:900,fontSize:20,color:s.c}}>{s.v}</p></div>))}</div>
+                <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'repeat(3,1fr)',gap:12,marginBottom:20}}>{[{l:'Total',v:results.spin?.length??0,c:'#3498DB'},{l:'Paid Out',v:`₹${(results.spinStats?.totalWon??0).toLocaleString()}`,c:'#2ECC71'},{l:'Free/Paid',v:`${results.spin?.filter((r:any)=>r.isFree).length??0}/${results.spin?.filter((r:any)=>!r.isFree).length??0}`,c:'#ffcb52'}].map(s=>(<div key={s.l} style={{...card,padding:'16px 20px'}}><p style={{fontSize:11,color:'var(--Secondary)',fontWeight:700,textTransform:'uppercase',marginBottom:6}}>{s.l}</p><p style={{fontWeight:900,fontSize:20,color:s.c}}>{s.v}</p></div>))}</div>
                 {results.spin.length===0?<div style={{...card,padding:40,textAlign:'center',color:'var(--Secondary)'}}>Click Load Results</div>:<div style={card}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr style={{background:'rgba(0,0,0,0.2)'}}>{['Player','Coins','Type','Date'].map(h=><th key={h} style={{padding:'10px 14px',textAlign:'left',fontSize:10,fontWeight:700,color:'var(--Secondary)',textTransform:'uppercase'}}>{h}</th>)}</tr></thead><tbody>{results.spin.map((r:any)=>(<tr key={r.id} style={{borderBottom:'1px solid rgba(255,255,255,0.03)'}}><td style={{padding:'12px 14px'}}><p style={{fontWeight:700,fontSize:13}}>{r.userName}</p><p style={{fontSize:11,color:'var(--Secondary)'}}>{r.userEmail}</p></td><td style={{padding:'12px 14px',fontWeight:900,color:'#2ECC71'}}>+₹{r.coinsWon?.toLocaleString()}</td><td style={{padding:'12px 14px'}}><span style={{padding:'2px 10px',borderRadius:999,fontSize:10,fontWeight:700,background:r.isFree?'rgba(46,204,113,0.15)':'rgba(100,100,100,0.15)',color:r.isFree?'#2ECC71':'var(--Secondary)'}}>{r.isFree?'FREE':'Paid'}</span></td><td style={{padding:'12px 14px',fontSize:12,color:'var(--Secondary)'}}>{new Date(r.spunAt).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</td></tr>))}</tbody></table></div>}
               </div>)}
             </div>
@@ -2280,7 +2287,7 @@ export default function AdminPage() {
               {/* UPI Flow explanation */}
               <div style={{ ...card, padding:24 }}>
                 <h4 style={{ fontWeight:700, fontSize:16, marginBottom:16 }}> How UPI Payment Works</h4>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
+                <div style={{ display:'grid', gridTemplateColumns:isMobile?'repeat(2,1fr)':'repeat(4,1fr)', gap:12 }}>
                   {[
                     { step:'1', Icon:Wallet,      title:'User deposits', desc:'User enters amount → system picks active UPI from pool → shows QR + UPI ID' },
                     { step:'2', Icon:CreditCard,  title:'User pays',     desc:'User scans QR or enters UPI ID in their PhonePe/GPay/Paytm app and pays' },
@@ -2435,7 +2442,7 @@ export default function AdminPage() {
                 <h3 style={{fontWeight:900,fontSize:19,marginBottom:6}}>📣 Send Notification</h3>
                 <p style={{color:'var(--Secondary)',fontSize:13,marginBottom:20}}>Broadcast to ALL users or send to a specific user by their ID</p>
                 <div style={{display:'flex',flexDirection:'column',gap:14}}>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+                  <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr',gap:14}}>
                     <div>
                       <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>User ID (blank = all users)</label>
                       <input placeholder="Leave blank to broadcast to ALL" value={msgTo} onChange={e=>setMsgTo(e.target.value)} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none',boxSizing:'border-box'}}/>
@@ -2454,7 +2461,7 @@ export default function AdminPage() {
                     <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Message *</label>
                     <textarea placeholder="Write your notification message..." value={nForm.message} onChange={e=>setNForm(p=>({...p,message:e.target.value}))} rows={3} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none',resize:'vertical',boxSizing:'border-box'}}/>
                   </div>
-                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:14}}>
+                  <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr':'1fr 1fr 1fr',gap:14}}>
                     <div>
                       <label style={{fontSize:12,fontWeight:700,color:'var(--Secondary)',display:'block',marginBottom:6,textTransform:'uppercase'}}>Type</label>
                       <select value={nForm.type} onChange={e=>setNForm(p=>({...p,type:e.target.value}))} style={{width:'100%',padding:'10px 14px',borderRadius:10,border:'1px solid var(--Border-2)',background:'var(--Bg-3)',color:'var(--White)',fontSize:14,outline:'none'}}>
@@ -2588,6 +2595,7 @@ export default function AdminPage() {
         </div>
       </div>
 
+      <style>{`@media(max-width:767px){.admin-tabs{overflow-x:auto!important;flex-wrap:nowrap!important}.admin-tabs button{flex-shrink:0!important;white-space:nowrap!important}}`}</style>
       <footer id="footer">
         <div className="footer-bottom" style={{ paddingTop:24, paddingBottom:24 }}>
           <div className="tf-container">

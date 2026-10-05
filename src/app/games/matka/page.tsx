@@ -838,7 +838,12 @@ export default function MatkaPage() {
                 }
                 return 2;
               };
-              return rank(a) - rank(b);
+              const diff = rank(a) - rank(b);
+              if (diff !== 0) return diff;
+              // Within same rank: most recently declared first
+              const dA = a.declaredAt ? new Date(a.declaredAt).getTime() : 0;
+              const dB = b.declaredAt ? new Date(b.declaredAt).getTime() : 0;
+              return dB - dA;
             }).map((m:any) => {
               const isOpen = m.status === 'OPEN';
               return (
@@ -867,7 +872,7 @@ export default function MatkaPage() {
                     {/* Label: show how long ago result was declared */}
                     {(() => {
                       if (!m.declaredAt) return (
-                        <p style={{ fontSize:10, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', marginBottom:10, letterSpacing:1 }}>Today's Result</p>
+                        <p style={{ fontSize:10, color:'var(--Secondary)', fontWeight:700, textTransform:'uppercase', marginBottom:10, letterSpacing:1 }}>{new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</p>
                       );
                       const hoursAgo = Math.floor((Date.now() - new Date(m.declaredAt).getTime()) / (1000 * 60 * 60));
                       const minsAgo  = Math.floor((Date.now() - new Date(m.declaredAt).getTime()) / (1000 * 60));
