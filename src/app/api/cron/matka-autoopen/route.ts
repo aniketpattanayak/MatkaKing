@@ -8,7 +8,19 @@ export async function GET(req: NextRequest) {
     const cur = ist.getHours() * 60 + ist.getMinutes();
     const hm  = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
 
-    const markets = await prisma.matkaMarket.findMany({ where: { isActive: true } });
+    // Only handle recurring markets (closeDatetime IS NULL) in this cron.
+    // One-time dated markets (closeDatetime set) are fully managed by matka-autodeclare.
+    // Also skip one-time markets whose closeDatetime has already passed — they are
+    // permanently closed and must never be touched again.
+    const markets = await prisma.matkaMarket.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { closeDatetime: null },          // recurring daily markets
+          { closeDatetime: { gt: now } },   // one-time markets not yet closed
+        ],
+      },
+    });
     const results = [];
 
     for (const m of markets) {
@@ -35,9 +47,20 @@ export async function GET(req: NextRequest) {
       }
     }
 
-        // Reset isResultDeclared for all markets at midnight (between 12am-1am IST)
+    // Reset isResultDeclared for recurring markets at midnight (between 12am-1am IST)
+    // One-time dated markets whose closeDatetime has already passed are excluded —
+    // they stay permanently closed and must never reopen.
     if (ist.getHours() < 1) {
-      await prisma.matkaMarket.updateMany({ data: { isResultDeclared: false } });
+      const nowReset = new Date();
+      await prisma.matkaMarket.updateMany({
+        where: {
+          OR: [
+            { closeDatetime: null },          // recurring daily markets
+            { closeDatetime: { gt: nowReset } },   // one-time markets not yet closed
+          ],
+        },
+        data: { isResultDeclared: false },
+      });
       results.push({ action: 'RESET_ALL_DECLARED' });
     }
     return NextResponse.json({ ok: true, time: ist.toTimeString(), results });
