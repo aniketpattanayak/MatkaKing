@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
         take: 30,
         include: {
           market: { select: { id: true, name: true } },
-          bets: { where: { status: 'WON' }, take: 10, include: { user: { select: { id: true, name: true } } } },
+          bets: { where: { status: 'WON' }, orderBy: { wonAmount: 'desc' }, include: { user: { select: { id: true, name: true } } } },
         },
       }),
       prisma.spinResult.findMany({
