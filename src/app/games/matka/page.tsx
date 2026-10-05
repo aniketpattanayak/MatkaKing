@@ -412,6 +412,13 @@ function LotteryBackground() {
 export default function MatkaPage() {
   const [allMarkets,   setAllMarkets]   = useState<any[]>([]);
   const [marketsLoading, setMarketsLoading] = useState(true);
+
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const c = () => setIsMobile(window.innerWidth < 768);
+    c(); window.addEventListener('resize', c);
+    return () => window.removeEventListener('resize', c);
+  }, []);
   const [market,   setMarket]   = useState<any>(null);
   const [marketSelected, setMarketSelected] = useState(false); // user clicked a market
   const [gameType, setGameType] = useState(GAME_TYPES[0]);
@@ -1207,7 +1214,7 @@ export default function MatkaPage() {
             </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 18, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', gap: 18, alignItems: 'start' }}>
 
             {/* ── Drum picker ── */}
             <div style={{ background: 'var(--Bg-2)', borderRadius: 18, border: '1px solid var(--Border)', overflow: 'hidden' }}>

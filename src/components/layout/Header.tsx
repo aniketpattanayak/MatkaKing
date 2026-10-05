@@ -153,7 +153,7 @@ export default function Header() {
 
   const navLink: React.CSSProperties = {
     fontSize: 15, fontWeight: 600, lineHeight: '104px',
-    color: 'var(--White)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6,
+    color: 'var(--White)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
   };
 
   return (
@@ -435,8 +435,6 @@ export default function Header() {
                     <RefreshCw size={16}/>
                   </button>
 
-                    {/* Refresh */}
-                  <button onClick={()=>window.location.reload()} style={{width:36,height:36,borderRadius:"50%",border:"1px solid var(--Border)",background:"var(--Bg-2)",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--White)",flexShrink:0}} title="Refresh page"><RefreshCw size={16}/></button>
                   {/* Theme toggle */}
                   <button onClick={()=>{
                     const cur = document.documentElement.getAttribute('data-theme')||'dark';
