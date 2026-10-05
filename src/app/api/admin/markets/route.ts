@@ -346,7 +346,7 @@ export async function POST(req: NextRequest) {
 
         await prisma.matkaBet.update({
           where: { id: bet.id },
-          data: { status: won ? 'WON' : 'LOST', wonAmount },
+          data: { status: won ? 'WON' : 'LOST', wonAmount, resultId: result.id },
         });
 
         if (won && wonAmount > 0) {
@@ -369,7 +369,7 @@ export async function POST(req: NextRequest) {
       where: { id: result.id },
       data: {
         closePatti, closeAnk, jodi,
-        totalPayout: totalPayout,
+        totalPayout: { increment: totalPayout },
         declaredAt: new Date().toISOString(),
       },
     });
