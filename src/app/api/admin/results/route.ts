@@ -6,14 +6,21 @@ export async function GET(req: NextRequest) {
 
   try {
     const [lotteryResults, matkaResults, spinResults] = await Promise.all([
-      prisma.lotterySeries.findMany({ take: 50,
+      prisma.lotterySeries.findMany({
         where: { status: 'DRAWN' },
         orderBy: { drawnAt: 'desc' },
         take: 20,
         include: { _count: { select: { tickets: true } } },
       }),
-      prisma.matkaResult.findMany({ take: 50,
-        where: { declaredAt: { not: null } },
+      prisma.matkaResult.findMany({
+        where: {
+          // Only return FULLY declared results — both open AND close patti declared.
+          // Intermediate results (open declared, close still pending) are excluded
+          // so the Results tab never shows '???' in the CLOSE column.
+          openPatti:  { not: null },
+          closePatti: { not: null },
+          declaredAt: { not: null },
+        },
         orderBy: { declaredAt: 'desc' },
         take: 30,
         include: {
