@@ -34,7 +34,7 @@ function parseUpiSMS(smsText: string): { amount: number; utr: string } | null {
 
   // Extract UTR/Ref number — 12 digits
   const utrPatterns = [
-    /UPI/CR/([A-Z0-9]{10,15})//i,  // Bandhan Bank: UPI/CR/C653397209140/
+    /UPI\/CR\/([A-Z0-9]{10,15})\/i,  // Bandhan Bank: UPI/CR/C653397209140/
     /(?:upi\s*ref(?:erence)?[\s:.#]*|ref(?:erence)?[\s:.#]*|txn\s*id[\s:.#]*|transaction\s*id[\s:.#]*)([A-Z0-9]{10,15})/i,
     /\b([A-Z0-9]{10,15})\b/,
   ];
