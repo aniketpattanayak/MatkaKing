@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
     const { sms, from, timestamp, secret } = body;
 
     // Verify secret key (set in Android app settings)
-    if (secret !== SMS_WEBHOOK_SECRET) {
+    if (SMS_WEBHOOK_SECRET && secret !== SMS_WEBHOOK_SECRET) {
       console.error('SMS webhook: invalid secret');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
