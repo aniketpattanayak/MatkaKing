@@ -20,7 +20,7 @@ export default function WalletPage() {
   const [tab,          setTab]          = useState<'deposit'|'history'|'withdraw'>('deposit');
   const [historyPage,  setHistoryPage]  = useState(1);
   const HISTORY_PER_PAGE = 20;
-  const [minWithdraw,  setMinWithdraw]  = useState(1000);
+  const [minWithdraw,  setMinWithdraw]  = useState(500);
   const [maxWithdraw,  setMaxWithdraw]  = useState(5000);
   const [withdrawPerDay, setWithdrawPerDay] = useState(1);
   const [loading,      setLoading]      = useState(false);

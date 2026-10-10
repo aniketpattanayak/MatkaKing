@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
       if (!referrer) return NextResponse.json({ error: 'Invalid referral code' }, { status: 400 });
     }
 
-    const initialBalance = SIGNUP_BONUS_COINS; // Referral bonus goes to referrer only, not new user
+    const initialBalance = SIGNUP_BONUS_COINS + (referrer ? REFEREE_EXTRA_COINS : 0); // New user gets +10 bonus coins for using a referral code
     const passwordHash = await bcrypt.hash(password, 12);
     const displayName = (name ?? email.split('@')[0]) as string;
 
@@ -88,7 +88,8 @@ export async function POST(req: NextRequest) {
           if (referrer) {
             await tx.wallet.update({ where: { userId: referrer.id }, data: { balance: { increment: REFERRER_BONUS_COINS + REFEREE_EXTRA_COINS } } });
             await tx.transaction.create({ data: { userId: referrer.id, type: 'WIN_CREDIT', status: 'SUCCESS', coins: REFERRER_BONUS_COINS + REFEREE_EXTRA_COINS, amount: 0, orderId: `REF-${u.id.slice(-6)}-${Date.now()}` } });
-            // No extra coins for new user — referral bonus goes entirely to referrer
+            // +10 bonus coins for new user who used a referral code (already included in initialBalance)
+            await tx.transaction.create({ data: { userId: u.id, type: 'REFERRAL', status: 'SUCCESS', coins: REFEREE_EXTRA_COINS, amount: 0, orderId: `REF-BONUS-${u.id.slice(-6)}-${Date.now()}` } });
           }
           return u;
         });

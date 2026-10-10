@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     prisma.setting.findUnique({ where: { key: 'maxWithdraw' } }),
     prisma.setting.findUnique({ where: { key: 'withdrawPerDay' } }),
   ]);
-  const MIN_WITHDRAW   = parseInt(minSetting?.value   ?? '100');
+  const MIN_WITHDRAW   = parseInt(minSetting?.value   ?? '500');
   const MAX_WITHDRAW   = parseInt(maxSetting?.value   ?? '50000');
   const MAX_PER_DAY    = parseInt(perDaySetting?.value ?? '1');
 
