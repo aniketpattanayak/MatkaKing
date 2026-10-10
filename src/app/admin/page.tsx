@@ -178,6 +178,13 @@ export default function AdminPage() {
     window.addEventListener('resize', c);
     return () => window.removeEventListener('resize', c);
   }, []);
+  const [isMobile,       setIsMobile]       = useState(false);
+  useEffect(() => {
+    const c = () => setIsMobile(window.innerWidth < 768);
+    c();
+    window.addEventListener('resize', c);
+    return () => window.removeEventListener('resize', c);
+  }, []);
 
   // ── Load ────────────────────────────────────────────────────────────────────
   useEffect(() => { load(); }, []);
@@ -2595,6 +2602,7 @@ export default function AdminPage() {
         </div>
       </div>
 
+      <style>{`@media(max-width:767px){.admin-tabs{overflow-x:auto!important;flex-wrap:nowrap!important}.admin-tabs button{flex-shrink:0!important;white-space:nowrap!important}}`}</style>
       <style>{`@media(max-width:767px){.admin-tabs{overflow-x:auto!important;flex-wrap:nowrap!important}.admin-tabs button{flex-shrink:0!important;white-space:nowrap!important}}`}</style>
       <footer id="footer">
         <div className="footer-bottom" style={{ paddingTop:24, paddingBottom:24 }}>
