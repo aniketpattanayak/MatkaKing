@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, isAdminToken } from '@/lib/api-helper';
 
 const DEFAULTS: Record<string,string> = {
-  minWithdraw: '100', maxWithdraw: '50000', withdrawPerDay: '1',
+  minWithdraw: '500', maxWithdraw: '50000', withdrawPerDay: '1',
 };
 
 export async function GET(req: NextRequest) {

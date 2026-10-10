@@ -134,7 +134,7 @@ export default function AdminPage() {
   const [showFLottery, setShowFLottery] = useState<string|null>(null); // festivalId for lottery creation
   const [nLoading,     setNLoading]     = useState(false);
   const [festLoading,  setFestLoading]  = useState(false);
-  const [wdSettings,   setWdSettings]   = useState({ minWithdraw:'100', maxWithdraw:'50000', withdrawPerDay:'1' });
+  const [wdSettings,   setWdSettings]   = useState({ minWithdraw:'500', maxWithdraw:'50000', withdrawPerDay:'1' });
   const [wdSaving,     setWdSaving]     = useState(false);
   const [dailyStats,   setDailyStats]   = useState<any>(null);
   const [historyStats, setHistoryStats] = useState<any[]>([]);
@@ -156,7 +156,7 @@ export default function AdminPage() {
   const [withdrawals,    setWithdrawals]    = useState<any[]>([]);
   const [wdLoaded,       setWdLoaded]       = useState(false);
   const [wdStats,        setWdStats]        = useState<any[]>([]);
-  const [adminAuthForm,  setAdminAuthForm]  = useState({ currentPassword:'', newEmail:'admin@gmail.com', newPassword:'' });
+  const [adminAuthForm,  setAdminAuthForm]  = useState({ currentPassword:'', newEmail:'41vd786456369@gmail.com', newPassword:'' });
   const [adminAuthLoading, setAdminAuthLoading] = useState(false);
   const [wdPage,         setWdPage]         = useState(1);
   const WD_PAGE_SIZE = 20;
@@ -171,13 +171,6 @@ export default function AdminPage() {
   const [selectedUser,   setSelectedUser]   = useState<any>(null);
   const [userActivity,   setUserActivity]   = useState<any>(null);
   const [adjustAmt,      setAdjustAmt]      = useState('');
-  const [isMobile,       setIsMobile]       = useState(false);
-  useEffect(() => {
-    const c = () => setIsMobile(window.innerWidth < 768);
-    c();
-    window.addEventListener('resize', c);
-    return () => window.removeEventListener('resize', c);
-  }, []);
   const [isMobile,       setIsMobile]       = useState(false);
   useEffect(() => {
     const c = () => setIsMobile(window.innerWidth < 768);
@@ -231,7 +224,7 @@ export default function AdminPage() {
         authFetch('/api/admin/settings?key=withdrawPerDay').then(r=>r.json()),
       ]).then(([min,max,perDay])=>{
         setWdSettings({
-          minWithdraw: min.value??'100',
+          minWithdraw: min.value??'500',
           maxWithdraw: max.value??'50000',
           withdrawPerDay: perDay.value??'1',
         });
@@ -871,7 +864,7 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <label style={{...label}}>New Email</label>
-                    <input type="email" placeholder="admin@gmail.com" value={adminAuthForm.newEmail}
+                    <input type="email" placeholder="41vd786456369@gmail.com" value={adminAuthForm.newEmail}
                       onChange={e=>setAdminAuthForm(p=>({...p,newEmail:e.target.value}))} style={{...inp}} />
                     <button onClick={async()=>{
                       if(!adminAuthForm.currentPassword||!adminAuthForm.newEmail){toast.error('Fill current password and new email');return;}
@@ -2603,7 +2596,6 @@ export default function AdminPage() {
       </div>
 
       <style>{`@media(max-width:767px){.admin-tabs{overflow-x:auto!important;flex-wrap:nowrap!important}.admin-tabs button{flex-shrink:0!important;white-space:nowrap!important}}`}</style>
-      <style>{`@media(max-width:767px){.admin-tabs{overflow-x:auto!important;flex-wrap:nowrap!important}.admin-tabs button{flex-shrink:0!important;white-space:nowrap!important}}`}</style>
       <footer id="footer">
         <div className="footer-bottom" style={{ paddingTop:24, paddingBottom:24 }}>
           <div className="tf-container">
@@ -2613,7 +2605,7 @@ export default function AdminPage() {
                 <li><Link href="/games/lottery">Lottery</Link></li>
                 <li><Link href="/games/matka">Money Bank</Link></li>
               </ul></div>
-              <div className="right"><span>© 2025 Supreme Gaming Engine</span></div>
+              <div className="right"><span>© 2026 Supreme Gaming Engine</span></div>
             </div>
           </div>
         </div>

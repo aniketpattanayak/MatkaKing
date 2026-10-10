@@ -3,18 +3,18 @@ import { prisma, isAdminToken } from '@/lib/api-helper';
 
 // Indian festivals with typical dates
 const UPCOMING_FESTIVALS = [
-  { name: 'Diwali',        date: '2025-10-20', emoji: '🪔' },
-  { name: 'Holi',          date: '2026-03-14', emoji: '🎨' },
-  { name: 'Navratri',      date: '2025-10-02', emoji: '💃' },
-  { name: 'Durga Puja',    date: '2025-10-02', emoji: '🙏' },
-  { name: 'Ganesh Chaturthi', date: '2025-08-27', emoji: '🐘' },
-  { name: 'Eid ul-Fitr',   date: '2026-03-30', emoji: '🌙' },
-  { name: 'Christmas',     date: '2025-12-25', emoji: '🎄' },
-  { name: 'New Year',      date: '2026-01-01', emoji: '🎆' },
-  { name: 'Makar Sankranti', date: '2026-01-14', emoji: '🪁' },
-  { name: 'Republic Day',  date: '2026-01-26', emoji: '🇮🇳' },
-  { name: 'Independence Day', date: '2025-08-15', emoji: '🇮🇳' },
-  { name: 'Raksha Bandhan', date: '2025-08-09', emoji: '🎀' },
+  { name: 'Dussehra',        date: '2026-10-12', emoji: '🏹' },
+  { name: 'Karva Chauth',    date: '2026-10-28', emoji: '🌕' },
+  { name: 'Dhanteras',       date: '2026-11-07', emoji: '💰' },
+  { name: 'Diwali',          date: '2026-11-08', emoji: '🪔' },
+  { name: 'Christmas',       date: '2026-12-25', emoji: '🎄' },
+  { name: 'New Year',        date: '2027-01-01', emoji: '🎆' },
+  { name: 'Makar Sankranti', date: '2027-01-14', emoji: '🪁' },
+  { name: 'Republic Day',    date: '2027-01-26', emoji: '🇮🇳' },
+  { name: 'Holi',            date: '2027-03-03', emoji: '🎨' },
+  { name: 'Eid ul-Fitr',     date: '2027-03-20', emoji: '🌙' },
+  { name: 'Independence Day', date: '2027-08-15', emoji: '🇮🇳' },
+  { name: 'Ganesh Chaturthi', date: '2027-08-17', emoji: '🐘' },
 ];
 
 export async function GET(req: NextRequest) {
