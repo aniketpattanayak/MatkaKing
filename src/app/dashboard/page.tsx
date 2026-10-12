@@ -230,33 +230,36 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <>
-                  <table style={{ width:'100%', borderCollapse:'collapse' }}>
-                    <thead><tr style={{ background:'rgba(0,0,0,0.2)' }}>
-                      {['Ticket Code','Series','Draw Date','Price Paid','Status'].map(h=>(
-                        <th key={h} style={{ padding:'10px 16px', textAlign:'left', fontSize:11, fontWeight:700, color:'var(--Secondary)', textTransform:'uppercase' }}>{h}</th>
-                      ))}
-                    </tr></thead>
-                    <tbody>
-                      {lotteryBets.slice((lotteryPage-1)*30, lotteryPage*30).map((b,i) => (
-                        <tr key={i} style={{ borderBottom:'1px solid rgba(255,255,255,0.03)' }}>
-                          <td style={{ padding:'13px 16px' }}>
-                            <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:16, color: b.ticket?.isWinner ? '#ffcb52' : 'var(--White)' }}>{b.ticket?.ticketCode ?? '—'}</span>
-                            {b.ticket?.isWinner && <span style={{ marginLeft:8, fontSize:11, background:'rgba(255,203,82,0.2)', color:'#ffcb52', borderRadius:999, padding:'1px 8px', fontWeight:700 }}>WINNER!</span>}
-                          </td>
-                          <td style={{ padding:'13px 16px', fontSize:13 }}>{b.series?.name ?? '—'}</td>
-                          <td style={{ padding:'13px 16px', fontSize:12, color:'var(--Secondary)' }}>
-                            {b.series?.drawAt ? new Date(b.series.drawAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}
-                          </td>
-                          <td style={{ padding:'13px 16px', fontWeight:700, fontSize:13 }}>₹{b.amountPaid}</td>
-                          <td style={{ padding:'13px 16px' }}>
-                            <span style={{ padding:'2px 10px', borderRadius:999, fontSize:11, fontWeight:700, background: b.ticket?.isWinner ? 'rgba(255,203,82,0.2)' : b.series?.status==='OPEN' ? 'rgba(52,152,219,0.15)' : 'rgba(100,100,100,0.2)', color: b.ticket?.isWinner ? '#ffcb52' : statusColor(b.series?.status ?? '') }}>
-                              {b.ticket?.isWinner ? 'Won!' : b.series?.status ?? 'Active'}
+                  <div style={{ padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+                    {matkaBets.slice((matkaPage-1)*30, matkaPage*30).map((b:any,i:number) => {
+                      const won = (b.wonAmount||b.winAmount||0) > 0;
+                      const dateStr = b.placedAt||b.createdAt ? new Date(b.placedAt||b.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—';
+                      const statusBg = b.status==='WON'?'rgba(46,204,113,0.12)':b.status==='LOST'?'rgba(239,68,68,0.08)':'rgba(255,203,82,0.1)';
+                      const statusBorder = b.status==='WON'?'rgba(46,204,113,0.3)':b.status==='LOST'?'rgba(239,68,68,0.25)':'rgba(255,203,82,0.3)';
+                      return (
+                        <div key={i} style={{ background:statusBg, border:`1px solid ${statusBorder}`, borderRadius:12, padding:'12px 14px' }}>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+                            <span style={{ fontWeight:700, fontSize:13 }}>{b.market?.name ?? '—'}</span>
+                            <span style={{ padding:'3px 10px', borderRadius:999, fontSize:11, fontWeight:700, background:b.status==='WON'?'rgba(46,204,113,0.2)':b.status==='LOST'?'rgba(239,68,68,0.15)':'rgba(255,203,82,0.2)', color:statusColor(b.status) }}>
+                              {b.status==='WON'?'🏆 Won':b.status==='LOST'?'✕ Lost':b.status==='ACTIVE'?'⏳ Active':b.status}
                             </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                          </div>
+                          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
+                            <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color:'#ffcb52', letterSpacing:2 }}>{b.betValue}</span>
+                            <span style={{ fontSize:11, color:'var(--Secondary)', background:'rgba(255,255,255,0.06)', borderRadius:6, padding:'2px 8px' }}>{b.betType?.replace('_',' ')}</span>
+                            <span style={{ padding:'2px 8px', borderRadius:999, fontSize:10, fontWeight:700, background:b.session==='OPEN'?'rgba(46,204,113,0.15)':'rgba(52,152,219,0.15)', color:b.session==='OPEN'?'#2ECC71':'#3498DB' }}>{b.session}</span>
+                          </div>
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                            <div style={{ display:'flex', gap:14 }}>
+                              <span style={{ fontSize:12 }}>Bet: <strong>₹{b.amount}</strong></span>
+                              {won && <span style={{ fontSize:12, color:'#2ECC71' }}>Won: <strong>+₹{(b.wonAmount||b.winAmount).toLocaleString()}</strong></span>}
+                            </div>
+                            <span style={{ fontSize:11, color:'var(--Secondary)' }}>{dateStr}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                   <DashPagination page={lotteryPage} setPage={setLotteryPage} total={lotteryBets.length}/>
                 </>
               )}
