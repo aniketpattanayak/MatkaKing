@@ -466,20 +466,15 @@ export default function MatkaPage() {
         const markets = d.markets?.length > 0 ? d.markets : FALLBACK_MARKETS;
         // Normalize DB fields to component fields
         const normalized = markets.map((m: any) => {
-          // Pick the most recent result within the 72-hour window returned by the API
+          // Always show the most recent declared result — no time limit
           const latestResult = m.results?.[0] ?? null;
-          // Check if this result is within 36 hours (extra guard for display)
-          const resultAge = latestResult?.declaredAt
-            ? Date.now() - new Date(latestResult.declaredAt).getTime()
-            : Infinity;
-          const resultVisible = latestResult && resultAge <= 36 * 60 * 60 * 1000;
+          const resultVisible = !!latestResult;
           return {
             ...m,
             open:   m.openTime   ?? m.open,
             close:  m.closeTime  ?? m.close,
             result: m.resultTime ?? m.result,
             status: m.isOpen ? 'OPEN' : 'CLOSED',
-            // Only show result data if within 72-hour display window
             openPatti:    resultVisible ? latestResult.openPatti  ?? null : null,
             closePatti:   resultVisible ? latestResult.closePatti ?? null : null,
             openAnk:      resultVisible ? latestResult.openAnk    ?? null : null,
@@ -933,10 +928,10 @@ export default function MatkaPage() {
                     {m.jodi && m.isDummyResult && (
                       <p style={{ fontSize:11, color:'#f59e0b', marginTop:8, fontWeight:600 }}>🛡️ Result declared (house)</p>
                     )}
-                    {/* Show when the result was declared and how long it will be visible */}
+                    {/* Show when result was declared */}
                     {m.declaredAt && (
                       <p style={{ fontSize:10, color:'var(--Secondary)', marginTop:4 }}>
-                        ⏱ Visible for {Math.max(0, 36 - Math.floor((Date.now() - new Date(m.declaredAt).getTime()) / (1000*60*60)))}h more
+                        🕐 {new Date(m.declaredAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Kolkata'})}
                       </p>
                     )}
                   </div>
