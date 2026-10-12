@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     prisma.transaction.findMany({
       where:   { userId: p.sub },
       orderBy: { createdAt: 'desc' },
-      take:    20,                          // reduced from 30 — less data, faster
+      
       select: {
         id:        true,
         type:      true,
