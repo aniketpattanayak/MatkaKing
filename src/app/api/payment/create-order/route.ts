@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
   });
 }
 
-// PUT — user submits UTR after paying (improves matching accuracy)
+// PUT — user submits UTR after paying → immediately approve & credit coins
 export async function PUT(req: NextRequest) {
   const p = verifyToken(req);
   if (!p) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -70,13 +70,31 @@ export async function PUT(req: NextRequest) {
   });
   if (!txn) return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
 
-  // Save UTR in orderId for webhook matching
-  await prisma.transaction.update({
-    where: { id: txn.id },
-    data: { orderId: `${orderId}|UTR:${utr}` },
-  });
+  // Auto-approve: save UTR + mark SUCCESS + credit wallet atomically
+  await prisma.$transaction([
+    prisma.transaction.update({
+      where: { id: txn.id },
+      data: {
+        orderId: `${orderId}|UTR:${utr}`,
+        status:  'SUCCESS',
+        coins:   txn.amount,
+      },
+    }),
+    prisma.wallet.update({
+      where: { userId: txn.userId },
+      data: {
+        balance:      { increment: txn.amount },
+        totalDeposit: { increment: txn.amount },
+      },
+    }),
+  ]);
 
-  return NextResponse.json({ ok: true, message: 'UTR saved. Coins will be credited automatically once payment is detected.' });
+  return NextResponse.json({
+    ok:     true,
+    status: 'SUCCESS',
+    coins:  txn.amount,
+    message: `₹${txn.amount} credited to your wallet instantly!`,
+  });
 }
 
 // GET — check payment status
