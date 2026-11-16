@@ -176,6 +176,7 @@ model LotteryBet {
   seriesId    String
   ticketId    String
   retailerId  String?
+  shareToken  String?       @unique            // public share link token
   quantity    Int           @default(1)
   amountPaid  Int                               // Coins
   status      String     @default("ACTIVE")
