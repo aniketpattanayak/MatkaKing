@@ -43,6 +43,7 @@ model User {
   notifications Notification[]
   sessions      Session[]
   affiliate     AffiliateLink[]
+  retailer      Retailer?
 
   @@index([email])
   @@index([referralCode])
@@ -174,6 +175,7 @@ model LotteryBet {
   userId      String
   seriesId    String
   ticketId    String
+  retailerId  String?
   quantity    Int           @default(1)
   amountPaid  Int                               // Coins
   status      String     @default("ACTIVE")
@@ -183,9 +185,11 @@ model LotteryBet {
   user        User          @relation(fields: [userId], references: [id])
   series      LotterySeries @relation(fields: [seriesId], references: [id])
   ticket      LotteryTicket @relation(fields: [ticketId], references: [id])
+  retailer    Retailer?     @relation(fields: [retailerId], references: [id])
 
   @@index([userId])
   @@index([seriesId])
+  @@index([retailerId])
 }
 
 
@@ -213,6 +217,7 @@ model MatkaMarket {
   payoutTP        Int          @default(450)       // Triple Patti
   payoutHalfSangam Int        @default(1500)
   payoutFullSangam Int        @default(11000)
+  collectionPayoutPct Int      @default(80)
   isActive        Boolean      @default(true)
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
@@ -388,6 +393,23 @@ model FestivalEvent {
   createdAt   DateTime  @default(now())
 
   notifications Notification[]
+}
+
+model Retailer {
+  id              String      @id @default(cuid())
+  name            String
+  phone           String      @unique
+  code            String      @unique
+  userId          String?     @unique
+  commissionPct   Int         @default(10)
+  isActive        Boolean     @default(true)
+  totalSales      Int         @default(0)
+  totalCommission Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  user            User?       @relation(fields: [userId], references: [id])
+  bets            LotteryBet[]
 }
 
 model Setting {
