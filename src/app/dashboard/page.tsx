@@ -198,7 +198,7 @@ export default function DashboardPage() {
                 {[
                   { href:'/games/lottery', Icon:Ticket,    label:'Buy Lottery Tickets', sub:'Search & pick your lucky numbers', color:'#3498DB' },
                   { href:'/games/matka',   Icon:Dices,     label:'Play Money Bank',      sub:"Place bets on today's markets",    color:'#9B59B6' },
-                  
+                  ...(user?.role === 'RETAILER' ? [{ href:'/retailer', Icon:Ticket, label:'Retailer Portal', sub:'Buy tickets for customers · View commissions', color:'#8b5cf6' }] : []),
                   { href:'/dashboard/wallet', Icon:Wallet, label:'Add Coins',            sub:'Deposit via UPI — instant credit', color:'#ffcb52' },
                 ].map(item => (
                   <Link key={item.href} href={item.href} style={{ ...card, padding:'16px 20px', display:'flex', alignItems:'center', gap:14, textDecoration:'none' }}>
@@ -231,30 +231,39 @@ export default function DashboardPage() {
               ) : (
                 <>
                   <div style={{ padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
-                    {matkaBets.slice((matkaPage-1)*30, matkaPage*30).map((b:any,i:number) => {
-                      const won = (b.wonAmount||b.winAmount||0) > 0;
+                    {lotteryBets.slice((lotteryPage-1)*30, lotteryPage*30).map((b:any,i:number) => {
+                      const isWon  = b.status==='WON';
+                      const isLost = b.status==='LOST';
+                      const wonAmt = b.wonAmount || b.winAmount || 0;
                       const dateStr = b.placedAt||b.createdAt ? new Date(b.placedAt||b.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) : '—';
-                      const statusBg = b.status==='WON'?'rgba(46,204,113,0.12)':b.status==='LOST'?'rgba(239,68,68,0.08)':'rgba(255,203,82,0.1)';
-                      const statusBorder = b.status==='WON'?'rgba(46,204,113,0.3)':b.status==='LOST'?'rgba(239,68,68,0.25)':'rgba(255,203,82,0.3)';
+                      const statusBg = isWon?'rgba(46,204,113,0.12)':isLost?'rgba(239,68,68,0.08)':'rgba(255,203,82,0.1)';
+                      const statusBorder = isWon?'rgba(46,204,113,0.3)':isLost?'rgba(239,68,68,0.25)':'rgba(255,203,82,0.3)';
                       return (
                         <div key={i} style={{ background:statusBg, border:`1px solid ${statusBorder}`, borderRadius:12, padding:'12px 14px' }}>
-                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-                            <span style={{ fontWeight:700, fontSize:13 }}>{b.market?.name ?? '—'}</span>
-                            <span style={{ padding:'3px 10px', borderRadius:999, fontSize:11, fontWeight:700, background:b.status==='WON'?'rgba(46,204,113,0.2)':b.status==='LOST'?'rgba(239,68,68,0.15)':'rgba(255,203,82,0.2)', color:statusColor(b.status) }}>
-                              {b.status==='WON'?'🏆 Won':b.status==='LOST'?'✕ Lost':b.status==='ACTIVE'?'⏳ Active':b.status}
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                            <div>
+                              <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:18, color:'#ffcb52', letterSpacing:2 }}>{b.ticket?.ticketCode ?? '—'}</span>
+                              <span style={{ marginLeft:10, fontSize:12, color:'var(--Secondary)' }}>{b.series?.name ?? ''}</span>
+                            </div>
+                            <span style={{ padding:'3px 10px', borderRadius:999, fontSize:11, fontWeight:700, background:isWon?'rgba(46,204,113,0.2)':isLost?'rgba(239,68,68,0.15)':'rgba(255,203,82,0.2)', color:statusColor(b.status) }}>
+                              {isWon?'🏆 Won':isLost?'✕ Lost':'⏳ Active'}
                             </span>
                           </div>
-                          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
-                            <span style={{ fontFamily:'monospace', fontWeight:900, fontSize:20, color:'#ffcb52', letterSpacing:2 }}>{b.betValue}</span>
-                            <span style={{ fontSize:11, color:'var(--Secondary)', background:'rgba(255,255,255,0.06)', borderRadius:6, padding:'2px 8px' }}>{b.betType?.replace('_',' ')}</span>
-                            <span style={{ padding:'2px 8px', borderRadius:999, fontSize:10, fontWeight:700, background:b.session==='OPEN'?'rgba(46,204,113,0.15)':'rgba(52,152,219,0.15)', color:b.session==='OPEN'?'#2ECC71':'#3498DB' }}>{b.session}</span>
-                          </div>
-                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                            <div style={{ display:'flex', gap:14 }}>
-                              <span style={{ fontSize:12 }}>Bet: <strong>₹{b.amount}</strong></span>
-                              {won && <span style={{ fontSize:12, color:'#2ECC71' }}>Won: <strong>+₹{(b.wonAmount||b.winAmount).toLocaleString()}</strong></span>}
+                          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:6 }}>
+                            <div style={{ display:'flex', gap:14, alignItems:'center', flexWrap:'wrap' }}>
+                              <span style={{ fontSize:12 }}>Paid: <strong>₹{b.amountPaid}</strong></span>
+                              {isWon && wonAmt > 0 && <span style={{ fontSize:12, color:'#2ECC71', fontWeight:700 }}>+₹{wonAmt.toLocaleString()} Won!</span>}
+                              {/* Retailer attribution */}
+                              {b.retailer && (
+                                <span style={{ fontSize:11, background:'rgba(99,102,241,0.15)', color:'#a78bfa', padding:'2px 8px', borderRadius:999, border:'1px solid rgba(99,102,241,0.3)' }}>
+                                  🏪 via {b.retailer.name} ({b.retailer.code})
+                                </span>
+                              )}
                             </div>
-                            <span style={{ fontSize:11, color:'var(--Secondary)' }}>{dateStr}</span>
+                            <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                              {b.series?.status === 'DRAWN' && !isWon && !isLost && <span style={{ fontSize:11, color:'#f59e0b' }}>⏳ Result pending</span>}
+                              <span style={{ fontSize:11, color:'var(--Secondary)' }}>{dateStr}</span>
+                            </div>
                           </div>
                         </div>
                       );

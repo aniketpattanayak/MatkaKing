@@ -128,15 +128,30 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Sort by payout ascending (safest = lowest payout = most profit)
-    results.sort((a,b) => a.payout - b.payout);
+    // Target payout = collectionPayoutPct% of total collected
+    const targetPct = (market.collectionPayoutPct ?? 80) / 100;
+    const targetPayout = totalCollected * targetPct;
+
+    // Sort by closest to target payout (legitimate fraud-proof results first)
+    results.sort((a, b) => Math.abs(a.payout - targetPayout) - Math.abs(b.payout - targetPayout));
+
+    // Mark each result with its payout ratio and distance from target
+    const enriched = results.map(r => ({
+      ...r,
+      payoutPct: totalCollected > 0 ? Math.round(r.payout / totalCollected * 100) : 0,
+      distFromTarget: Math.abs(r.payout - targetPayout),
+      isRecommended: false,
+    }));
+    if (enriched.length > 0) enriched[0].isRecommended = true;
 
     return NextResponse.json({
       ok: true,
       totalCollected,
       totalBets: bets.length,
       step,
-      suggestions: results.slice(0, 10), // top 10 safest
+      targetPct: Math.round(targetPct * 100),
+      targetPayout,
+      suggestions: enriched.slice(0, 10), // top 10 closest to target
       worstCase: results[results.length-1], // highest payout
     });
   } catch(e:any) {

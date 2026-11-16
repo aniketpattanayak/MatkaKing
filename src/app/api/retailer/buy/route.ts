@@ -73,5 +73,18 @@ export async function GET(req: NextRequest) {
     }),
     prisma.wallet.findUnique({ where: { userId: p.sub }, select: { balance: true } }),
   ]);
-  return json({ retailer: { name: retailer.name, code: retailer.code, commissionPct: retailer.commissionPct, totalSales: retailer.totalSales, totalCommission: retailer.totalCommission }, walletBalance: wallet?.balance ?? 0, recentSales });
+  return json({
+    retailer: {
+      id: retailer.id,
+      name: retailer.name,
+      code: retailer.code,
+      phone: retailer.phone,
+      commissionPct: retailer.commissionPct,
+      isActive: retailer.isActive,
+      totalSales: retailer.totalSales,
+      totalCommission: retailer.totalCommission,
+      walletBalance: wallet?.balance ?? 0,
+    },
+    recentSales,
+  });
 }

@@ -219,7 +219,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Settle only open-side bets
+    // Settle only open-side bets — full payout at declared rates (no scaling)
     const openBets = await prisma.matkaBet.findMany({
       where: {
         marketId, status: 'ACTIVE', session: 'OPEN',
@@ -227,40 +227,22 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Payout cap: winners get at most collectionPayoutPct% of total collected bets
-    const totalCollectedOpen = openBets.reduce((s: number, b: any) => s + b.amount, 0);
-    const payoutCapOpen = Math.floor(totalCollectedOpen * ((market as any).collectionPayoutPct ?? 80) / 100);
-
-    // Pass 1: scan bets, mark losers immediately, collect winners
-    const openWinners: { bet: any; rawWon: number }[] = [];
-    let rawTotalOpen = 0;
+    let totalPayout = 0;
     for (const bet of openBets) {
       const bv = bet.betValue;
       const bt = bet.betType;
       let won = false;
       if (bt === 'SINGLE_ANK' && bv === String(openAnk)) won = true;
       if ((bt === 'SINGLE_PATTI' || bt === 'DOUBLE_PATTI' || bt === 'TRIPLE_PATTI') && bet.session === 'OPEN' && bv === openPatti) won = true;
-      const rawWon = won ? bet.amount * (RATES[bt] ?? 0) : 0;
-      if (won && rawWon > 0) { openWinners.push({ bet, rawWon }); rawTotalOpen += rawWon; }
-      else { await prisma.matkaBet.update({ where: { id: bet.id }, data: { status: 'LOST', wonAmount: 0, resultId: result!.id } }); }
-    }
-
-    // Pass 2: apply cap proportionally if over limit
-    const scaleOpen = rawTotalOpen > payoutCapOpen && rawTotalOpen > 0 ? payoutCapOpen / rawTotalOpen : 1;
-    let totalPayout = 0;
-
-    await prisma.$transaction(async tx => {
-      for (const { bet, rawWon } of openWinners) {
-        const wonAmount = Math.floor(rawWon * scaleOpen);
+      const wonAmount = won ? bet.amount * (RATES[bt] ?? 0) : 0;
+      await prisma.matkaBet.update({ where: { id: bet.id }, data: { status: won ? 'WON' : 'LOST', wonAmount, resultId: result!.id } });
+      if (won && wonAmount > 0) {
         totalPayout += wonAmount;
-        await prisma.matkaBet.update({ where: { id: bet.id }, data: { status: 'WON', wonAmount, resultId: result!.id } });
-        if (wonAmount > 0) {
-          await prisma.wallet.update({ where: { userId: bet.userId }, data: { balance: { increment: wonAmount }, totalWon: { increment: wonAmount } } });
-          await prisma.transaction.create({ data: { userId: bet.userId, type: 'WIN_CREDIT', status: 'SUCCESS', coins: wonAmount, amount: 0, orderId: `MKW-O-${Date.now()}-${Math.random().toString(36).slice(2,6)}` } });
-        }
+        await prisma.wallet.update({ where: { userId: bet.userId }, data: { balance: { increment: wonAmount }, totalWon: { increment: wonAmount } } });
+        await prisma.transaction.create({ data: { userId: bet.userId, type: 'WIN_CREDIT', status: 'SUCCESS', coins: wonAmount, amount: 0, orderId: `MKW-O-${Date.now()}-${Math.random().toString(36).slice(2,6)}` } });
       }
-      await prisma.matkaResult.update({ where: { id: result!.id }, data: { totalPayout: { increment: totalPayout } } });
-    });
+    }
+    await prisma.matkaResult.update({ where: { id: result!.id }, data: { totalPayout: { increment: totalPayout } } });
 
     return NextResponse.json({ ok: true, settled: openBets.length, totalPayout, openAnk, openPatti });
   }
@@ -303,18 +285,12 @@ export async function POST(req: NextRequest) {
       FULL_SANGAM: market.payoutFullSangam,
     };
 
-    // Settle everything still ACTIVE for this market
+    // Settle everything still ACTIVE for this market — full payout at declared rates (no scaling)
     const remaining = await prisma.matkaBet.findMany({
       where: { marketId, status: 'ACTIVE' },
     });
 
-    // Payout cap: winners get at most collectionPayoutPct% of total collected bets
-    const totalCollectedClose = remaining.reduce((s: number, b: any) => s + b.amount, 0);
-    const payoutCapClose = Math.floor(totalCollectedClose * ((market as any).collectionPayoutPct ?? 80) / 100);
-
-    // Pass 1: scan bets, collect winners
-    const closeWinners: { bet: any; rawWon: number }[] = [];
-    let rawTotalClose = 0;
+    let totalPayout = 0;
     for (const bet of remaining) {
       const bv = bet.betValue;
       const bt = bet.betType;
@@ -333,20 +309,10 @@ export async function POST(req: NextRequest) {
         const [a, b] = bv.split('-');
         if (a === openPatti && b === closePatti) won = true;
       }
-      const rawWon = won ? bet.amount * (RATES[bt] ?? 0) : 0;
-      if (won && rawWon > 0) { closeWinners.push({ bet, rawWon }); rawTotalClose += rawWon; }
-      else { await prisma.matkaBet.update({ where: { id: bet.id }, data: { status: 'LOST', wonAmount: 0, resultId: result.id } }); }
-    }
-
-    // Pass 2: apply cap proportionally if over limit
-    const scaleClose = rawTotalClose > payoutCapClose && rawTotalClose > 0 ? payoutCapClose / rawTotalClose : 1;
-    let totalPayout = 0;
-
-    for (const { bet, rawWon } of closeWinners) {
-      const wonAmount = Math.floor(rawWon * scaleClose);
-      totalPayout += wonAmount;
-      await prisma.matkaBet.update({ where: { id: bet.id }, data: { status: 'WON', wonAmount, resultId: result.id } });
-      if (wonAmount > 0) {
+      const wonAmount = won ? bet.amount * (RATES[bt] ?? 0) : 0;
+      await prisma.matkaBet.update({ where: { id: bet.id }, data: { status: won ? 'WON' : 'LOST', wonAmount, resultId: result.id } });
+      if (won && wonAmount > 0) {
+        totalPayout += wonAmount;
         await prisma.wallet.update({ where: { userId: bet.userId }, data: { balance: { increment: wonAmount }, totalWon: { increment: wonAmount } } });
         await prisma.transaction.create({ data: { userId: bet.userId, type: 'WIN_CREDIT', status: 'SUCCESS', coins: wonAmount, amount: 0, orderId: `MKW-C-${Date.now()}-${Math.random().toString(36).slice(2,6)}` } });
       }
@@ -395,3 +361,4 @@ export async function POST(req: NextRequest) {
     });
     return json({ ok: true, market: updated });
   }
+}

@@ -1,7 +1,7 @@
 // /api/cron/matka-autodeclare
 // Runs every minute via external cron (cron-job.org).
 // 1. Opens markets when saleDatetime passes
-// 2. Auto-declares open patti when openDatetime passes  (safest patti = min payout)
+// 2. Auto-declares open patti at openDatetime — picks patti from REAL bets closest to target payout %
 // 3. Auto-declares close patti when closeDatetime passes (settles all bets)
 
 import { NextResponse } from 'next/server';
@@ -34,9 +34,10 @@ function allPatties(type: 'SP' | 'DP' | 'TP'): string[] {
   return out;
 }
 
-// Pick the patti (for the given session) that results in minimum payout
-// When no bets exist, returns a random valid patti for variety
-async function safestPatti(marketId: string, session: 'OPEN' | 'CLOSE', m: any): Promise<string> {
+// Pick the patti from REAL bets whose payout is closest to target% of total collection.
+// This prevents fraud: declared result must come from actual bets, not an arbitrary number.
+// collectionPayoutPct (default 80) = what % of collected bets flows back to players.
+async function targetPatti(marketId: string, session: 'OPEN' | 'CLOSE', m: any): Promise<string> {
   const bets = await prisma.matkaBet.findMany({
     where: { marketId, status: 'ACTIVE' },
     select: { betType: true, betValue: true, session: true, amount: true },
@@ -44,7 +45,7 @@ async function safestPatti(marketId: string, session: 'OPEN' | 'CLOSE', m: any):
 
   const candidates = [...allPatties('SP'), ...allPatties('DP'), ...allPatties('TP')];
 
-  // No bets at all — pick a random patti for variety (avoid always showing 012)
+  // No bets at all — pick a random patti for variety
   if (bets.length === 0) {
     return candidates[Math.floor(Math.random() * candidates.length)];
   }
@@ -55,15 +56,43 @@ async function safestPatti(marketId: string, session: 'OPEN' | 'CLOSE', m: any):
     DP: m.payoutDP, DOUBLE_PATTI: m.payoutDP,
     TP: m.payoutTP, TRIPLE_PATTI: m.payoutTP,
   };
-  let bestPatti = candidates[Math.floor(Math.random() * candidates.length)];
-  let bestPayout = Infinity;
-  for (const patti of candidates) {
+
+  // Target: return collectionPayoutPct% of collected session bets to players
+  const sessionBets = bets.filter(b => b.session === session);
+  const totalCollected = sessionBets.reduce((s, b) => s + b.amount, 0);
+  const targetPct = (m.collectionPayoutPct ?? 80) / 100;
+  const targetPayout = totalCollected * targetPct;
+
+  // Build list of all pattis that have REAL bets on them (ank or patti)
+  const pattisWithBets = new Set<string>();
+  const anksWithBets = new Set<string>();
+  for (const bet of sessionBets) {
+    const bt = (bet.betType ?? '').toUpperCase();
+    if (bt === 'ANK' || bt === 'SINGLE_ANK') anksWithBets.add(bet.betValue ?? '');
+    if (bt === 'SP' || bt === 'SINGLE_PATTI' || bt === 'DP' || bt === 'DOUBLE_PATTI' || bt === 'TP' || bt === 'TRIPLE_PATTI') {
+      pattisWithBets.add(bet.betValue ?? '');
+    }
+  }
+
+  // Find pattis from actual bets — these are the ONLY valid results to prevent fraud
+  const legitimateCandidates = candidates.filter(p => {
+    const ank = pattiAnk(p);
+    return pattisWithBets.has(p) || anksWithBets.has(String(ank));
+  });
+
+  // If no legitimate candidates (e.g. only close-side bets), use all candidates
+  const pool = legitimateCandidates.length > 0 ? legitimateCandidates : candidates;
+
+  // Pick the patti whose payout is closest to target payout
+  let bestPatti = pool[Math.floor(Math.random() * pool.length)];
+  let bestDiff = Infinity;
+
+  for (const patti of pool) {
     const ank = pattiAnk(patti);
     let payout = 0;
-    for (const bet of bets) {
+    for (const bet of sessionBets) {
       const bt = (bet.betType ?? '').toUpperCase();
       const bv = bet.betValue ?? '';
-      if (bet.session !== session) continue;
       let won = false;
       if ((bt === 'ANK' || bt === 'SINGLE_ANK') && bv === String(ank)) won = true;
       if ((bt === 'SP' || bt === 'SINGLE_PATTI') && bv === patti) won = true;
@@ -71,7 +100,8 @@ async function safestPatti(marketId: string, session: 'OPEN' | 'CLOSE', m: any):
       if ((bt === 'TP' || bt === 'TRIPLE_PATTI') && bv === patti) won = true;
       if (won) payout += bet.amount * (RATES[bt] ?? 0);
     }
-    if (payout < bestPayout) { bestPayout = payout; bestPatti = patti; }
+    const diff = Math.abs(payout - targetPayout);
+    if (diff < bestDiff) { bestDiff = diff; bestPatti = patti; }
   }
   return bestPatti;
 }
@@ -122,7 +152,7 @@ export async function GET() {
             orderBy: { createdAt: 'desc' },
           });
           if (!existingResult?.openPatti) {
-            const patti = await safestPatti(m.id, 'OPEN', m);
+            const patti = await targetPatti(m.id, 'OPEN', m);
             const ank   = pattiAnk(patti);
             let result: any;
             if (!existingResult) {
@@ -169,7 +199,7 @@ export async function GET() {
             orderBy: { createdAt: 'desc' },
           });
           if (result?.openPatti && !result.closePatti) {
-            const closePatti = await safestPatti(m.id, 'CLOSE', m);
+            const closePatti = await targetPatti(m.id, 'CLOSE', m);
             const closeAnk   = pattiAnk(closePatti);
             const openAnk    = result.openAnk ?? pattiAnk(result.openPatti);
             const jodi       = `${openAnk}${closeAnk}`;

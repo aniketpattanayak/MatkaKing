@@ -47,7 +47,11 @@ export default function LotteryPage() {
   const [balance,    setBalance]    = useState(0);
   const [loggedIn,   setLoggedIn]   = useState(false);
   const [loadingSeries, setLoadingSeries] = useState(true);
+  // UPI direct payment state
+  const [upiOrder, setUpiOrder] = useState<{orderId:string;qrString:string;amount:number;expiresAt:string;ticketCodes:string[]} | null>(null);
+  const [upiPolling, setUpiPolling] = useState(false);
   const debounce = useRef<any>();
+  const upiPollRef = useRef<any>();
 
   // Load user
   useEffect(() => {
@@ -165,6 +169,74 @@ export default function LotteryPage() {
     setBuying(false);
   };
 
+  // Buy via direct UPI — no wallet coins needed
+  const buySelectedUpi = async () => {
+    if (!loggedIn) return toast.error('Please login first');
+    if (!series || selected.size === 0) return;
+    setBuying(true);
+    try {
+      const selectedTickets = tickets.filter(t => selected.has(t.ticketId));
+      const res = await authFetch('/api/lottery/buy-upi', {
+        method: 'POST',
+        body: JSON.stringify({ seriesId: series.id, ticketCodes: selectedTickets.map(t => t.ticketCode) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setUpiOrder({ orderId: data.orderId, qrString: data.qrString, amount: data.amount, expiresAt: data.expiresAt, ticketCodes: data.ticketCodes });
+      // Start polling for confirmation
+      setUpiPolling(true);
+      pollUpiOrder(data.orderId);
+    } catch(e: any) { toast.error(e.message ?? 'Failed to initiate payment'); }
+    setBuying(false);
+  };
+
+  const quickBuyUpi = async (qty: number) => {
+    if (!loggedIn) return toast.error('Please login first');
+    if (!series) return;
+    setBuying(true);
+    try {
+      const res = await authFetch('/api/lottery/buy-upi', {
+        method: 'POST',
+        body: JSON.stringify({ seriesId: series.id, quantity: qty }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setUpiOrder({ orderId: data.orderId, qrString: data.qrString, amount: data.amount, expiresAt: data.expiresAt, ticketCodes: data.ticketCodes });
+      setUpiPolling(true);
+      pollUpiOrder(data.orderId);
+    } catch(e: any) { toast.error(e.message ?? 'Failed'); }
+    setBuying(false);
+  };
+
+  const pollUpiOrder = (orderId: string) => {
+    clearInterval(upiPollRef.current);
+    upiPollRef.current = setInterval(async () => {
+      try {
+        const res = await authFetch(`/api/lottery/buy-upi?orderId=${orderId}`);
+        const data = await res.json();
+        if (data.status === 'SUCCESS') {
+          clearInterval(upiPollRef.current);
+          setUpiPolling(false);
+          setUpiOrder(null);
+          setSelected(new Set());
+          toast.success(`🎟️ Payment confirmed! Tickets issued: ${data.ticketCodes?.join(', ') ?? ''}`);
+          searchTickets(query);
+        } else if (data.status === 'EXPIRED' || data.status === 'FAILED') {
+          clearInterval(upiPollRef.current);
+          setUpiPolling(false);
+          setUpiOrder(null);
+          toast.error('Payment expired. Please try again.');
+        }
+      } catch {}
+    }, 5000);
+  };
+
+  const closeUpiModal = () => {
+    clearInterval(upiPollRef.current);
+    setUpiPolling(false);
+    setUpiOrder(null);
+  };
+
   const toggle = (id: string) => setSelected(prev => {
     const n = new Set(prev);
     n.has(id) ? n.delete(id) : n.add(id);
@@ -265,7 +337,7 @@ export default function LotteryPage() {
                 }}>
                   {s.name}
                   <span style={{ display: 'block', fontSize: 11, fontWeight: 400, marginTop: 2 }}>
-                    ₹{s.ticketPrice}/ticket · Draw {s.drawAt ? new Date(s.drawAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'})}
+                    ₹{s.ticketPrice}/ticket · Draw {s.drawAt ? new Date(s.drawAt).toLocaleString('en-IN',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—'}
                   </span>
                 </button>
               ))}
@@ -308,14 +380,24 @@ export default function LotteryPage() {
               </div>
 
               {/* Quick buy */}
-              <div style={{ background: 'var(--Bg-2)', borderRadius: 14, padding: '18px 24px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', border: '1px solid var(--Border)' }}>
-                <span style={{ fontWeight: 700, color: 'var(--Secondary)', fontSize: 13 }}>⚡ QUICK BUY:</span>
-                {[10, 20, 50].map(qty => (
-                  <button key={qty} onClick={() => quickBuy(qty)} disabled={buying} className="tf-btn" style={{ height: 40, fontSize: 13, padding: '0 18px' }}>
-                    {qty} Tickets — ₹{qty * series.ticketPrice}
-                  </button>
-                ))}
-                <span style={{ color: 'var(--Secondary)', fontSize: 12, marginLeft: 'auto' }}>₹{series.ticketPrice}/ticket · 1 Coin = 1 INR</span>
+              <div style={{ background: 'var(--Bg-2)', borderRadius: 14, padding: '18px 24px', marginBottom: 24, border: '1px solid var(--Border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+                  <span style={{ fontWeight: 700, color: 'var(--Secondary)', fontSize: 13 }}>💰 QUICK BUY (Wallet):</span>
+                  {[1, 5, 10].map(qty => (
+                    <button key={qty} onClick={() => quickBuy(qty)} disabled={buying} className="tf-btn" style={{ height: 38, fontSize: 13, padding: '0 16px' }}>
+                      {qty} × ₹{(qty * series.ticketPrice).toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 700, color: '#a78bfa', fontSize: 13 }}>📱 QUICK BUY (UPI):</span>
+                  {[1, 2, 5].map(qty => (
+                    <button key={qty} onClick={() => quickBuyUpi(qty)} disabled={buying} style={{ height: 38, fontSize: 13, padding: '0 16px', borderRadius: 999, background: 'linear-gradient(135deg,#8b5cf6,#6366f1)', color: '#fff', border: 'none', cursor: buying ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
+                      {qty} × ₹{(qty * series.ticketPrice).toLocaleString()}
+                    </button>
+                  ))}
+                  <span style={{ color: 'var(--Secondary)', fontSize: 12, marginLeft: 'auto' }}>₹{series.ticketPrice}/ticket · Pay directly, no wallet needed</span>
+                </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -400,13 +482,63 @@ export default function LotteryPage() {
                   </span>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button onClick={() => setSelected(new Set())} style={{ padding: '10px 20px', borderRadius: 999, border: '1px solid var(--Border)', background: 'transparent', color: 'var(--Secondary)', cursor: 'pointer', fontSize: 14 }}>Clear</button>
-                <button onClick={buySelected} disabled={buying || !loggedIn} className="tf-btn" style={{ height: 46, fontSize: 15, padding: '0 32px', opacity: buying ? 0.6 : 1 }}>
-                  {!loggedIn ? '🔒 Login to Buy' : buying ? 'Processing...' : `🎟️ Buy Now — ₹${cost.toLocaleString()}`}
+                <button onClick={buySelected} disabled={buying || !loggedIn || balance < cost} className="tf-btn" style={{ height: 46, fontSize: 15, padding: '0 28px', opacity: (buying || balance < cost) ? 0.5 : 1 }}>
+                  {!loggedIn ? '🔒 Login' : buying ? 'Processing...' : `💰 Wallet — ₹${cost.toLocaleString()}`}
+                </button>
+                <button onClick={buySelectedUpi} disabled={buying || !loggedIn} style={{ height: 46, fontSize: 15, padding: '0 28px', borderRadius: 999, background: 'linear-gradient(135deg,#8b5cf6,#6366f1)', color: '#fff', border: 'none', cursor: loggedIn && !buying ? 'pointer' : 'not-allowed', fontWeight: 700, opacity: buying ? 0.6 : 1 }}>
+                  {buying ? 'Processing...' : `📱 Pay by UPI — ₹${cost.toLocaleString()}`}
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* UPI Payment Modal */}
+      {upiOrder && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: 'var(--Bg-2)', borderRadius: 20, padding: 32, maxWidth: 420, width: '90%', textAlign: 'center', boxShadow: '0 0 60px rgba(99,102,241,0.4)' }}>
+            <h3 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>📱 Pay via UPI</h3>
+            <p style={{ color: 'var(--Secondary)', fontSize: 14, marginBottom: 20 }}>Scan QR or copy UPI ID to pay</p>
+
+            {/* QR Code — rendered via Google Charts API */}
+            <div style={{ background: '#fff', borderRadius: 12, padding: 12, display: 'inline-block', marginBottom: 16 }}>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(upiOrder.qrString)}&size=200x200`}
+                alt="UPI QR Code"
+                width={200} height={200}
+                style={{ display: 'block' }}
+              />
+            </div>
+
+            <div style={{ background: 'var(--Bg-3)', borderRadius: 10, padding: '12px 16px', marginBottom: 16, textAlign: 'left' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ color: 'var(--Secondary)', fontSize: 13 }}>Amount</span>
+                <strong style={{ color: '#ffcb52', fontSize: 18 }}>₹{upiOrder.amount}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ color: 'var(--Secondary)', fontSize: 13 }}>Tickets</span>
+                <span style={{ fontSize: 13 }}>{upiOrder.ticketCodes.length} ticket(s)</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--Secondary)', fontSize: 13 }}>Order ID</span>
+                <span style={{ fontSize: 11, color: 'var(--Secondary)' }}>{upiOrder.orderId}</span>
+              </div>
+            </div>
+
+            <div style={{ background: 'rgba(99,102,241,0.1)', borderRadius: 8, padding: '10px 14px', marginBottom: 20, fontSize: 13, color: 'var(--Secondary)', textAlign: 'left' }}>
+              {upiPolling ? (
+                <span>⏳ Waiting for payment confirmation... (auto-updates every 5s)</span>
+              ) : (
+                <span>Tickets will be issued automatically after payment is confirmed by admin.</span>
+              )}
+            </div>
+
+            <button onClick={closeUpiModal} style={{ padding: '10px 24px', borderRadius: 999, border: '1px solid var(--Border)', background: 'transparent', color: 'var(--Secondary)', cursor: 'pointer', fontSize: 14 }}>
+              Cancel / Close
+            </button>
           </div>
         </div>
       )}

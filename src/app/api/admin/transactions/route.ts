@@ -57,16 +57,69 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// Admin marks withdrawal as sent
+// Admin confirms a transaction (deposit, lottery UPI, etc.)
 export async function PATCH(req: NextRequest) {
   if (!isAdminToken(req)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const { txnId, status } = await req.json();
   if (!txnId) return NextResponse.json({ error: 'txnId required' }, { status: 400 });
   try {
-    await prisma.transaction.update({
-      where: { id: txnId },
-      data:  { status: status ?? 'SUCCESS' },
-    });
+    const txn = await prisma.transaction.findUnique({ where: { id: txnId } });
+    if (!txn) return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
+
+    const finalStatus = status ?? 'SUCCESS';
+
+    // Check if this is a Lottery UPI order (direct ticket purchase, not wallet top-up)
+    let lotteryMeta: any = null;
+    try {
+      const parsed = JSON.parse(txn.webhookPayload ?? '{}');
+      if (parsed.type === 'LOTTERY_UPI') lotteryMeta = parsed;
+    } catch {}
+
+    if (lotteryMeta && finalStatus === 'SUCCESS') {
+      // Issue lottery tickets — do NOT credit wallet
+      const { seriesId, ticketIds, ticketCodes, amountPerTicket } = lotteryMeta;
+
+      // Check tickets are still available
+      const availableTickets = await prisma.lotteryTicket.findMany({
+        where: { id: { in: ticketIds }, isSold: false },
+      });
+
+      if (availableTickets.length === 0) {
+        // All tickets sold — refund by crediting wallet instead
+        await Promise.all([
+          prisma.transaction.update({ where: { id: txnId }, data: { status: 'REFUNDED', failureReason: 'Tickets already sold' } }),
+          prisma.wallet.update({ where: { userId: txn.userId }, data: { balance: { increment: txn.amount }, totalDeposit: { increment: txn.amount } } }),
+        ]);
+        return NextResponse.json({ ok: true, refunded: true, reason: 'Tickets already sold — amount credited to wallet' });
+      }
+
+      // Issue available tickets
+      const issuedTicketIds = availableTickets.map((t: any) => t.id);
+      await prisma.$transaction([
+        prisma.transaction.update({ where: { id: txnId }, data: { status: 'SUCCESS', coins: txn.amount, processedAt: new Date() } }),
+        prisma.lotteryTicket.updateMany({ where: { id: { in: issuedTicketIds } }, data: { isSold: true } }),
+        ...availableTickets.map((t: any) =>
+          prisma.lotteryBet.create({
+            data: { userId: txn.userId, seriesId, ticketId: t.id, amountPaid: amountPerTicket, status: 'ACTIVE' },
+          })
+        ),
+      ]);
+
+      const issuedCodes = availableTickets.map((t: any) => t.ticketCode);
+      return NextResponse.json({ ok: true, lotteryIssued: true, ticketCodes: issuedCodes, count: issuedCodes.length });
+    }
+
+    // Standard: mark transaction status (deposit, withdrawal, etc.)
+    // If confirming a wallet deposit, also credit the coins
+    if (txn.type === 'DEPOSIT' && txn.status === 'PENDING' && finalStatus === 'SUCCESS' && !lotteryMeta) {
+      await Promise.all([
+        prisma.transaction.update({ where: { id: txnId }, data: { status: finalStatus, coins: txn.amount, processedAt: new Date() } }),
+        prisma.wallet.update({ where: { userId: txn.userId }, data: { balance: { increment: txn.amount }, totalDeposit: { increment: txn.amount } } }),
+      ]);
+      return NextResponse.json({ ok: true, walletCredited: txn.amount });
+    }
+
+    await prisma.transaction.update({ where: { id: txnId }, data: { status: finalStatus } });
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });

@@ -387,6 +387,16 @@ export default function Header() {
                                 </Link>
                               ))}
 
+                              {user.role === 'RETAILER' && (
+                                <Link href="/retailer" onClick={()=>setDropdown(false)} style={{
+                                  display:'flex', alignItems:'center', gap:10,
+                                  padding:'10px 18px', fontSize:14, fontWeight:600,
+                                  color:'#a78bfa', textDecoration:'none',
+                                }}>
+                                  <Ticket size={16}/> Retailer Portal
+                                </Link>
+                              )}
+
                               {(user.role === 'ADMIN' || user.role === 'SUPERADMIN') && (
                                 <Link href="/admin" onClick={()=>setDropdown(false)} style={{
                                   display:'flex', alignItems:'center', gap:10,
