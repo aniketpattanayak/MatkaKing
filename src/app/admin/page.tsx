@@ -12,7 +12,7 @@ import {
   TrendingUp, Activity, Settings, Eye, Bell, Calendar, Star, Gift, Send, Pin, Trophy, ArrowDownUp
 } from 'lucide-react';
 
-type Tab = 'overview'|'lottery'|'matka'|'upi'|'users'|'payments'|'notifications'|'results'|'transactions'|'festivals'|'withdrawals';
+type Tab = 'overview'|'lottery'|'matka'|'upi'|'users'|'payments'|'notifications'|'results'|'transactions'|'festivals'|'withdrawals'|'retailers';
 
 const TABS: { key: Tab; icon: string; label: string }[] = [
   { key: 'overview', icon: '', label: 'Overview'   },
@@ -26,6 +26,7 @@ const TABS: { key: Tab; icon: string; label: string }[] = [
   { key: 'results',      icon: '', label: 'Results'      },
   { key: 'transactions', icon: '', label: 'Transactions' },
   { key: 'festivals',    icon: '', label: 'Festivals'    },
+  { key: 'retailers',   icon: '', label: '🏪 Retailers'  },
 ];
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
@@ -172,6 +173,11 @@ export default function AdminPage() {
   const [userActivity,   setUserActivity]   = useState<any>(null);
   const [adjustAmt,      setAdjustAmt]      = useState('');
   const [isMobile,       setIsMobile]       = useState(false);
+  // ── Retailers state ─────────────────────────────────────────────────────────
+  const [retailers,      setRetailers]      = useState<any[]>([]);
+  const [retailersLoaded,setRetailersLoaded]= useState(false);
+  const [rForm,          setRForm]          = useState({ name:'', phone:'', commissionPct:'10' });
+  const [rLoading,       setRLoading]       = useState(false);
   useEffect(() => {
     const c = () => setIsMobile(window.innerWidth < 768);
     c();
@@ -2591,6 +2597,123 @@ export default function AdminPage() {
               </div>
             </div>
           )}
+
+          {/* ── Retailers Tab ───────────────────────────────────────────────── */}
+          {tab === 'retailers' && (() => {
+            if (!retailersLoaded) {
+              authFetch('/api/admin/retailers').then(r=>r.json()).then(d=>{
+                if(d.retailers) setRetailers(d.retailers);
+                setRetailersLoaded(true);
+              }).catch(()=>setRetailersLoaded(true));
+            }
+            return (
+              <div style={{ display:'flex', flexDirection:'column', gap:24 }}>
+                {/* Create Retailer */}
+                <div style={card}>
+                  <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--Border)' }}>
+                    <h3 style={{ fontWeight:800, fontSize:17, margin:0 }}>➕ Create Retailer</h3>
+                    <p style={{ color:'var(--Secondary)', fontSize:13, margin:'4px 0 0' }}>Link an existing user (by phone) or create a new RETAILER account</p>
+                  </div>
+                  <div style={{ padding:'20px 24px', display:'flex', gap:12, flexWrap:'wrap' }}>
+                    <div style={{ flex:1, minWidth:160 }}>
+                      <label style={label}>Retailer Name</label>
+                      <input style={inp} placeholder="e.g. Raju Shop" value={rForm.name} onChange={e=>setRForm(p=>({...p,name:e.target.value}))} />
+                    </div>
+                    <div style={{ flex:1, minWidth:160 }}>
+                      <label style={label}>Phone Number</label>
+                      <input style={inp} placeholder="10-digit phone" value={rForm.phone} onChange={e=>setRForm(p=>({...p,phone:e.target.value}))} />
+                    </div>
+                    <div style={{ width:120 }}>
+                      <label style={label}>Commission %</label>
+                      <input style={inp} type="number" min="0" max="100" value={rForm.commissionPct} onChange={e=>setRForm(p=>({...p,commissionPct:e.target.value}))} />
+                    </div>
+                    <div style={{ display:'flex', alignItems:'flex-end' }}>
+                      <button disabled={rLoading} onClick={async()=>{
+                        if (!rForm.name || !rForm.phone) { toast.error('Name and phone required'); return; }
+                        setRLoading(true);
+                        const r = await authFetch('/api/admin/retailers', { method:'POST', body: JSON.stringify({ name:rForm.name, phone:rForm.phone, commissionPct:Number(rForm.commissionPct) }) });
+                        const d = await r.json();
+                        if (d.ok) {
+                          toast.success(`Retailer created! Login: ${d.loginCode} / Password: ${d.defaultPassword}`);
+                          setRetailers(p=>[d.retailer,...p]);
+                          setRForm({ name:'', phone:'', commissionPct:'10' });
+                        } else toast.error(d.error ?? 'Failed');
+                        setRLoading(false);
+                      }} style={{ padding:'11px 24px', borderRadius:10, background:'linear-gradient(270deg,#fe8c45,#ca2826)', border:'none', color:'#fff', fontWeight:700, cursor:'pointer', fontSize:14, opacity:rLoading?0.6:1 }}>
+                        {rLoading ? '...' : 'Create'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Retailers List */}
+                <div style={card}>
+                  <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--Border)' }}>
+                    <h3 style={{ fontWeight:800, fontSize:17, margin:0 }}>🏪 All Retailers ({retailers.length})</h3>
+                  </div>
+                  <div style={{ padding:'20px 24px' }}>
+                    {!retailersLoaded ? (
+                      <p style={{ color:'var(--Secondary)', fontSize:14 }}>Loading...</p>
+                    ) : retailers.length === 0 ? (
+                      <p style={{ color:'var(--Secondary)', fontSize:14 }}>No retailers yet. Create one above.</p>
+                    ) : (
+                      <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                        {retailers.map((ret:any) => (
+                          <div key={ret.id} style={{ background:'var(--Bg-3)', borderRadius:12, padding:'16px 20px', border:'1px solid var(--Border-2)', display:'flex', flexWrap:'wrap', gap:16, alignItems:'center' }}>
+                            <div style={{ flex:1, minWidth:200 }}>
+                              <div style={{ fontWeight:800, fontSize:15 }}>{ret.name}</div>
+                              <div style={{ color:'var(--Secondary)', fontSize:12, marginTop:2 }}>
+                                Code: <b style={{ color:'#fe8c45' }}>{ret.code}</b> · Phone: {ret.phone}
+                              </div>
+                              <div style={{ color:'var(--Secondary)', fontSize:12, marginTop:2 }}>
+                                User: {ret.user?.name ?? '—'} · Sales: {ret.totalSales} tickets · Commission earned: ₹{ret.totalCommission}
+                              </div>
+                            </div>
+                            <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+                              <div>
+                                <label style={{ ...label, marginBottom:2 }}>Commission %</label>
+                                <input type="number" min="0" max="100" defaultValue={ret.commissionPct} style={{ ...inp, width:80, padding:'6px 10px', fontSize:13 }}
+                                  onBlur={async(e)=>{
+                                    const val = Number(e.target.value);
+                                    if (val === ret.commissionPct) return;
+                                    const r = await authFetch('/api/admin/retailers', { method:'PATCH', body: JSON.stringify({ retailerId:ret.id, commissionPct:val }) });
+                                    const d = await r.json();
+                                    if(d.ok){ setRetailers(p=>p.map((x:any)=>x.id===ret.id?{...x,commissionPct:val}:x)); toast.success('Updated'); }
+                                    else toast.error(d.error??'Failed');
+                                  }}
+                                />
+                              </div>
+                              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+                                <label style={{ ...label, marginBottom:0 }}>Active</label>
+                                <input type="checkbox" checked={ret.isActive} style={{ width:18, height:18, accentColor:'#22c55e', cursor:'pointer' }}
+                                  onChange={async(e)=>{
+                                    const val = e.target.checked;
+                                    const r = await authFetch('/api/admin/retailers', { method:'PATCH', body: JSON.stringify({ retailerId:ret.id, isActive:val }) });
+                                    const d = await r.json();
+                                    if(d.ok){ setRetailers(p=>p.map((x:any)=>x.id===ret.id?{...x,isActive:val}:x)); toast.success(val?'Activated':'Deactivated'); }
+                                    else toast.error(d.error??'Failed');
+                                  }}
+                                />
+                              </div>
+                              <button onClick={async()=>{
+                                if (!confirm(`Delete retailer ${ret.name}?`)) return;
+                                const r = await authFetch('/api/admin/retailers', { method:'DELETE', body: JSON.stringify({ retailerId:ret.id }) });
+                                const d = await r.json();
+                                if(d.ok){ setRetailers(p=>p.filter((x:any)=>x.id!==ret.id)); toast.success('Deleted'); }
+                                else toast.error(d.error??'Failed');
+                              }} style={{ padding:'8px 14px', borderRadius:8, background:'rgba(239,68,68,0.15)', border:'1px solid rgba(239,68,68,0.3)', color:'#ef4444', cursor:'pointer', fontSize:12, fontWeight:700 }}>
+                                🗑 Delete
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
         </div>
       </div>
