@@ -92,41 +92,44 @@ export async function GET(req: NextRequest) {
   const adminCacheKey = 'admin:markets';
   const adminCached = getCache(adminCacheKey);
   if (adminCached) return NextResponse.json(adminCached);
-  try {
-    // Compute isOpen from IST time
-    const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-    const curMin = nowIST.getHours() * 60 + nowIST.getMinutes();
-    const hm = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
 
-    const [markets, stats] = await Promise.all([
-      prisma.matkaMarket.findMany({
-        include: {
-          _count: { select: { bets: true } },
-          results: { where: { createdAt: { gte: new Date(new Date().setHours(0,0,0,0)) } }, take: 1, orderBy: { createdAt: 'desc' } },
-        },
-      }),
-      // BetStatus enum values: ACTIVE, WON, LOST, REFUNDED
-      prisma.matkaBet.aggregate({
-        _sum: { amount: true, potentialWin: true },
-        where: { status: 'ACTIVE' },  // ✅ correct enum value
-      }),
-    ]);
-    const enriched = markets.map((m: any) => {
-      const timeOpen = curMin >= hm(m.openTime) && curMin < hm(m.closeTime);
-      const open = m.isOpen || timeOpen; // DB flag OR time-based
-      return { ...m, isOpen: open };
+  // Compute isOpen from IST time
+  const nowIST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+  const curMin = nowIST.getHours() * 60 + nowIST.getMinutes();
+  const hm = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+
+  // Fetch markets separately so a stats failure never hides markets
+  let markets: any[] = [];
+  try {
+    markets = await prisma.matkaMarket.findMany({
+      include: {
+        results: { where: { createdAt: { gte: new Date(new Date().setHours(0,0,0,0)) } }, take: 1, orderBy: { createdAt: 'desc' } },
+      },
+      orderBy: { openTime: 'asc' },
     });
-    const adminResp = {
-      markets: enriched,
-      pendingBets:    stats._sum.amount      ?? 0,
-      potentialPayout: stats._sum.potentialWin ?? 0,
-    };
-    setCache(adminCacheKey, adminResp, 60000); // 1 min cache
-    return NextResponse.json(adminResp);
   } catch (e: any) {
-    console.error('admin/markets GET error:', e.message);
-    return NextResponse.json({ markets: [], pendingBets: 0, potentialPayout: 0 });
+    console.error('admin/markets findMany error:', e.message);
   }
+
+  let pendingBets = 0;
+  let potentialPayout = 0;
+  try {
+    const stats = await prisma.matkaBet.aggregate({
+      _sum: { amount: true, potentialWin: true },
+      where: { status: 'ACTIVE' },
+    });
+    pendingBets    = stats._sum.amount      ?? 0;
+    potentialPayout = stats._sum.potentialWin ?? 0;
+  } catch (_) { /* stats failure is non-fatal */ }
+
+  const enriched = markets.map((m: any) => {
+    const timeOpen = curMin >= hm(m.openTime) && curMin < hm(m.closeTime);
+    const open = m.isOpen || timeOpen;
+    return { ...m, isOpen: open };
+  });
+  const adminResp = { markets: enriched, pendingBets, potentialPayout };
+  if (enriched.length > 0) setCache(adminCacheKey, adminResp, 60000);
+  return NextResponse.json(adminResp);
 }
 
 export async function POST(req: NextRequest) {

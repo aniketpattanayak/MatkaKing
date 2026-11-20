@@ -19,12 +19,18 @@ export async function POST(req: NextRequest) {
 
   const results = [];
   for (const market of DEFAULT_MARKETS) {
-    const existing = await prisma.matkaMarket.findUnique({ where: { id: market.id } });
-    if (!existing) {
-      const created = await prisma.matkaMarket.create({ data: market });
-      results.push({ name: created.name, status: 'created' });
-    } else {
-      results.push({ name: existing.name, status: 'already_exists' });
+    try {
+      const existing = await prisma.matkaMarket.findFirst({ where: { name: market.name } });
+      if (!existing) {
+        // create without custom id — let Prisma generate a cuid
+        const { id: _id, ...marketData } = market;
+        const created = await prisma.matkaMarket.create({ data: marketData });
+        results.push({ name: created.name, status: 'created' });
+      } else {
+        results.push({ name: existing.name, status: 'already_exists' });
+      }
+    } catch (e: any) {
+      results.push({ name: market.name, status: 'error', error: e.message });
     }
   }
 
