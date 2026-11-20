@@ -9,9 +9,9 @@ async function isAdmin(req: NextRequest) {
 }
 
 const DEFAULT_MARKETS = [
-  { id: 'milan-day',   name: 'Milan Day',   openTime: '09:30', closeTime: '11:30', resultTime: '12:00', isOpen: true  },
-  { id: 'kalyan',      name: 'Kalyan',       openTime: '15:45', closeTime: '17:45', resultTime: '18:00', isOpen: true  },
-  { id: 'milan-night', name: 'Milan Night',  openTime: '21:00', closeTime: '23:00', resultTime: '23:30', isOpen: false },
+  { name: 'Milan Day',   openTime: '09:30', closeTime: '11:30', resultTime: '12:00', isOpen: true  },
+  { name: 'Kalyan',      openTime: '15:45', closeTime: '17:45', resultTime: '18:00', isOpen: true  },
+  { name: 'Milan Night', openTime: '21:00', closeTime: '23:00', resultTime: '23:30', isOpen: false },
 ];
 
 export async function POST(req: NextRequest) {
@@ -22,9 +22,7 @@ export async function POST(req: NextRequest) {
     try {
       const existing = await prisma.matkaMarket.findFirst({ where: { name: market.name } });
       if (!existing) {
-        // create without custom id — let Prisma generate a cuid
-        const { id: _id, ...marketData } = market;
-        const created = await prisma.matkaMarket.create({ data: marketData });
+        const created = await prisma.matkaMarket.create({ data: market });
         results.push({ name: created.name, status: 'created' });
       } else {
         results.push({ name: existing.name, status: 'already_exists' });
