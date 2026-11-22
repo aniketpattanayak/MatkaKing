@@ -105,6 +105,7 @@ export async function GET(req: NextRequest) {
     markets = await prisma.matkaMarket.findMany({
       include: {
         results: { where: { createdAt: { gte: new Date(new Date().setHours(0,0,0,0)) } }, take: 1, orderBy: { createdAt: 'desc' } },
+        _count: { select: { bets: true } },
       },
       orderBy: { openTime: 'asc' },
     });
