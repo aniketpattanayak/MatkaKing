@@ -657,12 +657,10 @@ export default function MatkaPage() {
     setBalance(p => { const nb = p - totalBet; const cu = getCachedUser(); if (cu) setCachedUser({...cu, balance: nb}); return nb; });
     toast.success(`🎰 ${cart.length} bets placed! Potential ₹${totalPot.toLocaleString()}`);
     setCart([]);
-    // Reload today's bets
-    if (market?.id) {
-      authFetch(`/api/user/results`).then(r=>r.json()).then(d=>{
-        if(d.matkaBets) setTodayBets(d.matkaBets.filter((b:any)=>b.marketId===market.id));
-      }).catch(()=>{});
-    }
+    // Reload today's bets (keep all markets so switching market still shows bets)
+    authFetch(`/api/user/results`).then(r=>r.json()).then(d=>{
+      if(d.matkaBets) setTodayBets(d.matkaBets.slice(0,100));
+    }).catch(()=>{});
     setBuying(false);
   };
 

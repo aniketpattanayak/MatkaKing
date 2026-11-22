@@ -7,8 +7,13 @@ export async function GET(req: NextRequest) {
     const p = verifyToken(req);
     if (!p) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const [matkaBets, lotteryBets, transactions] = await Promise.all([
-      prisma.matkaBet.findMany({
+    // Run each query independently — a failure in one must not wipe matkaBets
+    let matkaBets: any[] = [];
+    let lotteryBets: any[] = [];
+    let transactions: any[] = [];
+
+    try {
+      matkaBets = await prisma.matkaBet.findMany({
         where:   { userId: p.sub },
         orderBy: { placedAt: 'desc' },
         take:    100,
@@ -16,8 +21,13 @@ export async function GET(req: NextRequest) {
           market: { select: { id: true, name: true, openTime: true, closeTime: true } },
           result: { select: { openPatti: true, closePatti: true, jodi: true, openAnk: true, closeAnk: true } },
         },
-      }),
-      prisma.lotteryBet.findMany({
+      });
+    } catch (e: any) {
+      console.error('user/results matkaBets error:', e.message);
+    }
+
+    try {
+      lotteryBets = await prisma.lotteryBet.findMany({
         where:   { userId: p.sub },
         orderBy: { placedAt: 'desc' },
         take:    20,
@@ -25,13 +35,20 @@ export async function GET(req: NextRequest) {
           series: { select: { id: true, name: true, status: true, drawAt: true, prefix: true, firstPrize: true, secondPrize: true, thirdPrize: true } },
           ticket: { select: { ticketCode: true, isWinner: true } },
         },
-      }),
-      prisma.transaction.findMany({
+      });
+    } catch (e: any) {
+      console.error('user/results lotteryBets error:', e.message);
+    }
+
+    try {
+      transactions = await prisma.transaction.findMany({
         where:   { userId: p.sub, type: 'WIN_CREDIT' },
         orderBy: { createdAt: 'desc' },
         take:    20,
-      }),
-    ]);
+      });
+    } catch (e: any) {
+      console.error('user/results transactions error:', e.message);
+    }
 
     // Compute total stats
     const totalMatkaWon = matkaBets.filter((b:any) => b.status === 'WON').reduce((s:number, b:any) => s + (b.wonAmount ?? 0), 0);
