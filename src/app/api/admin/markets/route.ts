@@ -100,6 +100,7 @@ export async function GET(req: NextRequest) {
 
   // Fetch markets separately so a stats failure never hides markets
   let markets: any[] = [];
+  let marketsError: string | null = null;
   try {
     markets = await prisma.matkaMarket.findMany({
       include: {
@@ -108,7 +109,16 @@ export async function GET(req: NextRequest) {
       orderBy: { openTime: 'asc' },
     });
   } catch (e: any) {
+    marketsError = e.message;
     console.error('admin/markets findMany error:', e.message);
+    // Fallback: try without results include in case MatkaResult has schema mismatch
+    try {
+      markets = await prisma.matkaMarket.findMany({ orderBy: { openTime: 'asc' } });
+      marketsError = null;
+    } catch (e2: any) {
+      console.error('admin/markets fallback error:', e2.message);
+      marketsError = e2.message;
+    }
   }
 
   let pendingBets = 0;
@@ -127,7 +137,7 @@ export async function GET(req: NextRequest) {
     const open = m.isOpen || timeOpen;
     return { ...m, isOpen: open };
   });
-  const adminResp = { markets: enriched, pendingBets, potentialPayout };
+  const adminResp = { markets: enriched, pendingBets, potentialPayout, ...(marketsError ? { _dbError: marketsError } : {}) };
   if (enriched.length > 0) setCache(adminCacheKey, adminResp, 60000);
   return NextResponse.json(adminResp);
 }

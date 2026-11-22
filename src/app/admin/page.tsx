@@ -408,13 +408,22 @@ export default function AdminPage() {
 
   // ── Seed default markets ─────────────────────────────────────────────────────
   async function seedMarkets() {
-    const r = await authFetch('/api/admin/seed-markets', { method:'POST' });
-    const d = await r.json();
-    if (r.ok) {
-      const created = d.results.filter((x:any)=>x.status==='created').length;
-      toast.success(created > 0 ? `✓ ${created} markets created!` : 'Markets already exist — refreshing...');
-      load();
-    } else toast.error(d.error);
+    try {
+      const r = await authFetch('/api/admin/seed-markets', { method:'POST' });
+      let d: any = {};
+      try { d = await r.json(); } catch { toast.error('Seed failed: invalid server response'); return; }
+      if (r.ok) {
+        const created = (d.results ?? []).filter((x:any)=>x.status==='created').length;
+        const errors  = (d.results ?? []).filter((x:any)=>x.status==='error');
+        if (errors.length) toast.error(`Error: ${errors[0].error}`);
+        else toast.success(created > 0 ? `✓ ${created} markets created!` : 'Markets already exist — refreshing...');
+        load();
+      } else {
+        toast.error(d.error ?? `Server error ${r.status}`);
+      }
+    } catch (e: any) {
+      toast.error(`Seed failed: ${e.message}`);
+    }
   }
 
   // ── Spin segment CRUD ─────────────────────────────────────────────────────────
