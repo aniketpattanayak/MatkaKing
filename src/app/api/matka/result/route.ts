@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-function isMarketOpen(openTime: string, closeTime: string): boolean {
+// Use saleTime (when available) as the bet-open threshold, matching what the UI shows.
+function isMarketOpen(market: any): boolean {
   const ist = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
   const cur = ist.getHours()*60 + ist.getMinutes();
   const hm  = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
-  return cur >= hm(openTime) && cur < hm(closeTime);
+  const start = market.saleTime ? hm(market.saleTime) : hm(market.openTime);
+  return cur >= start && cur < hm(market.closeTime);
 }
 import { prisma, verifyToken } from '@/lib/api-helper';
 
@@ -56,7 +58,7 @@ export async function POST(req: NextRequest) {
       prisma.wallet.findUnique({ where: { userId: p.sub } }),
     ]);
 
-    const marketOpen = market.isOpen || isMarketOpen(market.openTime, market.closeTime);
+    const marketOpen = market.isOpen || isMarketOpen(market);
     if (!market || !marketOpen) return NextResponse.json({ error: 'Market is closed. Please wait for market to open.' }, { status: 400 });
     // Block Jodi and Full Sangam after open is declared
     const todayResult = await prisma.matkaResult.findFirst({

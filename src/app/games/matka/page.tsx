@@ -646,16 +646,36 @@ export default function MatkaPage() {
     if (cart.length === 0) return toast.warning('Cart is empty');
     if (balance < totalBet) return toast.error(`Need ₹${totalBet}, have ₹${balance}`);
     setBuying(true);
-    try {
-      for (const b of cart) {
-        await authFetch('/api/matka/result', {
+    let placed = 0;
+    let firstError = '';
+    for (const b of cart) {
+      try {
+        const r = await authFetch('/api/matka/result', {
           method: 'POST',
           body: JSON.stringify({ action: 'place_bet', marketId: market.id, betType: b.label, betValue: b.value, session: b.session, amount: b.amount }),
         });
+        if (r.ok) {
+          placed++;
+        } else {
+          const d = await r.json().catch(() => ({}));
+          if (!firstError) firstError = d.error ?? `Server error ${r.status}`;
+        }
+      } catch (e: any) {
+        if (!firstError) firstError = e.message;
       }
-    } catch { /* demo ok */ }
-    setBalance(p => { const nb = p - totalBet; const cu = getCachedUser(); if (cu) setCachedUser({...cu, balance: nb}); return nb; });
-    toast.success(`🎰 ${cart.length} bets placed! Potential ₹${totalPot.toLocaleString()}`);
+    }
+    if (placed === 0) {
+      toast.error(firstError || 'Bets failed. Please try again.');
+      setBuying(false);
+      return;
+    }
+    if (firstError) {
+      toast.warning(`${placed}/${cart.length} bets placed. ${firstError}`);
+    } else {
+      toast.success(`🎰 ${placed} bets placed! Potential ₹${totalPot.toLocaleString()}`);
+    }
+    const placedAmount = cart.slice(0, placed).reduce((s, b) => s + b.amount, 0);
+    setBalance(p => { const nb = p - placedAmount; const cu = getCachedUser(); if (cu) setCachedUser({...cu, balance: nb}); return nb; });
     setCart([]);
     // Reload today's bets (keep all markets so switching market still shows bets)
     authFetch(`/api/user/results`).then(r=>r.json()).then(d=>{
